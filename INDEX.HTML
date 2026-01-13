@@ -1,124 +1,168 @@
 <!DOCTYPE html>
-<html lang="PT-BR">
+<html lang="pt-PT">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SGF - GESTÃO DE FROTA COMPLETA</title>
+    <title>SGF PLATINUM - NEXUS EDITION</title>
     
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-database-compat.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://unpkg.com/html5-qrcode"></script>
+    <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css">
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
 
     <style>
-        :root { --primary: #1E3A8A; --secondary: #3B82F6; --success: #10B981; --danger: #EF4444; --warning: #F59E0B; --bg: #F1F5F9; }
-        * { box-sizing: border-box; font-family: 'Segoe UI', sans-serif; text-transform: uppercase; }
-        body { background-color: var(--bg); margin: 0; padding: 20px; }
-        .container { max-width: 1400px; margin: 0 auto; }
+        :root { --primary: #0f172a; --accent: #3b82f6; --success: #22c55e; --warning: #f59e0b; --bg: #f8fafc; }
+        * { box-sizing: border-box; font-family: 'Segoe UI', sans-serif; text-transform: uppercase; outline: none; }
+        body { background-color: var(--bg); margin: 0; padding: 20px; color: #334155; }
+        .container { max-width: 1400px; margin: 0 auto; transition: 0.3s; }
+        .blurred { filter: blur(12px); pointer-events: none; visibility: hidden; }
+
+        /* LOGIN */
+        #login-screen { position: fixed; top:0; left:0; width:100%; height:100%; background: var(--primary); z-index:999; display: flex; align-items:center; justify-content:center; flex-direction:column; color:white; }
+        .login-box input { padding: 15px; border-radius: 30px; border: 2px solid transparent; text-align: center; font-size: 18px; width: 300px; margin-bottom: 15px; text-transform: none; /* Senha pode ser minuscula */ }
+        .btn-login { padding: 15px 40px; border-radius: 30px; border:none; background: var(--accent); color:white; font-weight:bold; cursor:pointer; font-size: 16px; width: 100%; }
+
+        /* CARDS */
+        .card { background: white; border-radius: 12px; padding: 25px; margin-bottom: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); border: 1px solid #e2e8f0; position: relative; overflow: hidden; }
+        .card-header { position: absolute; top:0; left:0; width:100%; height: 6px; background: linear-gradient(90deg, var(--accent), var(--primary)); }
+        .title { font-size: 14px; font-weight: 800; color: var(--primary); margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center; }
+
+        /* QR SCANNER */
+        #reader { width: 100%; border-radius: 8px; overflow: hidden; display: none; margin-bottom: 15px; border: 2px solid var(--accent); }
+        .btn-qr { background: var(--primary); color: white; border: none; border-radius: 8px; padding: 10px; cursor: pointer; display: flex; align-items: center; justify-content: center; width: 45px; }
+
+        /* FORMULÁRIO */
+        .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 15px; }
+        label { font-size: 10px; font-weight: bold; color: #64748b; margin-bottom: 5px; display: block; }
+        input, select { width: 100%; padding: 12px; border: 2px solid #e2e8f0; border-radius: 8px; font-weight: 600; font-size: 13px; }
         
-        .main-header { background: white; padding: 15px 20px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); margin-bottom: 20px; border-bottom: 4px solid var(--primary); display: flex; justify-content: space-between; align-items: center;}
-        
-        .dashboard { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 20px; }
-        .card-dash { background: white; padding: 15px; border-radius: 10px; border-left: 5px solid var(--secondary); box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
-        .card-dash h3 { margin: 0; font-size: 10px; color: #64748B; }
-        .card-dash p { margin: 5px 0 0; font-size: 20px; font-weight: bold; color: var(--primary); }
+        /* GRÁFICOS */
+        .charts-row { display: grid; grid-template-columns: 2fr 1fr; gap: 20px; height: 320px; margin-bottom: 20px; }
+        @media (max-width: 800px) { .charts-row { grid-template-columns: 1fr; height: auto; } }
 
-        /* ESTILO DO BOTÃO NOVO */
-        .btn-new-action { background: var(--secondary); color: white; padding: 12px 25px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; margin-bottom: 15px; display: flex; align-items: center; gap: 8px; box-shadow: 0 4px 6px rgba(59, 130, 246, 0.3); }
-        .btn-new-action:hover { background: #2563EB; transform: translateY(-2px); }
+        /* BOTÕES */
+        .btn-action { width: 100%; padding: 18px; border: none; border-radius: 8px; font-size: 16px; font-weight: 900; color: white; cursor: pointer; margin-top: 20px; background: var(--success); box-shadow: 0 4px 0 #15803d; }
+        .btn-editar-mode { background: var(--warning) !important; box-shadow: 0 4px 0 #b45309 !important; }
+        .btn-cancel { background: #ef4444; color: white; padding: 10px; border-radius: 6px; border: none; font-weight: bold; cursor: pointer; display: none; margin-top: 10px; width: 100%; }
 
-        .section-card { background: white; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); margin-bottom: 20px; overflow: hidden; }
-        .section-header { background: var(--primary); color: white; padding: 12px 20px; font-size: 12px; font-weight: bold; }
-        .section-body { padding: 20px; }
+        /* TABELA */
+        table { width: 100%; border-collapse: collapse; font-size: 11px; }
+        th { text-align: left; padding: 12px; background: #f8fafc; border-bottom: 2px solid #e2e8f0; }
+        td { padding: 12px; border-bottom: 1px solid #f1f5f9; }
+        .badge { padding: 4px 8px; border-radius: 6px; font-weight: bold; font-size: 10px; }
+        .bg-green { background: #dcfce7; color: #166534; }
+        .bg-blue { background: #dbeafe; color: #1e40af; }
 
-        .grid-form { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 15px; }
-        input, select { padding: 10px; border: 2px solid #E2E8F0; border-radius: 6px; width: 100%; font-size: 13px; }
-        label { font-size: 10px; font-weight: bold; color: #475569; margin-bottom: 5px; display: block; }
-        
-        .btn { padding: 12px 20px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; transition: 0.3s; color: white; }
-        .btn-save { background: var(--success); width: 100%; margin-top: 15px; font-size: 14px; }
-        .btn-report { background: var(--secondary); }
-
-        table { width: 100%; border-collapse: collapse; }
-        th { background: #F8FAFC; padding: 12px; text-align: left; border-bottom: 2px solid #E2E8F0; font-size: 11px; color: var(--primary); }
-        td { padding: 12px; border-bottom: 1px solid #F1F5F9; font-size: 12px; }
-
-        #area-impressao { display: none; background: white; padding: 30px; border-radius: 10px; margin-top: 20px; border: 1px solid #ddd; }
-        @media print { .no-print { display: none !important; } #area-impressao { display: block !important; } }
+        #area-impressao { display: none; background: white; padding: 40px; color: black; }
+        @media print { 
+            body { padding: 0; background: white; }
+            .no-print { display: none !important; } 
+            #area-impressao { display: block !important; position: absolute; top: 0; left: 0; width: 100%; } 
+            .container { filter: none !important; visibility: visible !important; }
+        }
     </style>
 </head>
 <body>
 
-<div class="container">
-    <div class="main-header no-print">
-        <h1 style="margin:0; font-size:18px; color:var(--primary)">SGF - GESTÃO DE FROTA</h1>
-        <span style="color: var(--success); font-size: 11px; font-weight: bold;">● NUVEM ATIVA</span>
+<div id="login-screen">
+    <h1 style="margin-bottom: 5px; letter-spacing: 2px;">SGF PLATINUM</h1>
+    <div class="login-box">
+        <input type="password" id="senha" placeholder="DIGITE A SENHA" onkeydown="if(event.key==='Enter') logar()">
+        <br>
+        <button class="btn-login" onclick="logar()">ENTRAR NO SISTEMA</button>
+    </div>
+</div>
+
+<div class="container blurred" id="app">
+    <div class="card no-print" style="background: #0f172a; color: white; display: flex; gap: 20px; align-items: center; padding: 15px;">
+        <div style="font-size: 12px; font-weight: bold;">⛽ VALOR DO LITRO:</div>
+        <div><label style="color:#94a3b8">POSTO VITOR</label><input type="number" id="price-v" value="5.89" step="0.01" oninput="calc()" style="width:90px; text-align:center; color:black"></div>
+        <div><label style="color:#94a3b8">POSTO MATINA</label><input type="number" id="price-m" value="5.89" step="0.01" oninput="calc()" style="width:90px; text-align:center; color:black"></div>
     </div>
 
-    <div class="dashboard no-print">
-        <div class="card-dash"><h3>GASTO TOTAL</h3><p id="dash-total">R$ 0,00</p></div>
-        <div class="card-dash"><h3>LITROS TOTAIS</h3><p id="dash-litros">0 L</p></div>
-        <div class="card-dash" style="border-left-color: var(--warning);"><h3>REGISTROS</h3><p id="dash-count">0</p></div>
+    <div class="charts-row no-print">
+        <div class="card" style="margin:0"><div class="card-header"></div><div class="title">GASTOS POR SECRETARIA</div><canvas id="chartSec"></canvas></div>
+        <div class="card" style="margin:0"><div class="card-header"></div><div class="title">TOP VEÍCULOS (Gasto R$)</div><canvas id="chartVec"></canvas></div>
     </div>
 
-    <button class="btn-new-action no-print" onclick="novoAbastecimento()">
-        <span>+</span> NOVO ABASTECIMENTO
-    </button>
+    <div class="card no-print">
+        <div class="card-header"></div>
+        <div class="title"><span>NOVO ABASTECIMENTO</span> <span id="mode-badge" class="badge bg-green">SISTEMA ATIVO</span></div>
+        
+        <div id="reader"></div>
 
-    <div class="section-card no-print">
-        <div class="section-header">CADASTRO DE ABASTECIMENTO</div>
-        <div class="section-body">
-            <div class="grid-form">
-                <div><label>PLACA</label><input type="text" id="p-placa" placeholder="ABC1D23" oninput="sugerirDados(this.value)"></div>
-                <div><label>SECRETARIA</label><select id="p-sec"></select></div>
-                <div><label>MOTORISTA</label><input type="text" id="p-mot"></div>
-                <div><label>POSTO</label><select id="p-posto"><option>POSTO VITOR</option><option>POSTO MATINA</option></select></div>
-                <div><label>DATA</label><input type="date" id="p-data"></div>
-                <div><label>KM ATUAL</label><input type="number" id="p-km"></div>
-                <div><label>LITROS</label><input type="number" id="p-litro" step="0.01"></div>
-                <div><label>TOTAL R$</label><input type="number" id="p-valor" step="0.01"></div>
+        <div class="form-grid">
+            <div>
+                <label>PLACA</label>
+                <div style="display: flex; gap: 5px;">
+                    <input type="text" id="f-placa" placeholder="ABC1234" oninput="sugerir(this.value)">
+                    <button class="btn-qr" onclick="alternarScanner()" title="Escanear QR Code">📷</button>
+                </div>
             </div>
-            <button class="btn btn-save" onclick="salvar()">✔️ SALVAR REGISTRO ONLINE</button>
+            <div style="grid-column: span 2">
+                <label>SECRETARIA / SETOR</label>
+                <select id="f-sec">
+                    <option value="AVULSOS">AVULSOS / GERAL</option>
+                    <option value="Secretaria Municipal de Administração e Finanças">ADM E FINANÇAS</option>
+                    <option value="Secretaria de Infraestrutura e Serviços Públicos">INFRAESTRUTURA</option>
+                    <option value="Controlador Interno">CONTROLADORIA</option>
+                    <option value="Secretaria de Comunicação">COMUNICAÇÃO</option>
+                    <option value="Secretaria Municipal de Educação">EDUCAÇÃO</option>
+                    <option value="Secretaria Municipal de Saúde">SAÚDE</option>
+                    <option value="Secretaria de Agricultura">AGRICULTURA</option>
+                    <option value="Secretaria de Cultura">CULTURA E DESPORTO</option>
+                    <option value="Secretaria de Governo">GOVERNO</option>
+                    <option value="Secretaria de Planejamento">PLANEJAMENTO</option>
+                    <option value="Secretaria de Assistência Social">SOCIAL</option>
+                </select>
+            </div>
+            <div><label>MOTORISTA</label><input type="text" id="f-mot"></div>
+            <div><label>POSTO</label><select id="f-posto" onchange="calc()"><option>POSTO VITOR</option><option>POSTO MATINA</option></select></div>
+            <div><label>DATA</label><input type="date" id="f-data"></div>
+            <div><label>KM ATUAL</label><input type="number" id="f-km"></div>
+            <div><label>LITROS</label><input type="number" id="f-lit" step="0.01" oninput="calc('L')"></div>
+            <div><label>TOTAL (R$)</label><input type="number" id="f-val" step="0.01" oninput="calc('V')" style="background:#f0fdf4"></div>
+        </div>
+        <button id="btn-save" class="btn-action" onclick="processar()">✔️ SALVAR REGISTRO</button>
+        <button id="btn-cancel" class="btn-cancel" onclick="cancelarEdicao()">CANCELAR EDIÇÃO</button>
+    </div>
+
+    <div class="card no-print">
+        <div class="card-header"></div>
+        <div style="display: flex; gap: 10px; flex-wrap: wrap; align-items: flex-end;">
+            <div><label>DATA INÍCIO</label><input type="date" id="rel-ini"></div>
+            <div><label>DATA FIM</label><input type="date" id="rel-fim"></div>
+            <button style="background:#10b981; color:white; border:none; padding:12px; border-radius:8px; cursor:pointer; font-weight:bold" onclick="exportarExcel()">SALVAR EXCEL</button>
+            <button style="background:#3b82f6; color:white; border:none; padding:12px; border-radius:8px; cursor:pointer; font-weight:bold" onclick="printRel()">IMPRIMIR PDF</button>
+            <input type="text" id="busca" placeholder="FILTRAR POR PLACA..." style="width: 200px; margin-left: auto;" oninput="filtrar(this.value)">
         </div>
     </div>
 
-    <div class="section-card no-print">
-        <div class="section-header">RELATÓRIOS E FILTROS</div>
-        <div class="section-body">
-            <div style="display: flex; gap: 10px; align-items: flex-end; flex-wrap: wrap;">
-                <div style="flex:1"><label>INÍCIO</label><input type="date" id="rel-inicio"></div>
-                <div style="flex:1"><label>FIM</label><input type="date" id="rel-fim"></div>
-                <button class="btn btn-report" onclick="gerarRelatorio('detalhado')">GERAL</button>
-                <button class="btn btn-report" onclick="gerarRelatorio('secretaria')" style="background:var(--warning)">POR SECRETARIA</button>
-                <button class="btn btn-report" onclick="gerarRelatorio('posto')" style="background:var(--primary)">POR POSTO</button>
-            </div>
-        </div>
-    </div>
-
-    <div class="section-card no-print">
-        <div class="section-header">ÚLTIMOS LANÇAMENTOS</div>
-        <div class="section-body" style="max-height: 300px; overflow-y: auto;">
-            <table id="tabela-principal">
-                <thead><tr><th>DATA</th><th>PLACA</th><th>MOTORISTA</th><th>POSTO</th><th>LITROS</th><th>TOTAL</th><th>AÇÃO</th></tr></thead>
+    <div class="card no-print">
+        <div style="overflow-x: auto;">
+            <table id="tabela">
+                <thead><tr><th>DATA</th><th>PLACA</th><th>MOTORISTA</th><th>KM</th><th>RODADO</th><th>MÉDIA</th><th>CUSTO/KM</th><th>VALOR</th><th>AÇÕES</th></tr></thead>
                 <tbody></tbody>
             </table>
         </div>
     </div>
 
     <div id="area-impressao">
-        <h2 id="rel-titulo-txt" style="text-align:center"></h2>
-        <p id="rel-periodo-txt" style="text-align:center"></p>
-        <table id="tabela-relatorio" border="1" style="width:100%; border-collapse:collapse; margin-top:20px;">
-            <thead><tr id="head-rel"></tr></thead>
-            <tbody></tbody>
-            <tfoot id="foot-rel"></tfoot>
+        <h1 style="text-align: center; margin: 0;">SGF - RELATÓRIO DE MOVIMENTAÇÃO</h1>
+        <p id="rel-sub" style="text-align: center; font-weight: bold;"></p>
+        <hr>
+        <table border="1" style="width: 100%; border-collapse: collapse; margin-top: 10px;">
+            <thead id="pdf-head"></thead>
+            <tbody id="pdf-body"></tbody>
+            <tfoot id="pdf-foot" style="background: #eee; font-weight: bold;"></tfoot>
         </table>
-        <div class="no-print" style="margin-top:20px; text-align:right;">
-            <button class="btn" style="background:#64748B" onclick="window.print()">IMPRIMIR</button>
-            <button class="btn" style="background:var(--danger)" onclick="document.getElementById('area-impressao').style.display='none'">FECHAR</button>
-        </div>
     </div>
 </div>
 
 <script>
+    // CONFIGURAÇÃO FIREBASE
     const firebaseConfig = {
         apiKey: "AIzaSyDsEQ8L_hWgacZ8xweY3DR9OYt2t151kZE",
         authDomain: "tabela-gasolina.firebaseapp.com",
@@ -128,109 +172,182 @@
         messagingSenderId: "77121029722",
         appId: "1:77121029722:web:641b26a6cdf4c287f53a63"
     };
-
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
-    let cacheDados = [];
+    
+    let cache = [], editID = null, chartP = null, chartB = null, html5QrCode = null;
 
-    const secretarias = ["GABINETE", "ADMINISTRAÇÃO", "SAÚDE", "EDUCAÇÃO", "INFRAESTRUTURA", "SOCIAL", "AGRICULTURA", "CULTURA"];
-    const selSec = document.getElementById('p-sec');
-    secretarias.sort().forEach(s => selSec.innerHTML += `<option value="${s}">${s}</option>`);
-    document.getElementById('p-data').valueAsDate = new Date();
-
-    // FUNÇÃO NOVO ABASTECIMENTO (LIMPAR)
-    function novoAbastecimento() {
-        document.getElementById('p-placa').value = "";
-        document.getElementById('p-mot').value = "";
-        document.getElementById('p-km').value = "";
-        document.getElementById('p-litro').value = "";
-        document.getElementById('p-valor').value = "";
-        document.getElementById('p-placa').focus();
-    }
-
-    function sugerirDados(placa) {
-        const busca = cacheDados.find(item => item.placa === placa.toUpperCase().trim());
-        if(busca) {
-            document.getElementById('p-sec').value = busca.secretaria;
-            document.getElementById('p-mot').value = busca.motorista;
+    document.getElementById('f-data').valueAsDate = new Date();
+    
+    // LOGIN CORRIGIDO (ADMIN / admin / Admin funcionam)
+    function logar() {
+        const pass = document.getElementById('senha').value.toLowerCase().trim();
+        if(pass === "admin") {
+            document.getElementById('login-screen').style.display = 'none';
+            document.getElementById('app').classList.remove('blurred');
+            document.getElementById('app').style.visibility = 'visible';
+            
+            // Checar se veio via QR Code direto (URL)
+            const p = new URLSearchParams(window.location.search).get('p');
+            if(p) { document.getElementById('f-placa').value = p.toUpperCase(); setTimeout(()=>sugerir(p), 1500); }
+        } else { 
+            alert("SENHA INCORRETA!"); 
         }
     }
 
-    function salvar() {
-        const registro = {
-            placa: document.getElementById('p-placa').value.toUpperCase().trim(),
-            secretaria: document.getElementById('p-sec').value,
-            motorista: document.getElementById('p-mot').value.toUpperCase(),
-            posto: document.getElementById('p-posto').value,
-            data: document.getElementById('p-data').value,
-            km: document.getElementById('p-km').value || 0,
-            litro: parseFloat(document.getElementById('p-litro').value || 0),
-            valor: parseFloat(document.getElementById('p-valor').value || 0)
-        };
-        if(!registro.placa || !registro.valor) return alert("DADOS INCOMPLETOS!");
-        db.ref('abastecimentos').push(registro).then(() => {
-            alert("LANÇAMENTO SINCRONIZADO!");
-            novoAbastecimento();
-        });
+    // SCANNER QR CODE
+    function alternarScanner() {
+        const readerDiv = document.getElementById('reader');
+        if(readerDiv.style.display === 'block') {
+            pararScanner();
+        } else {
+            readerDiv.style.display = 'block';
+            html5QrCode = new Html5Qrcode("reader");
+            html5QrCode.start({ facingMode: "environment" }, { fps: 10, qrbox: 250 }, (text) => {
+                const placaLimpa = text.toUpperCase().replace(/[^A-Z0-9]/g, '');
+                document.getElementById('f-placa').value = placaLimpa;
+                sugerir(placaLimpa);
+                pararScanner();
+                notificar("VEÍCULO IDENTIFICADO!");
+            }).catch(err => { 
+                console.error(err);
+                alert("Erro ao acessar câmera. Verifique as permissões."); 
+                pararScanner(); 
+            });
+        }
     }
 
-    db.ref('abastecimentos').on('value', (snapshot) => {
-        const tbody = document.querySelector("#tabela-principal tbody");
-        tbody.innerHTML = ""; cacheDados = [];
-        let tR = 0, tL = 0;
-        snapshot.forEach((item) => {
-            const d = item.val(); d.id = item.key;
-            cacheDados.push(d); tR += d.valor; tL += d.litro;
-            tbody.insertAdjacentHTML('afterbegin', `<tr>
-                <td>${d.data.split('-').reverse().join('/')}</td>
-                <td><b>${d.placa}</b></td>
-                <td>${d.motorista}</td>
-                <td>${d.posto}</td>
-                <td>${d.litro}</td>
-                <td>R$ ${d.valor.toFixed(2)}</td>
-                <td><button onclick="remover('${d.id}')" style="color:red; border:none; background:none; cursor:pointer;">X</button></td>
-            </tr>`);
-        });
-        document.getElementById('dash-total').innerText = `R$ ${tR.toFixed(2)}`;
-        document.getElementById('dash-litros').innerText = `${tL.toFixed(1)} L`;
-        document.getElementById('dash-count').innerText = cacheDados.length;
+    function pararScanner() {
+        if(html5QrCode) {
+            html5QrCode.stop().then(() => { 
+                document.getElementById('reader').style.display = 'none'; 
+                html5QrCode = null;
+            }).catch(() => { document.getElementById('reader').style.display = 'none'; });
+        } else {
+            document.getElementById('reader').style.display = 'none';
+        }
+    }
+
+    // CÁLCULOS
+    function calc(origem) {
+        const posto = document.getElementById('f-posto').value;
+        const preco = parseFloat(document.getElementById(posto === 'POSTO VITOR' ? 'price-v' : 'price-m').value);
+        const l = document.getElementById('f-lit'), v = document.getElementById('f-val');
+        if(origem === 'L') v.value = (l.value * preco).toFixed(2);
+        if(origem === 'V') l.value = (v.value / preco).toFixed(2);
+    }
+
+    function sugerir(val) {
+        let clean = val.toUpperCase().replace(/[^A-Z0-9]/g, '');
+        const item = cache.find(x => x.placa === clean);
+        if(item) { 
+            document.getElementById('f-sec').value = item.secretaria; 
+            document.getElementById('f-mot').value = item.motorista; 
+        }
+    }
+
+    function processar() {
+        const d = {
+            placa: document.getElementById('f-placa').value.toUpperCase().replace(/[^A-Z0-9]/g, ''),
+            secretaria: document.getElementById('f-sec').value,
+            motorista: document.getElementById('f-mot').value.toUpperCase(),
+            posto: document.getElementById('f-posto').value,
+            data: document.getElementById('f-data').value,
+            km: parseFloat(document.getElementById('f-km').value),
+            litro: parseFloat(document.getElementById('f-lit').value),
+            valor: parseFloat(document.getElementById('f-val').value)
+        };
+        if(!d.placa || !d.valor || !d.km) return notificar("PLACA, KM E VALOR SÃO OBRIGATÓRIOS!", "error");
+        
+        if(editID) db.ref('abastecimentos/' + editID).update(d).then(() => { notificar("REGISTRO ATUALIZADO!"); cancelarEdicao(); });
+        else db.ref('abastecimentos').push(d).then(() => { notificar("REGISTRO SALVO!"); limparForm(); });
+    }
+
+    function editar(id) {
+        const item = cache.find(i => i.id === id);
+        document.getElementById('f-placa').value = item.placa;
+        document.getElementById('f-sec').value = item.secretaria;
+        document.getElementById('f-mot').value = item.motorista;
+        document.getElementById('f-data').value = item.data;
+        document.getElementById('f-km').value = item.km;
+        document.getElementById('f-lit').value = item.litro;
+        document.getElementById('f-val').value = item.valor;
+        editID = id;
+        document.getElementById('btn-save').innerHTML = "💾 SALVAR ALTERAÇÕES";
+        document.getElementById('btn-save').classList.add('btn-editar-mode');
+        document.getElementById('btn-cancel').style.display = 'block';
+        window.scrollTo(0,0);
+    }
+
+    function cancelarEdicao() {
+        editID = null; limparForm();
+        document.getElementById('btn-save').innerHTML = "✔️ SALVAR REGISTRO";
+        document.getElementById('btn-save').classList.remove('btn-editar-mode');
+        document.getElementById('btn-cancel').style.display = 'none';
+    }
+
+    function limparForm() { ["f-placa","f-km","f-lit","f-val"].forEach(i => document.getElementById(i).value = ""); }
+    function remover(id) { if(confirm("DESEJA REALMENTE APAGAR ESTE REGISTRO?")) db.ref('abastecimentos').child(id).remove(); }
+
+    // SINCRONIZAÇÃO EM TEMPO REAL
+    db.ref('abastecimentos').on('value', snap => {
+        cache = []; snap.forEach(i => { let v = i.val(); v.id = i.key; cache.push(v); });
+        renderizar(cache);
+        atualizarGraficos();
     });
 
-    function remover(id) { if(confirm("EXCLUIR REGISTRO?")) db.ref('abastecimentos').child(id).remove(); }
+    function renderizar(lista) {
+        const tbody = document.querySelector("#tabela tbody");
+        tbody.innerHTML = "";
+        const ord = [...cache].sort((a,b) => a.km - b.km);
+        [...lista].reverse().forEach(d => {
+            const ant = ord.filter(x => x.placa === d.placa && x.km < d.km).pop();
+            let kmR = "---", med = "---", ckm = "---";
+            if(ant) {
+                let diff = d.km - ant.km;
+                kmR = diff + " KM";
+                med = (diff / ant.litro).toFixed(2) + " KM/L";
+                ckm = "R$ " + (d.valor / diff).toFixed(2);
+            }
+            tbody.innerHTML += `<tr><td>${d.data.split('-').reverse().join('/')}</td><td><b>${d.placa}</b></td><td>${d.motorista}</td><td>${d.km}</td><td>${kmR}</td><td><span class="badge bg-green">${med}</span></td><td><span class="badge bg-blue">${ckm}</span></td><td>R$ ${d.valor.toFixed(2)}</td><td><button onclick="editar('${d.id}')">✏️</button><button onclick="remover('${d.id}')">🗑️</button></td></tr>`;
+        });
+    }
 
-    function gerarRelatorio(tipo) {
-        const inicio = document.getElementById('rel-inicio').value;
-        const fim = document.getElementById('rel-fim').value;
-        if(!inicio || !fim) return alert("DEFINA O PERÍODO!");
-        const filtrados = cacheDados.filter(a => a.data >= inicio && a.data <= fim);
-        const area = document.getElementById('area-impressao');
-        const corpo = document.querySelector('#tabela-relatorio tbody');
-        const head = document.getElementById('head-rel');
-        const foot = document.getElementById('foot-rel');
-        area.style.display = 'block'; corpo.innerHTML = "";
-        let tV = 0, tL = 0;
+    function atualizarGraficos() {
+        const secD = {}, vecD = {};
+        cache.forEach(d => { secD[d.secretaria] = (secD[d.secretaria] || 0) + d.valor; vecD[d.placa] = (vecD[d.placa] || 0) + d.valor; });
+        if(chartP) chartP.destroy();
+        chartP = new Chart(document.getElementById('chartSec'), { type: 'pie', data: { labels: Object.keys(secD), datasets: [{ data: Object.values(secD), backgroundColor: ['#3b82f6','#10b981','#f59e0b','#ef4444','#8b5cf6'] }] }, options: { responsive:true, maintainAspectRatio:false } });
+        const top = Object.entries(vecD).sort((a,b) => b[1]-a[1]).slice(0,5);
+        if(chartB) chartB.destroy();
+        chartB = new Chart(document.getElementById('chartVec'), { type: 'bar', data: { labels: top.map(x=>x[0]), datasets: [{ label:'R$', data: top.map(x=>x[1]), backgroundColor: '#0f172a' }] }, options: { responsive:true, maintainAspectRatio:false } });
+    }
 
-        if(tipo === 'detalhado') {
-            document.getElementById('rel-titulo-txt').innerText = "RELATÓRIO DETALHADO";
-            head.innerHTML = `<th>DATA</th><th>PLACA</th><th>MOTORISTA</th><th>POSTO</th><th>LITROS</th><th>VALOR</th>`;
-            filtrados.forEach(a => {
-                corpo.innerHTML += `<tr><td>${a.data}</td><td>${a.placa}</td><td>${a.motorista}</td><td>${a.posto}</td><td>${a.litro}</td><td>R$ ${a.valor}</td></tr>`;
-                tV += a.valor; tL += a.litro;
-            });
-        } else {
-            const agrupar = tipo === 'secretaria' ? 'secretaria' : 'posto';
-            document.getElementById('rel-titulo-txt').innerText = "RESUMO POR " + agrupar.toUpperCase();
-            head.innerHTML = `<th>${agrupar.toUpperCase()}</th><th>LITROS</th><th>VALOR TOTAL</th>`;
-            let res = {};
-            filtrados.forEach(a => {
-                let c = a[agrupar]; if(!res[c]) res[c] = {l:0, v:0};
-                res[c].l += a.litro; res[c].v += a.valor;
-                tV += a.valor; tL += a.litro;
-            });
-            for(let k in res) corpo.innerHTML += `<tr><td>${k}</td><td>${res[k].l.toFixed(2)}</td><td>R$ ${res[k].v.toFixed(2)}</td></tr>`;
-        }
-        foot.innerHTML = `<tr style="background:#eee"><td><b>TOTAIS</b></td><td colspan="${tipo==='detalhado'?4:1}"></td><td><b>${tL.toFixed(2)} L</b></td><td><b>R$ ${tV.toFixed(2)}</b></td></tr>`;
-        window.scrollTo(0, area.offsetTop);
+    function notificar(m, t) { Toastify({ text: m, duration: 2000, style: { background: t==="error"?"#ef4444":"#22c55e"} }).showToast(); }
+    function filtrar(v) { renderizar(cache.filter(d => d.placa.includes(v.toUpperCase()))); }
+
+    function exportarExcel() {
+        let csv = "DATA;PLACA;SECRETARIA;MOTORISTA;KM;VALOR\n";
+        cache.forEach(d => csv += `${d.data};${d.placa};${d.secretaria};${d.motorista};${d.km};${d.valor}\n`);
+        const a = document.createElement("a");
+        a.href = URL.createObjectURL(new Blob([csv], {type:'text/csv'}));
+        a.download = "sgf_backup_dados.csv"; a.click();
+    }
+
+    function printRel() {
+        const ini = document.getElementById('rel-ini').value, fim = document.getElementById('rel-fim').value;
+        if(!ini || !fim) return alert("POR FAVOR, SELECIONE O PERÍODO (INÍCIO E FIM)");
+        const dados = cache.filter(d => d.data >= ini && d.data <= fim);
+        document.getElementById('rel-sub').innerText = `MOVIMENTAÇÃO DE ${ini.split('-').reverse().join('/')} ATÉ ${fim.split('-').reverse().join('/')}`;
+        const body = document.getElementById('pdf-body'); body.innerHTML = "";
+        let tL=0, tV=0;
+        dados.sort((a,b) => new Date(a.data) - new Date(b.data)).forEach(d => {
+            body.innerHTML += `<tr><td>${d.data.split('-').reverse().join('/')}</td><td>${d.placa}</td><td>${d.secretaria}</td><td>${d.motorista}</td><td>${d.litro.toFixed(2)}</td><td>R$ ${d.valor.toFixed(2)}</td></tr>`;
+            tL += d.litro; tV += d.valor;
+        });
+        document.getElementById('pdf-head').innerHTML = `<tr><th>DATA</th><th>PLACA</th><th>SECRETARIA</th><th>MOTORISTA</th><th>LITROS</th><th>TOTAL</th></tr>`;
+        document.getElementById('pdf-foot').innerHTML = `<tr><td colspan="4">TOTAL DO PERÍODO SELECIONADO</td><td>${tL.toFixed(2)} L</td><td>R$ ${tV.toFixed(2)}</td></tr>`;
+        window.print();
     }
 </script>
 </body>
