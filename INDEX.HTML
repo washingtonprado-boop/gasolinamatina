@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SGF PLATINUM - NEXUS EDITION</title>
+    <title>Controle de combustível Matina/BA</title>
     
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-database-compat.js"></script>
@@ -21,7 +21,7 @@
 
         /* LOGIN */
         #login-screen { position: fixed; top:0; left:0; width:100%; height:100%; background: var(--primary); z-index:999; display: flex; align-items:center; justify-content:center; flex-direction:column; color:white; }
-        .login-box input { padding: 15px; border-radius: 30px; border: 2px solid transparent; text-align: center; font-size: 18px; width: 300px; margin-bottom: 15px; text-transform: none; /* Senha pode ser minuscula */ }
+        .login-box input { padding: 15px; border-radius: 30px; border: 2px solid transparent; text-align: center; font-size: 18px; width: 300px; margin-bottom: 15px; text-transform: none; }
         .btn-login { padding: 15px 40px; border-radius: 30px; border:none; background: var(--accent); color:white; font-weight:bold; cursor:pointer; font-size: 16px; width: 100%; }
 
         /* CARDS */
@@ -67,7 +67,7 @@
 <body>
 
 <div id="login-screen">
-    <h1 style="margin-bottom: 5px; letter-spacing: 2px;">SGF PLATINUM</h1>
+    <h1 style="margin-bottom: 5px; letter-spacing: 2px; text-align: center; padding: 0 20px;">Controle de combustível Matina/BA</h1>
     <div class="login-box">
         <input type="password" id="senha" placeholder="DIGITE A SENHA" onkeydown="if(event.key==='Enter') logar()">
         <br>
@@ -105,17 +105,17 @@
                 <label>SECRETARIA / SETOR</label>
                 <select id="f-sec">
                     <option value="AVULSOS">AVULSOS / GERAL</option>
-                    <option value="Secretaria Municipal de Administração e Finanças">ADM E FINANÇAS</option>
-                    <option value="Secretaria de Infraestrutura e Serviços Públicos">INFRAESTRUTURA</option>
-                    <option value="Controlador Interno">CONTROLADORIA</option>
-                    <option value="Secretaria de Comunicação">COMUNICAÇÃO</option>
-                    <option value="Secretaria Municipal de Educação">EDUCAÇÃO</option>
-                    <option value="Secretaria Municipal de Saúde">SAÚDE</option>
-                    <option value="Secretaria de Agricultura">AGRICULTURA</option>
-                    <option value="Secretaria de Cultura">CULTURA E DESPORTO</option>
-                    <option value="Secretaria de Governo">GOVERNO</option>
-                    <option value="Secretaria de Planejamento">PLANEJAMENTO</option>
-                    <option value="Secretaria de Assistência Social">SOCIAL</option>
+                    <option value="Secretaria Municipal de Administração e Finanças">Secretaria Municipal de Administração e Finanças</option>
+                    <option value="Secretaria de Infraestrutura e Serviços Públicos">Secretaria de Infraestrutura e Serviços Públicos</option>
+                    <option value="Controlador Interno">Controlador Interno</option>
+                    <option value="Secretaria de Comunicação">Secretaria de Comunicação</option>
+                    <option value="Secretaria Municipal de Educação">Secretaria Municipal de Educação</option>
+                    <option value="Secretaria Municipal de Saúde">Secretaria Municipal de Saúde</option>
+                    <option value="Secretaria de Agricultura, Abastecimento, Meio Ambiente e Desenvolvimento Econômico">Secretaria de Agricultura, Abastecimento, Meio Ambiente e Desenvolvimento Econômico</option>
+                    <option value="Secretaria de Cultura, Esporte e Lazer">Secretaria de Cultura, Esporte e Lazer</option>
+                    <option value="Secretaria de Governo">Secretaria de Governo</option>
+                    <option value="Secretaria de Planejamento">Secretaria de Planejamento</option>
+                    <option value="Secretaria de Assistência Social">Secretaria de Assistência Social</option>
                 </select>
             </div>
             <div><label>MOTORISTA</label><input type="text" id="f-mot"></div>
@@ -131,12 +131,42 @@
 
     <div class="card no-print">
         <div class="card-header"></div>
-        <div style="display: flex; gap: 10px; flex-wrap: wrap; align-items: flex-end;">
+        <div class="title">RELATÓRIOS E FILTROS 🔍</div>
+        <div class="form-grid" style="margin-bottom: 15px;">
             <div><label>DATA INÍCIO</label><input type="date" id="rel-ini"></div>
             <div><label>DATA FIM</label><input type="date" id="rel-fim"></div>
-            <button style="background:#10b981; color:white; border:none; padding:12px; border-radius:8px; cursor:pointer; font-weight:bold" onclick="exportarExcel()">SALVAR EXCEL</button>
-            <button style="background:#3b82f6; color:white; border:none; padding:12px; border-radius:8px; cursor:pointer; font-weight:bold" onclick="printRel()">IMPRIMIR PDF</button>
-            <input type="text" id="busca" placeholder="FILTRAR POR PLACA..." style="width: 200px; margin-left: auto;" oninput="filtrar(this.value)">
+            <div>
+                <label>FILTRAR SECRETARIA</label>
+                <select id="filtro-sec" onchange="aplicarFiltros()">
+                    <option value="">TODAS</option>
+                    <option value="AVULSOS">AVULSOS / GERAL</option>
+                    <option value="Secretaria Municipal de Administração e Finanças">Secretaria Municipal de Administração e Finanças</option>
+                    <option value="Secretaria de Infraestrutura e Serviços Públicos">Secretaria de Infraestrutura e Serviços Públicos</option>
+                    <option value="Controlador Interno">Controlador Interno</option>
+                    <option value="Secretaria de Comunicação">Secretaria de Comunicação</option>
+                    <option value="Secretaria Municipal de Educação">Secretaria Municipal de Educação</option>
+                    <option value="Secretaria Municipal de Saúde">Secretaria Municipal de Saúde</option>
+                    <option value="Secretaria de Agricultura, Abastecimento, Meio Ambiente e Desenvolvimento Econômico">Secretaria de Agricultura</option>
+                    <option value="Secretaria de Cultura, Esporte e Lazer">Secretaria de Cultura</option>
+                    <option value="Secretaria de Governo">Secretaria de Governo</option>
+                    <option value="Secretaria de Planejamento">Secretaria de Planejamento</option>
+                    <option value="Secretaria de Assistência Social">Secretaria de Assistência Social</option>
+                </select>
+            </div>
+            <div>
+                <label>FILTRAR POSTO</label>
+                <select id="filtro-posto" onchange="aplicarFiltros()">
+                    <option value="">TODOS</option>
+                    <option value="POSTO VITOR">POSTO VITOR</option>
+                    <option value="POSTO MATINA">POSTO MATINA</option>
+                </select>
+            </div>
+            <div><label>BUSCAR MOTORISTA/PLACA</label><input type="text" id="busca" placeholder="DIGITE AQUI..." oninput="aplicarFiltros()"></div>
+        </div>
+        <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+            <button style="background:#10b981; color:white; border:none; padding:12px; border-radius:8px; cursor:pointer; font-weight:bold" onclick="exportarExcel()">💾 SALVAR EXCEL</button>
+            <button style="background:#3b82f6; color:white; border:none; padding:12px; border-radius:8px; cursor:pointer; font-weight:bold" onclick="printRel()">🖨️ IMPRIMIR PDF</button>
+            <button style="background:#64748b; color:white; border:none; padding:12px; border-radius:8px; cursor:pointer; font-weight:bold" onclick="limparFiltros()">🔄 LIMPAR FILTROS</button>
         </div>
     </div>
 
@@ -150,7 +180,7 @@
     </div>
 
     <div id="area-impressao">
-        <h1 style="text-align: center; margin: 0;">SGF - RELATÓRIO DE MOVIMENTAÇÃO</h1>
+        <h1 style="text-align: center; margin: 0;">Controle de combustível Matina/BA - Relatório</h1>
         <p id="rel-sub" style="text-align: center; font-weight: bold;"></p>
         <hr>
         <table border="1" style="width: 100%; border-collapse: collapse; margin-top: 10px;">
@@ -179,56 +209,15 @@
 
     document.getElementById('f-data').valueAsDate = new Date();
     
-    // LOGIN CORRIGIDO (ADMIN / admin / Admin funcionam)
     function logar() {
         const pass = document.getElementById('senha').value.toLowerCase().trim();
         if(pass === "admin") {
             document.getElementById('login-screen').style.display = 'none';
             document.getElementById('app').classList.remove('blurred');
             document.getElementById('app').style.visibility = 'visible';
-            
-            // Checar se veio via QR Code direto (URL)
-            const p = new URLSearchParams(window.location.search).get('p');
-            if(p) { document.getElementById('f-placa').value = p.toUpperCase(); setTimeout(()=>sugerir(p), 1500); }
-        } else { 
-            alert("SENHA INCORRETA!"); 
-        }
+        } else { alert("SENHA INCORRETA!"); }
     }
 
-    // SCANNER QR CODE
-    function alternarScanner() {
-        const readerDiv = document.getElementById('reader');
-        if(readerDiv.style.display === 'block') {
-            pararScanner();
-        } else {
-            readerDiv.style.display = 'block';
-            html5QrCode = new Html5Qrcode("reader");
-            html5QrCode.start({ facingMode: "environment" }, { fps: 10, qrbox: 250 }, (text) => {
-                const placaLimpa = text.toUpperCase().replace(/[^A-Z0-9]/g, '');
-                document.getElementById('f-placa').value = placaLimpa;
-                sugerir(placaLimpa);
-                pararScanner();
-                notificar("VEÍCULO IDENTIFICADO!");
-            }).catch(err => { 
-                console.error(err);
-                alert("Erro ao acessar câmera. Verifique as permissões."); 
-                pararScanner(); 
-            });
-        }
-    }
-
-    function pararScanner() {
-        if(html5QrCode) {
-            html5QrCode.stop().then(() => { 
-                document.getElementById('reader').style.display = 'none'; 
-                html5QrCode = null;
-            }).catch(() => { document.getElementById('reader').style.display = 'none'; });
-        } else {
-            document.getElementById('reader').style.display = 'none';
-        }
-    }
-
-    // CÁLCULOS
     function calc(origem) {
         const posto = document.getElementById('f-posto').value;
         const preco = parseFloat(document.getElementById(posto === 'POSTO VITOR' ? 'price-v' : 'price-m').value);
@@ -258,9 +247,58 @@
             valor: parseFloat(document.getElementById('f-val').value)
         };
         if(!d.placa || !d.valor || !d.km) return notificar("PLACA, KM E VALOR SÃO OBRIGATÓRIOS!", "error");
-        
-        if(editID) db.ref('abastecimentos/' + editID).update(d).then(() => { notificar("REGISTRO ATUALIZADO!"); cancelarEdicao(); });
-        else db.ref('abastecimentos').push(d).then(() => { notificar("REGISTRO SALVO!"); limparForm(); });
+        if(editID) db.ref('abastecimentos/' + editID).update(d).then(() => { notificar("ATUALIZADO!"); cancelarEdicao(); });
+        else db.ref('abastecimentos').push(d).then(() => { notificar("SALVO!"); limparForm(); });
+    }
+
+    function aplicarFiltros() {
+        const ini = document.getElementById('rel-ini').value;
+        const fim = document.getElementById('rel-fim').value;
+        const sec = document.getElementById('filtro-sec').value;
+        const posto = document.getElementById('filtro-posto').value;
+        const busca = document.getElementById('busca').value.toUpperCase();
+
+        let filtrado = cache.filter(d => {
+            const matchData = (!ini || d.data >= ini) && (!fim || d.data <= fim);
+            const matchSec = !sec || d.secretaria === sec;
+            const matchPosto = !posto || d.posto === posto;
+            const matchBusca = !busca || d.placa.includes(busca) || d.motorista.includes(busca);
+            return matchData && matchSec && matchPosto && matchBusca;
+        });
+
+        renderizar(filtrado);
+    }
+
+    function limparFiltros() {
+        document.getElementById('rel-ini').value = "";
+        document.getElementById('rel-fim').value = "";
+        document.getElementById('filtro-sec').value = "";
+        document.getElementById('filtro-posto').value = "";
+        document.getElementById('busca').value = "";
+        renderizar(cache);
+    }
+
+    db.ref('abastecimentos').on('value', snap => {
+        cache = []; snap.forEach(i => { let v = i.val(); v.id = i.key; cache.push(v); });
+        renderizar(cache);
+        atualizarGraficos();
+    });
+
+    function renderizar(lista) {
+        const tbody = document.querySelector("#tabela tbody");
+        tbody.innerHTML = "";
+        const ord = [...cache].sort((a,b) => a.km - b.km);
+        [...lista].reverse().forEach(d => {
+            const ant = ord.filter(x => x.placa === d.placa && x.km < d.km).pop();
+            let kmR = "---", med = "---", ckm = "---";
+            if(ant) {
+                let diff = d.km - ant.km;
+                kmR = diff + " KM";
+                med = (diff / ant.litro).toFixed(2) + " KM/L";
+                ckm = "R$ " + (d.valor / diff).toFixed(2);
+            }
+            tbody.innerHTML += `<tr><td>${d.data.split('-').reverse().join('/')}</td><td><b>${d.placa}</b></td><td>${d.motorista}</td><td>${d.km}</td><td>${kmR}</td><td><span class="badge bg-green">${med}</span></td><td><span class="badge bg-blue">${ckm}</span></td><td>R$ ${d.valor.toFixed(2)}</td><td><button onclick="editar('${d.id}')">✏️</button><button onclick="remover('${d.id}')">🗑️</button></td></tr>`;
+        });
     }
 
     function editar(id) {
@@ -287,31 +325,7 @@
     }
 
     function limparForm() { ["f-placa","f-km","f-lit","f-val"].forEach(i => document.getElementById(i).value = ""); }
-    function remover(id) { if(confirm("DESEJA REALMENTE APAGAR ESTE REGISTRO?")) db.ref('abastecimentos').child(id).remove(); }
-
-    // SINCRONIZAÇÃO EM TEMPO REAL
-    db.ref('abastecimentos').on('value', snap => {
-        cache = []; snap.forEach(i => { let v = i.val(); v.id = i.key; cache.push(v); });
-        renderizar(cache);
-        atualizarGraficos();
-    });
-
-    function renderizar(lista) {
-        const tbody = document.querySelector("#tabela tbody");
-        tbody.innerHTML = "";
-        const ord = [...cache].sort((a,b) => a.km - b.km);
-        [...lista].reverse().forEach(d => {
-            const ant = ord.filter(x => x.placa === d.placa && x.km < d.km).pop();
-            let kmR = "---", med = "---", ckm = "---";
-            if(ant) {
-                let diff = d.km - ant.km;
-                kmR = diff + " KM";
-                med = (diff / ant.litro).toFixed(2) + " KM/L";
-                ckm = "R$ " + (d.valor / diff).toFixed(2);
-            }
-            tbody.innerHTML += `<tr><td>${d.data.split('-').reverse().join('/')}</td><td><b>${d.placa}</b></td><td>${d.motorista}</td><td>${d.km}</td><td>${kmR}</td><td><span class="badge bg-green">${med}</span></td><td><span class="badge bg-blue">${ckm}</span></td><td>R$ ${d.valor.toFixed(2)}</td><td><button onclick="editar('${d.id}')">✏️</button><button onclick="remover('${d.id}')">🗑️</button></td></tr>`;
-        });
-    }
+    function remover(id) { if(confirm("APAGAR?")) db.ref('abastecimentos').child(id).remove(); }
 
     function atualizarGraficos() {
         const secD = {}, vecD = {};
@@ -324,29 +338,27 @@
     }
 
     function notificar(m, t) { Toastify({ text: m, duration: 2000, style: { background: t==="error"?"#ef4444":"#22c55e"} }).showToast(); }
-    function filtrar(v) { renderizar(cache.filter(d => d.placa.includes(v.toUpperCase()))); }
 
     function exportarExcel() {
         let csv = "DATA;PLACA;SECRETARIA;MOTORISTA;KM;VALOR\n";
         cache.forEach(d => csv += `${d.data};${d.placa};${d.secretaria};${d.motorista};${d.km};${d.valor}\n`);
         const a = document.createElement("a");
         a.href = URL.createObjectURL(new Blob([csv], {type:'text/csv'}));
-        a.download = "sgf_backup_dados.csv"; a.click();
+        a.download = "sgf_backup.csv"; a.click();
     }
 
     function printRel() {
         const ini = document.getElementById('rel-ini').value, fim = document.getElementById('rel-fim').value;
-        if(!ini || !fim) return alert("POR FAVOR, SELECIONE O PERÍODO (INÍCIO E FIM)");
-        const dados = cache.filter(d => d.data >= ini && d.data <= fim);
-        document.getElementById('rel-sub').innerText = `MOVIMENTAÇÃO DE ${ini.split('-').reverse().join('/')} ATÉ ${fim.split('-').reverse().join('/')}`;
+        const dados = cache.filter(d => (!ini || d.data >= ini) && (!fim || d.data <= fim));
+        document.getElementById('rel-sub').innerText = `PERÍODO: ${ini || 'INÍCIO'} ATÉ ${fim || 'FIM'}`;
         const body = document.getElementById('pdf-body'); body.innerHTML = "";
         let tL=0, tV=0;
-        dados.sort((a,b) => new Date(a.data) - new Date(b.data)).forEach(d => {
+        dados.forEach(d => {
             body.innerHTML += `<tr><td>${d.data.split('-').reverse().join('/')}</td><td>${d.placa}</td><td>${d.secretaria}</td><td>${d.motorista}</td><td>${d.litro.toFixed(2)}</td><td>R$ ${d.valor.toFixed(2)}</td></tr>`;
             tL += d.litro; tV += d.valor;
         });
         document.getElementById('pdf-head').innerHTML = `<tr><th>DATA</th><th>PLACA</th><th>SECRETARIA</th><th>MOTORISTA</th><th>LITROS</th><th>TOTAL</th></tr>`;
-        document.getElementById('pdf-foot').innerHTML = `<tr><td colspan="4">TOTAL DO PERÍODO SELECIONADO</td><td>${tL.toFixed(2)} L</td><td>R$ ${tV.toFixed(2)}</td></tr>`;
+        document.getElementById('pdf-foot').innerHTML = `<tr><td colspan="4">TOTAL</td><td>${tL.toFixed(2)} L</td><td>R$ ${tV.toFixed(2)}</td></tr>`;
         window.print();
     }
 </script>
