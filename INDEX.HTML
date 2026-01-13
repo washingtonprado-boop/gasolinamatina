@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="PT-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SGF - GESTÃO DE FROTA COMPLETA</title>
+    
+    <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-database-compat.js"></script>
+
+    <style>
+        :root { --primary: #1E3A8A; --secondary: #3B82F6; --success: #10B981; --danger: #EF4444; --warning: #F59E0B; --bg: #F1F5F9; }
+        * { box-sizing: border-box; font-family: 'Segoe UI', sans-serif; text-transform: uppercase; }
+        body { background-color: var(--bg); margin: 0; padding: 20px; }
+        .container { max-width: 1400px; margin: 0 auto; }
+        
+        .main-header { background: white; padding: 15px 20px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); margin-bottom: 20px; border-bottom: 4px solid var(--primary); display: flex; justify-content: space-between; align-items: center;}
+        
+        .dashboard { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 20px; }
+        .card-dash { background: white; padding: 15px; border-radius: 10px; border-left: 5px solid var(--secondary); box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+        .card-dash h3 { margin: 0; font-size: 10px; color: #64748B; }
+        .card-dash p { margin: 5px 0 0; font-size: 20px; font-weight: bold; color: var(--primary); }
+
+        /* ESTILO DO BOTÃO NOVO */
+        .btn-new-action { background: var(--secondary); color: white; padding: 12px 25px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; margin-bottom: 15px; display: flex; align-items: center; gap: 8px; box-shadow: 0 4px 6px rgba(59, 130, 246, 0.3); }
+        .btn-new-action:hover { background: #2563EB; transform: translateY(-2px); }
+
+        .section-card { background: white; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); margin-bottom: 20px; overflow: hidden; }
+        .section-header { background: var(--primary); color: white; padding: 12px 20px; font-size: 12px; font-weight: bold; }
+        .section-body { padding: 20px; }
+
+        .grid-form { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 15px; }
+        input, select { padding: 10px; border: 2px solid #E2E8F0; border-radius: 6px; width: 100%; font-size: 13px; }
+        label { font-size: 10px; font-weight: bold; color: #475569; margin-bottom: 5px; display: block; }
+        
+        .btn { padding: 12px 20px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; transition: 0.3s; color: white; }
+        .btn-save { background: var(--success); width: 100%; margin-top: 15px; font-size: 14px; }
+        .btn-report { background: var(--secondary); }
+
+        table { width: 100%; border-collapse: collapse; }
+        th { background: #F8FAFC; padding: 12px; text-align: left; border-bottom: 2px solid #E2E8F0; font-size: 11px; color: var(--primary); }
+        td { padding: 12px; border-bottom: 1px solid #F1F5F9; font-size: 12px; }
+
+        #area-impressao { display: none; background: white; padding: 30px; border-radius: 10px; margin-top: 20px; border: 1px solid #ddd; }
+        @media print { .no-print { display: none !important; } #area-impressao { display: block !important; } }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="main-header no-print">
+        <h1 style="margin:0; font-size:18px; color:var(--primary)">SGF - GESTÃO DE FROTA</h1>
+        <span style="color: var(--success); font-size: 11px; font-weight: bold;">● NUVEM ATIVA</span>
+    </div>
+
+    <div class="dashboard no-print">
+        <div class="card-dash"><h3>GASTO TOTAL</h3><p id="dash-total">R$ 0,00</p></div>
+        <div class="card-dash"><h3>LITROS TOTAIS</h3><p id="dash-litros">0 L</p></div>
+        <div class="card-dash" style="border-left-color: var(--warning);"><h3>REGISTROS</h3><p id="dash-count">0</p></div>
+    </div>
+
+    <button class="btn-new-action no-print" onclick="novoAbastecimento()">
+        <span>+</span> NOVO ABASTECIMENTO
+    </button>
+
+    <div class="section-card no-print">
+        <div class="section-header">CADASTRO DE ABASTECIMENTO</div>
+        <div class="section-body">
+            <div class="grid-form">
+                <div><label>PLACA</label><input type="text" id="p-placa" placeholder="ABC1D23" oninput="sugerirDados(this.value)"></div>
+                <div><label>SECRETARIA</label><select id="p-sec"></select></div>
+                <div><label>MOTORISTA</label><input type="text" id="p-mot"></div>
+                <div><label>POSTO</label><select id="p-posto"><option>POSTO VITOR</option><option>POSTO MATINA</option></select></div>
+                <div><label>DATA</label><input type="date" id="p-data"></div>
+                <div><label>KM ATUAL</label><input type="number" id="p-km"></div>
+                <div><label>LITROS</label><input type="number" id="p-litro" step="0.01"></div>
+                <div><label>TOTAL R$</label><input type="number" id="p-valor" step="0.01"></div>
+            </div>
+            <button class="btn btn-save" onclick="salvar()">✔️ SALVAR REGISTRO ONLINE</button>
+        </div>
+    </div>
+
+    <div class="section-card no-print">
+        <div class="section-header">RELATÓRIOS E FILTROS</div>
+        <div class="section-body">
+            <div style="display: flex; gap: 10px; align-items: flex-end; flex-wrap: wrap;">
+                <div style="flex:1"><label>INÍCIO</label><input type="date" id="rel-inicio"></div>
+                <div style="flex:1"><label>FIM</label><input type="date" id="rel-fim"></div>
+                <button class="btn btn-report" onclick="gerarRelatorio('detalhado')">GERAL</button>
+                <button class="btn btn-report" onclick="gerarRelatorio('secretaria')" style="background:var(--warning)">POR SECRETARIA</button>
+                <button class="btn btn-report" onclick="gerarRelatorio('posto')" style="background:var(--primary)">POR POSTO</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="section-card no-print">
+        <div class="section-header">ÚLTIMOS LANÇAMENTOS</div>
+        <div class="section-body" style="max-height: 300px; overflow-y: auto;">
+            <table id="tabela-principal">
+                <thead><tr><th>DATA</th><th>PLACA</th><th>MOTORISTA</th><th>POSTO</th><th>LITROS</th><th>TOTAL</th><th>AÇÃO</th></tr></thead>
+                <tbody></tbody>
+            </table>
+        </div>
+    </div>
+
+    <div id="area-impressao">
+        <h2 id="rel-titulo-txt" style="text-align:center"></h2>
+        <p id="rel-periodo-txt" style="text-align:center"></p>
+        <table id="tabela-relatorio" border="1" style="width:100%; border-collapse:collapse; margin-top:20px;">
+            <thead><tr id="head-rel"></tr></thead>
+            <tbody></tbody>
+            <tfoot id="foot-rel"></tfoot>
+        </table>
+        <div class="no-print" style="margin-top:20px; text-align:right;">
+            <button class="btn" style="background:#64748B" onclick="window.print()">IMPRIMIR</button>
+            <button class="btn" style="background:var(--danger)" onclick="document.getElementById('area-impressao').style.display='none'">FECHAR</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    const firebaseConfig = {
+        apiKey: "AIzaSyDsEQ8L_hWgacZ8xweY3DR9OYt2t151kZE",
+        authDomain: "tabela-gasolina.firebaseapp.com",
+        databaseURL: "https://tabela-gasolina-default-rtdb.firebaseio.com", 
+        projectId: "tabela-gasolina",
+        storageBucket: "tabela-gasolina.firebasestorage.app",
+        messagingSenderId: "77121029722",
+        appId: "1:77121029722:web:641b26a6cdf4c287f53a63"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+    let cacheDados = [];
+
+    const secretarias = ["GABINETE", "ADMINISTRAÇÃO", "SAÚDE", "EDUCAÇÃO", "INFRAESTRUTURA", "SOCIAL", "AGRICULTURA", "CULTURA"];
+    const selSec = document.getElementById('p-sec');
+    secretarias.sort().forEach(s => selSec.innerHTML += `<option value="${s}">${s}</option>`);
+    document.getElementById('p-data').valueAsDate = new Date();
+
+    // FUNÇÃO NOVO ABASTECIMENTO (LIMPAR)
+    function novoAbastecimento() {
+        document.getElementById('p-placa').value = "";
+        document.getElementById('p-mot').value = "";
+        document.getElementById('p-km').value = "";
+        document.getElementById('p-litro').value = "";
+        document.getElementById('p-valor').value = "";
+        document.getElementById('p-placa').focus();
+    }
+
+    function sugerirDados(placa) {
+        const busca = cacheDados.find(item => item.placa === placa.toUpperCase().trim());
+        if(busca) {
+            document.getElementById('p-sec').value = busca.secretaria;
+            document.getElementById('p-mot').value = busca.motorista;
+        }
+    }
+
+    function salvar() {
+        const registro = {
+            placa: document.getElementById('p-placa').value.toUpperCase().trim(),
+            secretaria: document.getElementById('p-sec').value,
+            motorista: document.getElementById('p-mot').value.toUpperCase(),
+            posto: document.getElementById('p-posto').value,
+            data: document.getElementById('p-data').value,
+            km: document.getElementById('p-km').value || 0,
+            litro: parseFloat(document.getElementById('p-litro').value || 0),
+            valor: parseFloat(document.getElementById('p-valor').value || 0)
+        };
+        if(!registro.placa || !registro.valor) return alert("DADOS INCOMPLETOS!");
+        db.ref('abastecimentos').push(registro).then(() => {
+            alert("LANÇAMENTO SINCRONIZADO!");
+            novoAbastecimento();
+        });
+    }
+
+    db.ref('abastecimentos').on('value', (snapshot) => {
+        const tbody = document.querySelector("#tabela-principal tbody");
+        tbody.innerHTML = ""; cacheDados = [];
+        let tR = 0, tL = 0;
+        snapshot.forEach((item) => {
+            const d = item.val(); d.id = item.key;
+            cacheDados.push(d); tR += d.valor; tL += d.litro;
+            tbody.insertAdjacentHTML('afterbegin', `<tr>
+                <td>${d.data.split('-').reverse().join('/')}</td>
+                <td><b>${d.placa}</b></td>
+                <td>${d.motorista}</td>
+                <td>${d.posto}</td>
+                <td>${d.litro}</td>
+                <td>R$ ${d.valor.toFixed(2)}</td>
+                <td><button onclick="remover('${d.id}')" style="color:red; border:none; background:none; cursor:pointer;">X</button></td>
+            </tr>`);
+        });
+        document.getElementById('dash-total').innerText = `R$ ${tR.toFixed(2)}`;
+        document.getElementById('dash-litros').innerText = `${tL.toFixed(1)} L`;
+        document.getElementById('dash-count').innerText = cacheDados.length;
+    });
+
+    function remover(id) { if(confirm("EXCLUIR REGISTRO?")) db.ref('abastecimentos').child(id).remove(); }
+
+    function gerarRelatorio(tipo) {
+        const inicio = document.getElementById('rel-inicio').value;
+        const fim = document.getElementById('rel-fim').value;
+        if(!inicio || !fim) return alert("DEFINA O PERÍODO!");
+        const filtrados = cacheDados.filter(a => a.data >= inicio && a.data <= fim);
+        const area = document.getElementById('area-impressao');
+        const corpo = document.querySelector('#tabela-relatorio tbody');
+        const head = document.getElementById('head-rel');
+        const foot = document.getElementById('foot-rel');
+        area.style.display = 'block'; corpo.innerHTML = "";
+        let tV = 0, tL = 0;
+
+        if(tipo === 'detalhado') {
+            document.getElementById('rel-titulo-txt').innerText = "RELATÓRIO DETALHADO";
+            head.innerHTML = `<th>DATA</th><th>PLACA</th><th>MOTORISTA</th><th>POSTO</th><th>LITROS</th><th>VALOR</th>`;
+            filtrados.forEach(a => {
+                corpo.innerHTML += `<tr><td>${a.data}</td><td>${a.placa}</td><td>${a.motorista}</td><td>${a.posto}</td><td>${a.litro}</td><td>R$ ${a.valor}</td></tr>`;
+                tV += a.valor; tL += a.litro;
+            });
+        } else {
+            const agrupar = tipo === 'secretaria' ? 'secretaria' : 'posto';
+            document.getElementById('rel-titulo-txt').innerText = "RESUMO POR " + agrupar.toUpperCase();
+            head.innerHTML = `<th>${agrupar.toUpperCase()}</th><th>LITROS</th><th>VALOR TOTAL</th>`;
+            let res = {};
+            filtrados.forEach(a => {
+                let c = a[agrupar]; if(!res[c]) res[c] = {l:0, v:0};
+                res[c].l += a.litro; res[c].v += a.valor;
+                tV += a.valor; tL += a.litro;
+            });
+            for(let k in res) corpo.innerHTML += `<tr><td>${k}</td><td>${res[k].l.toFixed(2)}</td><td>R$ ${res[k].v.toFixed(2)}</td></tr>`;
+        }
+        foot.innerHTML = `<tr style="background:#eee"><td><b>TOTAIS</b></td><td colspan="${tipo==='detalhado'?4:1}"></td><td><b>${tL.toFixed(2)} L</b></td><td><b>R$ ${tV.toFixed(2)}</b></td></tr>`;
+        window.scrollTo(0, area.offsetTop);
+    }
+</script>
+</body>
+</html>
