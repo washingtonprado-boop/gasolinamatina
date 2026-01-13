@@ -1,194 +1,159 @@
 <!DOCTYPE html>
-<html lang="pt-PT">
+<html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Controle de combustível Matina/BA</title>
+    <title>Controle de Combustível Matina/BA</title>
     
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-database-compat.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://unpkg.com/html5-qrcode"></script>
     <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css">
     <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
 
     <style>
-        :root { --primary: #0f172a; --accent: #3b82f6; --success: #22c55e; --warning: #f59e0b; --bg: #f8fafc; }
-        * { box-sizing: border-box; font-family: 'Segoe UI', sans-serif; text-transform: uppercase; outline: none; }
-        body { background-color: var(--bg); margin: 0; padding: 20px; color: #334155; }
-        .container { max-width: 1400px; margin: 0 auto; transition: 0.3s; }
-        .blurred { filter: blur(12px); pointer-events: none; visibility: hidden; }
-
-        /* LOGIN */
-        #login-screen { position: fixed; top:0; left:0; width:100%; height:100%; background: var(--primary); z-index:999; display: flex; align-items:center; justify-content:center; flex-direction:column; color:white; }
-        .login-box input { padding: 15px; border-radius: 30px; border: 2px solid transparent; text-align: center; font-size: 18px; width: 300px; margin-bottom: 15px; text-transform: none; }
-        .btn-login { padding: 15px 40px; border-radius: 30px; border:none; background: var(--accent); color:white; font-weight:bold; cursor:pointer; font-size: 16px; width: 100%; }
-
-        /* CARDS */
-        .card { background: white; border-radius: 12px; padding: 25px; margin-bottom: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); border: 1px solid #e2e8f0; position: relative; overflow: hidden; }
-        .card-header { position: absolute; top:0; left:0; width:100%; height: 6px; background: linear-gradient(90deg, var(--accent), var(--primary)); }
-        .title { font-size: 14px; font-weight: 800; color: var(--primary); margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center; }
-
-        /* QR SCANNER */
-        #reader { width: 100%; border-radius: 8px; overflow: hidden; display: none; margin-bottom: 15px; border: 2px solid var(--accent); }
-        .btn-qr { background: var(--primary); color: white; border: none; border-radius: 8px; padding: 10px; cursor: pointer; display: flex; align-items: center; justify-content: center; width: 45px; }
-
-        /* FORMULÁRIO */
-        .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 15px; }
-        label { font-size: 10px; font-weight: bold; color: #64748b; margin-bottom: 5px; display: block; }
-        input, select { width: 100%; padding: 12px; border: 2px solid #e2e8f0; border-radius: 8px; font-weight: 600; font-size: 13px; }
-        
-        /* GRÁFICOS */
-        .charts-row { display: grid; grid-template-columns: 2fr 1fr; gap: 20px; height: 320px; margin-bottom: 20px; }
-        @media (max-width: 800px) { .charts-row { grid-template-columns: 1fr; height: auto; } }
-
-        /* BOTÕES */
-        .btn-action { width: 100%; padding: 18px; border: none; border-radius: 8px; font-size: 16px; font-weight: 900; color: white; cursor: pointer; margin-top: 20px; background: var(--success); box-shadow: 0 4px 0 #15803d; }
-        .btn-editar-mode { background: var(--warning) !important; box-shadow: 0 4px 0 #b45309 !important; }
-        .btn-cancel { background: #ef4444; color: white; padding: 10px; border-radius: 6px; border: none; font-weight: bold; cursor: pointer; display: none; margin-top: 10px; width: 100%; }
-
-        /* TABELA */
-        table { width: 100%; border-collapse: collapse; font-size: 11px; }
-        th { text-align: left; padding: 12px; background: #f8fafc; border-bottom: 2px solid #e2e8f0; }
-        td { padding: 12px; border-bottom: 1px solid #f1f5f9; }
-        .badge { padding: 4px 8px; border-radius: 6px; font-weight: bold; font-size: 10px; }
-        .bg-green { background: #dcfce7; color: #166534; }
-        .bg-blue { background: #dbeafe; color: #1e40af; }
-
-        #area-impressao { display: none; background: white; padding: 40px; color: black; }
-        @media print { 
-            body { padding: 0; background: white; }
-            .no-print { display: none !important; } 
-            #area-impressao { display: block !important; position: absolute; top: 0; left: 0; width: 100%; } 
-            .container { filter: none !important; visibility: visible !important; }
+        :root { 
+            --primary: #0f172a; --accent: #3b82f6; --success: #22c55e; 
+            --warning: #f59e0b; --danger: #ef4444; --bg: #f1f5f9; 
         }
+
+        * { box-sizing: border-box; font-family: 'Segoe UI', sans-serif; text-transform: uppercase; }
+        body { background-color: var(--bg); margin: 0; padding: 10px; color: #1e293b; }
+        .container { max-width: 1200px; margin: 0 auto; }
+        .blurred { filter: blur(15px); pointer-events: none; }
+
+        /* Login */
+        #login-screen { 
+            position: fixed; inset: 0; background: var(--primary); z-index: 999; 
+            display: flex; align-items: center; justify-content: center; flex-direction: column; color: white; 
+        }
+        .login-box { width: 90%; max-width: 320px; }
+        .login-box input { 
+            width: 100%; padding: 15px; border-radius: 10px; border: none; 
+            margin-bottom: 10px; text-align: center; font-size: 16px; 
+        }
+
+        /* Cards e Layout */
+        .card { 
+            background: white; border-radius: 12px; padding: 20px; margin-bottom: 20px; 
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); border: 1px solid #e2e8f0; 
+        }
+        .form-grid { 
+            display: grid; grid-template-columns: 1fr; gap: 15px; 
+        }
+        @media (min-width: 768px) {
+            .form-grid { grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); }
+        }
+
+        /* Gráficos Responsivos */
+        .charts-row { display: grid; grid-template-columns: 1fr; gap: 20px; }
+        @media (min-width: 900px) { .charts-row { grid-template-columns: 1fr 1fr; } }
+        .chart-container { position: relative; height: 300px; width: 100%; }
+
+        /* Tabelas */
+        .table-scroll { overflow-x: auto; margin-top: 15px; border-radius: 8px; border: 1px solid #e2e8f0; }
+        table { width: 100%; border-collapse: collapse; min-width: 700px; font-size: 13px; }
+        th { background: #f8fafc; padding: 12px; text-align: left; border-bottom: 2px solid #e2e8f0; }
+        td { padding: 12px; border-bottom: 1px solid #f1f5f9; }
+
+        /* Estilos de UI */
+        input, select { 
+            width: 100%; padding: 12px; border: 2px solid #e2e8f0; border-radius: 8px; 
+            font-size: 14px; background: white;
+        }
+        label { font-size: 11px; font-weight: bold; color: #64748b; margin-bottom: 5px; display: block; }
+        .btn { 
+            width: 100%; padding: 15px; border: none; border-radius: 8px; 
+            font-weight: bold; cursor: pointer; color: white; 
+        }
+        .btn-save { background: var(--success); font-size: 16px; }
+        .btn-edit { background: var(--warning); padding: 5px 10px; }
+        .btn-del { background: var(--danger); padding: 5px 10px; }
+
+        @media print { .no-print { display: none !important; } }
     </style>
 </head>
 <body>
 
 <div id="login-screen">
-    <h1 style="margin-bottom: 5px; letter-spacing: 2px; text-align: center; padding: 0 20px;">Controle de combustível Matina/BA</h1>
+    <h2>MATINA/BA ⛽</h2>
     <div class="login-box">
         <input type="password" id="senha" placeholder="DIGITE A SENHA" onkeydown="if(event.key==='Enter') logar()">
-        <br>
-        <button class="btn-login" onclick="logar()">ENTRAR NO SISTEMA</button>
+        <button class="btn" style="background: var(--accent);" onclick="logar()">ENTRAR</button>
     </div>
 </div>
 
 <div class="container blurred" id="app">
-    <div class="card no-print" style="background: #0f172a; color: white; display: flex; gap: 20px; align-items: center; padding: 15px;">
-        <div style="font-size: 12px; font-weight: bold;">⛽ VALOR DO LITRO:</div>
-        <div><label style="color:#94a3b8">POSTO VITOR</label><input type="number" id="price-v" value="5.89" step="0.01" oninput="calc()" style="width:90px; text-align:center; color:black"></div>
-        <div><label style="color:#94a3b8">POSTO MATINA</label><input type="number" id="price-m" value="5.89" step="0.01" oninput="calc()" style="width:90px; text-align:center; color:black"></div>
-    </div>
-
+    
     <div class="charts-row no-print">
-        <div class="card" style="margin:0"><div class="card-header"></div><div class="title">GASTOS POR SECRETARIA</div><canvas id="chartSec"></canvas></div>
-        <div class="card" style="margin:0"><div class="card-header"></div><div class="title">TOP VEÍCULOS (Gasto R$)</div><canvas id="chartVec"></canvas></div>
+        <div class="card">
+            <h4 style="margin: 0 0 15px 0;">💰 GASTOS POR SECRETARIA</h4>
+            <div class="chart-container"><canvas id="chartSec"></canvas></div>
+        </div>
+        <div class="card">
+            <h4 style="margin: 0 0 15px 0;">🚛 TOP 5 VEÍCULOS (R$)</h4>
+            <div class="chart-container"><canvas id="chartVec"></canvas></div>
+        </div>
     </div>
 
     <div class="card no-print">
-        <div class="card-header"></div>
-        <div class="title"><span>NOVO ABASTECIMENTO</span> <span id="mode-badge" class="badge bg-green">SISTEMA ATIVO</span></div>
-        
-        <div id="reader"></div>
-
+        <h3 style="margin-top: 0;">⛽ NOVO LANÇAMENTO</h3>
         <div class="form-grid">
+            <div><label>PLACA</label><input type="text" id="f-placa" placeholder="ABC1234" oninput="sugerir(this.value)"></div>
             <div>
-                <label>PLACA</label>
-                <div style="display: flex; gap: 5px;">
-                    <input type="text" id="f-placa" placeholder="ABC1234" oninput="sugerir(this.value)">
-                    <button class="btn-qr" onclick="alternarScanner()" title="Escanear QR Code">📷</button>
-                </div>
-            </div>
-            <div style="grid-column: span 2">
-                <label>SECRETARIA / SETOR</label>
+                <label>SECRETARIA</label>
                 <select id="f-sec">
                     <option value="AVULSOS">AVULSOS / GERAL</option>
-                    <option value="Secretaria Municipal de Administração e Finanças">Secretaria Municipal de Administração e Finanças</option>
-                    <option value="Secretaria de Infraestrutura e Serviços Públicos">Secretaria de Infraestrutura e Serviços Públicos</option>
-                    <option value="Controlador Interno">Controlador Interno</option>
-                    <option value="Secretaria de Comunicação">Secretaria de Comunicação</option>
-                    <option value="Secretaria Municipal de Educação">Secretaria Municipal de Educação</option>
-                    <option value="Secretaria Municipal de Saúde">Secretaria Municipal de Saúde</option>
-                    <option value="Secretaria de Agricultura, Abastecimento, Meio Ambiente e Desenvolvimento Econômico">Secretaria de Agricultura, Abastecimento, Meio Ambiente e Desenvolvimento Econômico</option>
-                    <option value="Secretaria de Cultura, Esporte e Lazer">Secretaria de Cultura, Esporte e Lazer</option>
-                    <option value="Secretaria de Governo">Secretaria de Governo</option>
-                    <option value="Secretaria de Planejamento">Secretaria de Planejamento</option>
-                    <option value="Secretaria de Assistência Social">Secretaria de Assistência Social</option>
+                    <option value="Secretaria Municipal de Administração e Finanças">ADM. E FINANÇAS</option>
+                    <option value="Secretaria de Infraestrutura e Serviços Públicos">INFRAESTRUTURA</option>
+                    <option value="Controlador Interno">CONTROLADORIA</option>
+                    <option value="Secretaria de Comunicação">COMUNICAÇÃO</option>
+                    <option value="Secretaria Municipal de Educação">EDUCAÇÃO</option>
+                    <option value="Secretaria Municipal de Saúde">SAÚDE</option>
+                    <option value="Secretaria de Agricultura, Abastecimento, Meio Ambiente e Desenvolvimento Econômico">AGRICULTURA</option>
+                    <option value="Secretaria de Cultura, Esporte e Lazer">CULTURA E ESPORTE</option>
+                    <option value="Secretaria de Governo">GOVERNO</option>
+                    <option value="Secretaria de Planejamento">PLANEJAMENTO</option>
+                    <option value="Secretaria de Assistência Social">ASSISTÊNCIA SOCIAL</option>
                 </select>
             </div>
             <div><label>MOTORISTA</label><input type="text" id="f-mot"></div>
             <div><label>POSTO</label><select id="f-posto" onchange="calc()"><option>POSTO VITOR</option><option>POSTO MATINA</option></select></div>
+            <div><label>VALOR LITRO (R$)</label><input type="number" id="f-preco" value="5.89" step="0.01" oninput="calc()"></div>
             <div><label>DATA</label><input type="date" id="f-data"></div>
             <div><label>KM ATUAL</label><input type="number" id="f-km"></div>
             <div><label>LITROS</label><input type="number" id="f-lit" step="0.01" oninput="calc('L')"></div>
-            <div><label>TOTAL (R$)</label><input type="number" id="f-val" step="0.01" oninput="calc('V')" style="background:#f0fdf4"></div>
+            <div><label>TOTAL (R$)</label><input type="number" id="f-val" step="0.01" oninput="calc('V')"></div>
         </div>
-        <button id="btn-save" class="btn-action" onclick="processar()">✔️ SALVAR REGISTRO</button>
-        <button id="btn-cancel" class="btn-cancel" onclick="cancelarEdicao()">CANCELAR EDIÇÃO</button>
+        <button id="btn-save" class="btn btn-save" style="margin-top: 20px;" onclick="processar()">✔️ SALVAR REGISTRO</button>
+        <button id="btn-cancel" class="btn" style="background: #64748b; margin-top: 10px; display: none;" onclick="cancelarEdicao()">CANCELAR</button>
     </div>
 
     <div class="card no-print">
-        <div class="card-header"></div>
-        <div class="title">RELATÓRIOS E FILTROS 🔍</div>
-        <div class="form-grid" style="margin-bottom: 15px;">
-            <div><label>DATA INÍCIO</label><input type="date" id="rel-ini"></div>
-            <div><label>DATA FIM</label><input type="date" id="rel-fim"></div>
-            <div>
-                <label>FILTRAR SECRETARIA</label>
-                <select id="filtro-sec" onchange="aplicarFiltros()">
-                    <option value="">TODAS</option>
-                    <option value="AVULSOS">AVULSOS / GERAL</option>
-                    <option value="Secretaria Municipal de Administração e Finanças">Secretaria Municipal de Administração e Finanças</option>
-                    <option value="Secretaria de Infraestrutura e Serviços Públicos">Secretaria de Infraestrutura e Serviços Públicos</option>
-                    <option value="Controlador Interno">Controlador Interno</option>
-                    <option value="Secretaria de Comunicação">Secretaria de Comunicação</option>
-                    <option value="Secretaria Municipal de Educação">Secretaria Municipal de Educação</option>
-                    <option value="Secretaria Municipal de Saúde">Secretaria Municipal de Saúde</option>
-                    <option value="Secretaria de Agricultura, Abastecimento, Meio Ambiente e Desenvolvimento Econômico">Secretaria de Agricultura</option>
-                    <option value="Secretaria de Cultura, Esporte e Lazer">Secretaria de Cultura</option>
-                    <option value="Secretaria de Governo">Secretaria de Governo</option>
-                    <option value="Secretaria de Planejamento">Secretaria de Planejamento</option>
-                    <option value="Secretaria de Assistência Social">Secretaria de Assistência Social</option>
-                </select>
-            </div>
-            <div>
-                <label>FILTRAR POSTO</label>
-                <select id="filtro-posto" onchange="aplicarFiltros()">
-                    <option value="">TODOS</option>
-                    <option value="POSTO VITOR">POSTO VITOR</option>
-                    <option value="POSTO MATINA">POSTO MATINA</option>
-                </select>
-            </div>
-            <div><label>BUSCAR MOTORISTA/PLACA</label><input type="text" id="busca" placeholder="DIGITE AQUI..." oninput="aplicarFiltros()"></div>
+        <h3>📊 FILTROS E RELATÓRIOS</h3>
+        <div class="form-grid">
+            <div><label>DE:</label><input type="date" id="rel-ini" onchange="aplicarFiltros()"></div>
+            <div><label>ATÉ:</label><input type="date" id="rel-fim" onchange="aplicarFiltros()"></div>
+            <div><label>SECRETARIA</label><select id="rel-sec" onchange="aplicarFiltros()"><option value="">TODAS</option></select></div>
+            <div><label>BUSCA (PLACA/MOTORISTA)</label><input type="text" id="busca" placeholder="DIGITE..." oninput="aplicarFiltros()"></div>
         </div>
-        <div style="display: flex; gap: 10px; flex-wrap: wrap;">
-            <button style="background:#10b981; color:white; border:none; padding:12px; border-radius:8px; cursor:pointer; font-weight:bold" onclick="exportarExcel()">💾 SALVAR EXCEL</button>
-            <button style="background:#3b82f6; color:white; border:none; padding:12px; border-radius:8px; cursor:pointer; font-weight:bold" onclick="printRel()">🖨️ IMPRIMIR PDF</button>
-            <button style="background:#64748b; color:white; border:none; padding:12px; border-radius:8px; cursor:pointer; font-weight:bold" onclick="limparFiltros()">🔄 LIMPAR FILTROS</button>
+        <div style="margin-top: 15px; display: flex; gap: 10px; flex-wrap: wrap;">
+            <button class="btn" style="background: var(--accent); width: auto;" onclick="window.print()">🖨️ IMPRIMIR PDF</button>
+            <button class="btn" style="background: #10b981; width: auto;" onclick="exportarExcel()">Excel</button>
         </div>
     </div>
 
-    <div class="card no-print">
-        <div style="overflow-x: auto;">
+    <div class="card">
+        <div class="table-scroll">
             <table id="tabela">
-                <thead><tr><th>DATA</th><th>PLACA</th><th>MOTORISTA</th><th>KM</th><th>RODADO</th><th>MÉDIA</th><th>CUSTO/KM</th><th>VALOR</th><th>AÇÕES</th></tr></thead>
+                <thead>
+                    <tr><th>DATA</th><th>PLACA</th><th>MOTORISTA</th><th>KM</th><th>LITROS</th><th>TOTAL</th><th class="no-print">AÇÕES</th></tr>
+                </thead>
                 <tbody></tbody>
             </table>
         </div>
     </div>
 
-    <div id="area-impressao">
-        <h1 style="text-align: center; margin: 0;">Controle de combustível Matina/BA - Relatório</h1>
-        <p id="rel-sub" style="text-align: center; font-weight: bold;"></p>
-        <hr>
-        <table border="1" style="width: 100%; border-collapse: collapse; margin-top: 10px;">
-            <thead id="pdf-head"></thead>
-            <tbody id="pdf-body"></tbody>
-            <tfoot id="pdf-foot" style="background: #eee; font-weight: bold;"></tfoot>
-        </table>
-    </div>
 </div>
 
 <script>
@@ -204,162 +169,157 @@
     };
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
-    
-    let cache = [], editID = null, chartP = null, chartB = null, html5QrCode = null;
+
+    let cache = [], editID = null, chartSec = null, chartVec = null;
 
     document.getElementById('f-data').valueAsDate = new Date();
-    
+
     function logar() {
-        const pass = document.getElementById('senha').value.toLowerCase().trim();
-        if(pass === "admin") {
+        if(document.getElementById('senha').value.toLowerCase() === "admin") {
             document.getElementById('login-screen').style.display = 'none';
             document.getElementById('app').classList.remove('blurred');
-            document.getElementById('app').style.visibility = 'visible';
-        } else { alert("SENHA INCORRETA!"); }
+        } else { alert("SENHA INCORRETA"); }
     }
 
     function calc(origem) {
-        const posto = document.getElementById('f-posto').value;
-        const preco = parseFloat(document.getElementById(posto === 'POSTO VITOR' ? 'price-v' : 'price-m').value);
+        const preco = parseFloat(document.getElementById('f-preco').value) || 0;
         const l = document.getElementById('f-lit'), v = document.getElementById('f-val');
         if(origem === 'L') v.value = (l.value * preco).toFixed(2);
-        if(origem === 'V') l.value = (v.value / preco).toFixed(2);
-    }
-
-    function sugerir(val) {
-        let clean = val.toUpperCase().replace(/[^A-Z0-9]/g, '');
-        const item = cache.find(x => x.placa === clean);
-        if(item) { 
-            document.getElementById('f-sec').value = item.secretaria; 
-            document.getElementById('f-mot').value = item.motorista; 
-        }
+        else if(origem === 'V') l.value = (v.value / preco).toFixed(2);
+        else v.value = (l.value * preco).toFixed(2);
     }
 
     function processar() {
         const d = {
-            placa: document.getElementById('f-placa').value.toUpperCase().replace(/[^A-Z0-9]/g, ''),
+            placa: document.getElementById('f-placa').value.toUpperCase(),
             secretaria: document.getElementById('f-sec').value,
             motorista: document.getElementById('f-mot').value.toUpperCase(),
             posto: document.getElementById('f-posto').value,
             data: document.getElementById('f-data').value,
-            km: parseFloat(document.getElementById('f-km').value),
-            litro: parseFloat(document.getElementById('f-lit').value),
-            valor: parseFloat(document.getElementById('f-val').value)
+            km: parseFloat(document.getElementById('f-km').value) || 0,
+            litro: parseFloat(document.getElementById('f-lit').value) || 0,
+            valor: parseFloat(document.getElementById('f-val').value) || 0
         };
-        if(!d.placa || !d.valor || !d.km) return notificar("PLACA, KM E VALOR SÃO OBRIGATÓRIOS!", "error");
-        if(editID) db.ref('abastecimentos/' + editID).update(d).then(() => { notificar("ATUALIZADO!"); cancelarEdicao(); });
-        else db.ref('abastecimentos').push(d).then(() => { notificar("SALVO!"); limparForm(); });
+        if(!d.placa || !d.valor) return alert("PLACA E VALOR SÃO OBRIGATÓRIOS!");
+        
+        if(editID) {
+            db.ref('abastecimentos/' + editID).set(d).then(() => cancelarEdicao());
+        } else {
+            db.ref('abastecimentos').push(d);
+            limparForm();
+        }
     }
 
-    function aplicarFiltros() {
-        const ini = document.getElementById('rel-ini').value;
-        const fim = document.getElementById('rel-fim').value;
-        const sec = document.getElementById('filtro-sec').value;
-        const posto = document.getElementById('filtro-posto').value;
-        const busca = document.getElementById('busca').value.toUpperCase();
-
-        let filtrado = cache.filter(d => {
-            const matchData = (!ini || d.data >= ini) && (!fim || d.data <= fim);
-            const matchSec = !sec || d.secretaria === sec;
-            const matchPosto = !posto || d.posto === posto;
-            const matchBusca = !busca || d.placa.includes(busca) || d.motorista.includes(busca);
-            return matchData && matchSec && matchPosto && matchBusca;
-        });
-
-        renderizar(filtrado);
+    function sugerir(val) {
+        const item = cache.find(x => x.placa === val.toUpperCase());
+        if(item) {
+            document.getElementById('f-sec').value = item.secretaria;
+            document.getElementById('f-mot').value = item.motorista;
+        }
     }
 
-    function limparFiltros() {
-        document.getElementById('rel-ini').value = "";
-        document.getElementById('rel-fim').value = "";
-        document.getElementById('filtro-sec').value = "";
-        document.getElementById('filtro-posto').value = "";
-        document.getElementById('busca').value = "";
-        renderizar(cache);
+    function limparForm() {
+        ["f-placa","f-km","f-lit","f-val","f-mot"].forEach(id => document.getElementById(id).value = "");
+        editID = null;
     }
 
     db.ref('abastecimentos').on('value', snap => {
         cache = []; snap.forEach(i => { let v = i.val(); v.id = i.key; cache.push(v); });
-        renderizar(cache);
+        popularFiltroSecretaria();
+        aplicarFiltros();
         atualizarGraficos();
     });
 
     function renderizar(lista) {
         const tbody = document.querySelector("#tabela tbody");
         tbody.innerHTML = "";
-        const ord = [...cache].sort((a,b) => a.km - b.km);
-        [...lista].reverse().forEach(d => {
-            const ant = ord.filter(x => x.placa === d.placa && x.km < d.km).pop();
-            let kmR = "---", med = "---", ckm = "---";
-            if(ant) {
-                let diff = d.km - ant.km;
-                kmR = diff + " KM";
-                med = (diff / ant.litro).toFixed(2) + " KM/L";
-                ckm = "R$ " + (d.valor / diff).toFixed(2);
-            }
-            tbody.innerHTML += `<tr><td>${d.data.split('-').reverse().join('/')}</td><td><b>${d.placa}</b></td><td>${d.motorista}</td><td>${d.km}</td><td>${kmR}</td><td><span class="badge bg-green">${med}</span></td><td><span class="badge bg-blue">${ckm}</span></td><td>R$ ${d.valor.toFixed(2)}</td><td><button onclick="editar('${d.id}')">✏️</button><button onclick="remover('${d.id}')">🗑️</button></td></tr>`;
+        lista.slice().reverse().forEach(d => {
+            tbody.innerHTML += `<tr>
+                <td>${d.data.split('-').reverse().join('/')}</td>
+                <td><b>${d.placa}</b></td>
+                <td>${d.motorista}</td>
+                <td>${d.km}</td>
+                <td>${d.litro.toFixed(2)}L</td>
+                <td>R$ ${d.valor.toFixed(2)}</td>
+                <td class="no-print">
+                    <button class="btn-edit" onclick="editar('${d.id}')">✏️</button>
+                    <button class="btn-del" onclick="remover('${d.id}')">🗑️</button>
+                </td>
+            </tr>`;
         });
     }
 
     function editar(id) {
-        const item = cache.find(i => i.id === id);
-        document.getElementById('f-placa').value = item.placa;
-        document.getElementById('f-sec').value = item.secretaria;
-        document.getElementById('f-mot').value = item.motorista;
-        document.getElementById('f-data').value = item.data;
-        document.getElementById('f-km').value = item.km;
-        document.getElementById('f-lit').value = item.litro;
-        document.getElementById('f-val').value = item.valor;
+        const d = cache.find(x => x.id === id);
         editID = id;
-        document.getElementById('btn-save').innerHTML = "💾 SALVAR ALTERAÇÕES";
-        document.getElementById('btn-save').classList.add('btn-editar-mode');
+        document.getElementById('f-placa').value = d.placa;
+        document.getElementById('f-sec').value = d.secretaria;
+        document.getElementById('f-mot').value = d.motorista;
+        document.getElementById('f-data').value = d.data;
+        document.getElementById('f-km').value = d.km;
+        document.getElementById('f-lit').value = d.litro;
+        document.getElementById('f-val').value = d.valor;
+        document.getElementById('btn-save').innerText = "ATUALIZAR REGISTRO";
         document.getElementById('btn-cancel').style.display = 'block';
         window.scrollTo(0,0);
     }
 
     function cancelarEdicao() {
-        editID = null; limparForm();
-        document.getElementById('btn-save').innerHTML = "✔️ SALVAR REGISTRO";
-        document.getElementById('btn-save').classList.remove('btn-editar-mode');
+        limparForm();
+        document.getElementById('btn-save').innerText = "✔️ SALVAR REGISTRO";
         document.getElementById('btn-cancel').style.display = 'none';
     }
 
-    function limparForm() { ["f-placa","f-km","f-lit","f-val"].forEach(i => document.getElementById(i).value = ""); }
-    function remover(id) { if(confirm("APAGAR?")) db.ref('abastecimentos').child(id).remove(); }
+    function remover(id) { if(confirm("EXCLUIR REGISTRO?")) db.ref('abastecimentos').child(id).remove(); }
 
     function atualizarGraficos() {
-        const secD = {}, vecD = {};
-        cache.forEach(d => { secD[d.secretaria] = (secD[d.secretaria] || 0) + d.valor; vecD[d.placa] = (vecD[d.placa] || 0) + d.valor; });
-        if(chartP) chartP.destroy();
-        chartP = new Chart(document.getElementById('chartSec'), { type: 'pie', data: { labels: Object.keys(secD), datasets: [{ data: Object.values(secD), backgroundColor: ['#3b82f6','#10b981','#f59e0b','#ef4444','#8b5cf6'] }] }, options: { responsive:true, maintainAspectRatio:false } });
-        const top = Object.entries(vecD).sort((a,b) => b[1]-a[1]).slice(0,5);
-        if(chartB) chartB.destroy();
-        chartB = new Chart(document.getElementById('chartVec'), { type: 'bar', data: { labels: top.map(x=>x[0]), datasets: [{ label:'R$', data: top.map(x=>x[1]), backgroundColor: '#0f172a' }] }, options: { responsive:true, maintainAspectRatio:false } });
+        // Lógica Secretaria
+        const secMap = {}; cache.forEach(d => secMap[d.secretaria] = (secMap[d.secretaria] || 0) + d.valor);
+        if(chartSec) chartSec.destroy();
+        chartSec = new Chart(document.getElementById('chartSec'), {
+            type: 'doughnut',
+            data: { labels: Object.keys(secMap), datasets: [{ data: Object.values(secMap), backgroundColor: ['#3b82f6','#10b981','#f59e0b','#ef4444','#8b5cf6','#6366f1'] }] },
+            options: { responsive: true, maintainAspectRatio: false }
+        });
+
+        // Lógica Top Veículos
+        const vecMap = {}; cache.forEach(d => vecMap[d.placa] = (vecMap[d.placa] || 0) + d.valor);
+        const sortedVec = Object.entries(vecMap).sort((a,b) => b[1] - a[1]).slice(0,5);
+        if(chartVec) chartVec.destroy();
+        chartVec = new Chart(document.getElementById('chartVec'), {
+            type: 'bar',
+            data: { labels: sortedVec.map(x => x[0]), datasets: [{ label: 'Gasto Total (R$)', data: sortedVec.map(x => x[1]), backgroundColor: '#0f172a' }] },
+            options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true } } }
+        });
     }
 
-    function notificar(m, t) { Toastify({ text: m, duration: 2000, style: { background: t==="error"?"#ef4444":"#22c55e"} }).showToast(); }
+    function aplicarFiltros() {
+        const ini = document.getElementById('rel-ini').value;
+        const fim = document.getElementById('rel-fim').value;
+        const sec = document.getElementById('rel-sec').value;
+        const busca = document.getElementById('busca').value.toUpperCase();
+
+        const filtrado = cache.filter(d => {
+            const dataOk = (!ini || d.data >= ini) && (!fim || d.data <= fim);
+            const secOk = !sec || d.secretaria === sec;
+            const buscaOk = !busca || d.placa.includes(busca) || d.motorista.includes(busca);
+            return dataOk && secOk && buscaOk;
+        });
+        renderizar(filtrado);
+    }
+
+    function popularFiltroSecretaria() {
+        const select = document.getElementById('rel-sec');
+        const secs = [...new Set(cache.map(x => x.secretaria))];
+        select.innerHTML = '<option value="">TODAS</option>' + secs.map(s => `<option value="${s}">${s}</option>`).join('');
+    }
 
     function exportarExcel() {
-        let csv = "DATA;PLACA;SECRETARIA;MOTORISTA;KM;VALOR\n";
-        cache.forEach(d => csv += `${d.data};${d.placa};${d.secretaria};${d.motorista};${d.km};${d.valor}\n`);
-        const a = document.createElement("a");
-        a.href = URL.createObjectURL(new Blob([csv], {type:'text/csv'}));
-        a.download = "sgf_backup.csv"; a.click();
-    }
-
-    function printRel() {
-        const ini = document.getElementById('rel-ini').value, fim = document.getElementById('rel-fim').value;
-        const dados = cache.filter(d => (!ini || d.data >= ini) && (!fim || d.data <= fim));
-        document.getElementById('rel-sub').innerText = `PERÍODO: ${ini || 'INÍCIO'} ATÉ ${fim || 'FIM'}`;
-        const body = document.getElementById('pdf-body'); body.innerHTML = "";
-        let tL=0, tV=0;
-        dados.forEach(d => {
-            body.innerHTML += `<tr><td>${d.data.split('-').reverse().join('/')}</td><td>${d.placa}</td><td>${d.secretaria}</td><td>${d.motorista}</td><td>${d.litro.toFixed(2)}</td><td>R$ ${d.valor.toFixed(2)}</td></tr>`;
-            tL += d.litro; tV += d.valor;
-        });
-        document.getElementById('pdf-head').innerHTML = `<tr><th>DATA</th><th>PLACA</th><th>SECRETARIA</th><th>MOTORISTA</th><th>LITROS</th><th>TOTAL</th></tr>`;
-        document.getElementById('pdf-foot').innerHTML = `<tr><td colspan="4">TOTAL</td><td>${tL.toFixed(2)} L</td><td>R$ ${tV.toFixed(2)}</td></tr>`;
-        window.print();
+        let csv = "DATA;PLACA;MOTORISTA;KM;LITROS;VALOR\n";
+        cache.forEach(d => csv += `${d.data};${d.placa};${d.motorista};${d.km};${d.litro};${d.valor}\n`);
+        const blob = new Blob([csv], { type: 'text/csv' });
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a'); a.setAttribute('hidden', ''); a.setAttribute('href', url); a.setAttribute('download', 'relatorio_matina.csv'); document.body.appendChild(a); a.click(); document.body.removeChild(a);
     }
 </script>
 </body>
