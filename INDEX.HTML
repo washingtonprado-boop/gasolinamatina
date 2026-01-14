@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gestão Matina/BA - Completo</title>
+    <title>Gestão Matina/BA - Controle por Administrador</title>
     
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-database-compat.js"></script>
@@ -33,12 +33,15 @@
         th { background: #f8fafc; padding: 10px; text-align: left; border-bottom: 2px solid #e2e8f0; }
         td { padding: 10px; border-bottom: 1px solid #f1f5f9; }
         
+        .alerta-media { background-color: #fee2e2 !important; } 
+        .alerta-media td { border-bottom: 1px solid #fca5a5; }
+
         .status-tag { padding: 3px 6px; border-radius: 4px; font-size: 9px; font-weight: bold; }
         .status-aguardando { background: var(--warning); color: #000; }
         .status-autorizado { background: var(--success); color: #fff; }
         
         .btn-save { background: var(--success); font-size: 16px; margin-top: 10px; color: white; border: none; padding: 15px; border-radius: 8px; cursor: pointer; font-weight: bold; width: 100%; }
-        .btn-auth { background: var(--success); color: white; border: none; padding: 6px 10px; border-radius: 4px; cursor: pointer; font-weight: bold; }
+        .btn-auth { background: var(--success); color: white; border: none; padding: 6px 10px; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 9px; }
         
         input, select { width: 100%; padding: 12px; border: 2px solid #e2e8f0; border-radius: 8px; font-size: 13px; margin-bottom: 5px; }
         label { font-size: 10px; font-weight: bold; color: #64748b; display: block; margin-bottom: 3px; }
@@ -49,9 +52,9 @@
 <body>
 
 <div id="login-screen">
-    <h2>MATINA/BA ⛽</h2>
+    <h2>MATINA/BA - ACESSO ⛽</h2>
     <div class="login-box">
-        <input type="text" id="user" placeholder="USUÁRIO">
+        <input type="text" id="user" placeholder="NOME DE USUÁRIO">
         <input type="password" id="senha" placeholder="SENHA" onkeydown="if(event.key==='Enter') logar()">
         <button class="btn-save" onclick="logar()">ENTRAR</button>
     </div>
@@ -59,14 +62,8 @@
 
 <div class="container blurred" id="app">
     <div class="charts-row no-print">
-        <div class="card">
-            <h4>💰 GASTOS POR SECRETARIA (R$)</h4>
-            <div style="height:250px;"><canvas id="chartSec"></canvas></div>
-        </div>
-        <div class="card">
-            <h4>🚛 TOP 5 VEÍCULOS (R$)</h4>
-            <div style="height:250px;"><canvas id="chartVec"></canvas></div>
-        </div>
+        <div class="card"><h4>💰 GASTOS POR SECRETARIA (R$)</h4><div style="height:250px;"><canvas id="chartSec"></canvas></div></div>
+        <div class="card"><h4>🚛 TOP 5 VEÍCULOS (R$)</h4><div style="height:250px;"><canvas id="chartVec"></canvas></div></div>
     </div>
 
     <div class="card no-print">
@@ -90,7 +87,13 @@
             </div>
             <div><label>MOTORISTA</label><input type="text" id="f-mot"></div>
             <div><label>DESTINO</label><input type="text" id="f-destino"></div>
-            <div><label>AUTORIZADO POR</label><select id="f-aut"><option value="GILVAR">GILVAR</option><option value="ENIO">ENIO</option></select></div>
+            <div><label>COMBUSTÍVEL</label>
+                <select id="f-tipo">
+                    <option value="GASOLINA">GASOLINA</option>
+                    <option value="ALCOOL">ÁLCOOL</option>
+                    <option value="DIESEL">DIESEL</option>
+                </select>
+            </div>
             <div><label>POSTO</label><select id="f-posto"><option>POSTO VITOR</option><option>POSTO MATINA</option></select></div>
             <div><label>VALOR LITRO</label><input type="text" id="f-preco" value="5,89" oninput="mascaraMoeda(this); calc()"></div>
             <div><label>DATA</label><input type="date" id="f-data"></div>
@@ -105,6 +108,7 @@
 </div>
 
 <script>
+    // CONFIGURAÇÃO FIREBASE (MANTIDA)
     const firebaseConfig = {
         apiKey: "AIzaSyDsEQ8L_hWgacZ8xweY3DR9OYt2t151kZE",
         authDomain: "tabela-gasolina.firebaseapp.com",
@@ -117,14 +121,22 @@
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
 
-    let cache = [], chartSec = null, chartVec = null, isAdmin = false;
+    let cache = [], chartSec = null, chartVec = null, isAdmin = false, loginUser = "";
 
     function logar() {
-        const u = document.getElementById('user').value.toLowerCase();
-        const s = document.getElementById('senha').value.toLowerCase();
-        if(u === "admin" && s === "admin") isAdmin = true;
-        else if(u === "frentista" && s === "frentista") isAdmin = false;
-        else return alert("ACESSO NEGADO");
+        const u = document.getElementById('user').value.toLowerCase().trim();
+        const s = document.getElementById('senha').value.trim();
+
+        if((u === "gilvar" || u === "enio") && s === "admin") {
+            isAdmin = true;
+            loginUser = u; 
+        } else if(u === "frentista" && s === "frentista") {
+            isAdmin = false;
+            loginUser = "frentista";
+        } else {
+            return alert("ACESSO NEGADO!");
+        }
+        
         document.getElementById('login-screen').style.display = 'none';
         document.getElementById('app').classList.remove('blurred');
         renderizar();
@@ -149,38 +161,46 @@
     function processar() {
         const placa = document.getElementById('f-placa').value.toUpperCase();
         const kmAtual = parseFloat(document.getElementById('f-km').value) || 0;
+        const tipo = document.getElementById('f-tipo').value;
         const dataHj = document.getElementById('f-data').value;
         const anterior = cache.filter(x => x.placa === placa).sort((a,b) => b.km - a.km)[0];
 
-        if(anterior && kmAtual < anterior.km) return alert("ERRO: KM MENOR QUE " + anterior.km);
+        if(anterior && kmAtual < anterior.km) return alert("KM INVÁLIDO!");
         
         const duplo = cache.find(x => x.placa === placa && x.data === dataHj && x.status === "AUTORIZADO");
-        if(duplo && !confirm("AVISO: ESTE VEÍCULO JÁ ABASTECEU HOJE. CONTINUAR?")) return;
+        if(duplo && !confirm("JÁ ABASTECEU HOJE! CONTINUAR?")) return;
+
+        // Regra de auto-liberação no cadastro
+        let statusInicial = "AGUARDANDO";
+        if(loginUser === "gilvar" && tipo === "DIESEL") statusInicial = "AUTORIZADO";
+        if(loginUser === "enio" && (tipo === "GASOLINA" || tipo === "ALCOOL")) statusInicial = "AUTORIZADO";
 
         const d = {
             placa, data: dataHj, motorista: document.getElementById('f-mot').value.toUpperCase(),
             destino: document.getElementById('f-destino').value.toUpperCase(),
+            tipo: tipo,
             secretaria: document.getElementById('f-sec').value,
-            autorizador: document.getElementById('f-aut').value,
             posto: document.getElementById('f-posto').value,
             km: kmAtual, litro: parseFloat(document.getElementById('f-lit').value) || 0,
             valor: parseFloat(document.getElementById('f-val').value.replace(",", ".")) || 0,
-            status: isAdmin ? "AUTORIZADO" : "AGUARDANDO", timestamp: Date.now()
+            status: statusInicial, 
+            autorizadoPor: statusInicial === "AUTORIZADO" ? loginUser.toUpperCase() : "PENDENTE",
+            timestamp: Date.now()
         };
 
-        if(!d.placa || !d.valor || !d.destino) return alert("PREENCHA TUDO!");
+        if(!d.placa || !d.valor || !d.destino) return alert("CAMPOS VAZIOS!");
         db.ref('abastecimentos').push(d);
         limparCampos();
-    }
-
-    function limparCampos() {
-        ["f-placa","f-km","f-lit","f-val","f-mot","f-destino"].forEach(i => document.getElementById(i).value = "");
-        document.getElementById('f-data').valueAsDate = new Date();
     }
 
     function sugerir(v) {
         const last = cache.filter(x => x.placa === v.toUpperCase()).sort((a,b) => b.timestamp - a.timestamp)[0];
         if(last) { document.getElementById('f-sec').value = last.secretaria; document.getElementById('f-mot').value = last.motorista; }
+    }
+
+    function limparCampos() {
+        ["f-placa","f-km","f-lit","f-val","f-mot","f-destino"].forEach(i => document.getElementById(i).value = "");
+        document.getElementById('f-data').valueAsDate = new Date();
     }
 
     db.ref('abastecimentos').on('value', snap => {
@@ -193,50 +213,62 @@
         const container = document.getElementById('relatorio-container');
         container.innerHTML = "";
         const aut = cache.filter(x => x.status === "AUTORIZADO");
-        container.innerHTML = `<div class="mini-card">TOTAL GERAL AUTORIZADO: R$ ${aut.reduce((a,b)=>a+b.valor,0).toFixed(2)}</div>`;
+        container.innerHTML = `<div class="mini-card">OPERADOR: ${loginUser.toUpperCase()} | TOTAL GERAL: R$ ${aut.reduce((a,b)=>a+b.valor,0).toFixed(2)}</div>`;
 
         [...new Set(cache.map(x => x.secretaria))].sort().forEach(sec => {
             const itens = cache.filter(x => x.secretaria === sec).sort((a,b) => new Date(a.data) - new Date(b.data));
             let sR$ = 0, sL = 0, linhas = "";
+            
             itens.forEach(d => {
                 if(d.status === "AUTORIZADO") { sR$ += d.valor; sL += d.litro; }
                 const ants = cache.filter(v => v.placa === d.placa && v.km < d.km).sort((a,b) => b.km - a.km);
                 const kmAnt = ants.length > 0 ? ants[0].km : 0;
                 const media = (kmAnt > 0 && d.litro > 0) ? ((d.km - kmAnt) / d.litro) : 0;
+
+                let baixo = false;
+                if(media > 0) {
+                    if(d.tipo === "GASOLINA" && media < 7) baixo = true;
+                    if(d.tipo === "ALCOOL" && media < 5) baixo = true;
+                    if(d.tipo === "DIESEL" && media < 2) baixo = true;
+                }
+
                 let acoes = "";
                 if(isAdmin) {
-                    if(d.status !== "AUTORIZADO") acoes += `<button class="btn-auth" onclick="db.ref('abastecimentos/${d.id}').update({status:'AUTORIZADO'})">LIBERAR</button> `;
+                    // REGRA DE OURO: Só mostra LIBERAR se for o combustível do Admin logado
+                    const podeLiberarDiesel = (loginUser === "gilvar" && d.tipo === "DIESEL");
+                    const podeLiberarLeve = (loginUser === "enio" && (d.tipo === "GASOLINA" || d.tipo === "ALCOOL"));
+
+                    if(d.status !== "AUTORIZADO" && (podeLiberarDiesel || podeLiberarLeve)) {
+                        acoes += `<button class="btn-auth" onclick="db.ref('abastecimentos/${d.id}').update({status:'AUTORIZADO', autorizadoPor:'${loginUser.toUpperCase()}'})">LIBERAR</button> `;
+                    }
                     acoes += `<button onclick="if(confirm('EXCLUIR?')) db.ref('abastecimentos/${d.id}').remove()" style="border:none; background:none; cursor:pointer">🗑️</button>`;
                 }
-                linhas += `<tr><td>${d.data.split('-').reverse().join('/')}</td><td><b>${d.placa}</b></td><td>${d.motorista}</td><td>${d.destino}</td><td><span class="status-tag status-${d.status.toLowerCase()}">${d.status}</span></td><td>${d.km}</td><td>${d.litro.toFixed(2)}</td><td style="color:var(--accent); font-weight:bold">${media > 0 ? media.toFixed(2) : '--'}</td><td>R$ ${d.valor.toFixed(2)}</td><td class="no-print">${acoes}</td></tr>`;
+
+                linhas += `<tr class="${baixo ? 'alerta-media' : ''}">
+                    <td>${d.data.split('-').reverse().join('/')}</td>
+                    <td><b>${d.placa}</b></td>
+                    <td>${d.tipo}</td>
+                    <td>${d.destino}</td>
+                    <td><span class="status-tag status-${d.status.toLowerCase()}">${d.status}</span></td>
+                    <td style="color:${baixo ? 'red' : 'var(--accent)'}; font-weight:bold">${media > 0 ? media.toFixed(2) : '--'}</td>
+                    <td>R$ ${d.valor.toFixed(2)}</td>
+                    <td class="no-print">${acoes}</td>
+                </tr>`;
             });
-            container.innerHTML += `<div class="sec-block"><div class="sec-header">${sec}</div><div style="overflow-x:auto"><table><thead><tr><th>DATA</th><th>PLACA</th><th>MOTORISTA</th><th>DESTINO</th><th>STATUS</th><th>KM</th><th>L</th><th>MÉDIA</th><th>TOTAL</th><th class="no-print">AÇÕES</th></tr></thead><tbody>${linhas}</tbody><tfoot><tr style="background:#f8fafc; font-weight:bold"><td colspan="6">SUBTOTAL AUTORIZADO</td><td>${sL.toFixed(2)}L</td><td>-</td><td colspan="2">R$ ${sR$.toFixed(2)}</td></tr></tfoot></table></div></div>`;
+            container.innerHTML += `<div class="sec-block"><div class="sec-header">${sec}</div><div style="overflow-x:auto"><table><thead><tr><th>DATA</th><th>PLACA</th><th>TIPO</th><th>DESTINO</th><th>STATUS</th><th>MÉDIA</th><th>TOTAL</th><th class="no-print">AÇÕES</th></tr></thead><tbody>${linhas}</tbody><tfoot><tr style="background:#f8fafc; font-weight:bold"><td colspan="5">SUBTOTAL</td><td>${sL.toFixed(2)}L</td><td colspan="2">R$ ${sR$.toFixed(2)}</td></tr></tfoot></table></div></div>`;
         });
     }
 
-    // FUNÇÃO DOS GRAFICOS RESTAURADA
     function atualizarGraficos() {
         const aut = cache.filter(x => x.status === "AUTORIZADO");
-        if(aut.length === 0) return;
-
-        // Gráfico de Secretarias
+        if(aut.length === 0 || !document.getElementById('chartSec')) return;
         const secMap = {}; aut.forEach(d => secMap[d.secretaria] = (secMap[d.secretaria] || 0) + d.valor);
         if(chartSec) chartSec.destroy();
-        chartSec = new Chart(document.getElementById('chartSec'), {
-            type: 'doughnut',
-            data: { labels: Object.keys(secMap), datasets: [{ data: Object.values(secMap), backgroundColor: ['#3b82f6','#10b981','#f59e0b','#ef4444','#8b5cf6','#ec4899','#06b6d4'] }] },
-            options: { responsive: true, maintainAspectRatio: false }
-        });
-
-        // Gráfico Top Carros
+        chartSec = new Chart(document.getElementById('chartSec'), { type: 'doughnut', data: { labels: Object.keys(secMap), datasets: [{ data: Object.values(secMap), backgroundColor: ['#3b82f6','#10b981','#f59e0b','#ef4444','#8b5cf6','#ec4899','#06b6d4'] }] }, options: { responsive: true, maintainAspectRatio: false }});
         const vecMap = {}; aut.forEach(d => vecMap[d.placa] = (vecMap[d.placa] || 0) + d.valor);
         const sortedVec = Object.entries(vecMap).sort((a,b) => b[1] - a[1]).slice(0,5);
         if(chartVec) chartVec.destroy();
-        chartVec = new Chart(document.getElementById('chartVec'), {
-            type: 'bar',
-            data: { labels: sortedVec.map(x => x[0]), datasets: [{ label: 'TOTAL R$', data: sortedVec.map(x => x[1]), backgroundColor: '#0f172a' }] },
-            options: { responsive: true, maintainAspectRatio: false }
-        });
+        chartVec = new Chart(document.getElementById('chartVec'), { type: 'bar', data: { labels: sortedVec.map(x => x[0]), datasets: [{ label: 'TOTAL R$', data: sortedVec.map(x => x[1]), backgroundColor: '#0f172a' }] }, options: { responsive: true, maintainAspectRatio: false }});
     }
     document.getElementById('f-data').valueAsDate = new Date();
 </script>
