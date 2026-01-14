@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SISTEMA MATINA/BA - GESTÃO TOTAL</title>
+    <title>SISTEMA MATINA/BA - VERSÃO ESTÁVEL</title>
     
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-database-compat.js"></script>
@@ -19,7 +19,7 @@
         .blurred { filter: blur(15px); pointer-events: none; }
         #login-screen { position: fixed; inset: 0; background: var(--primary); z-index: 999; display: flex; align-items: center; justify-content: center; flex-direction: column; color: white; }
         .login-box { width: 90%; max-width: 320px; text-align: center; }
-        .login-box input { width: 100%; padding: 15px; border-radius: 10px; border: none; margin-bottom: 10px; text-align: center; }
+        .login-box input { width: 100%; padding: 15px; border-radius: 10px; border: none; margin-bottom: 10px; text-align: center; font-size: 16px; }
         .top-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 10px; }
         .nav-tabs { display: flex; gap: 10px; }
         .tab-btn { padding: 12px 20px; border: none; border-radius: 8px; cursor: pointer; background: #cbd5e1; font-weight: bold; font-size: 11px; }
@@ -38,6 +38,7 @@
         .status-tag { padding: 3px 6px; border-radius: 4px; font-weight: bold; font-size: 9px; }
         .status-aguardando { background: var(--warning); color: #000; }
         .status-autorizado { background: var(--success); color: #fff; }
+        .btn-acao { background: none; border: none; cursor: pointer; font-size: 14px; margin-left: 5px; }
         @media print { .no-print { display: none !important; } }
     </style>
 </head>
@@ -82,7 +83,7 @@
                 <div><label>DATA</label><input type="date" id="f-data"></div>
                 <div><label>KM ATUAL</label><input type="number" id="f-km"></div>
                 <div><label>LITROS</label><input type="number" id="f-lit" step="0.01" oninput="calc()"></div>
-                <div><label>VALOR TOTAL</label><input type="text" id="f-val" readonly style="background:#f1f5f9; font-weight:bold;"></div>
+                <div><label>VALOR TOTAL (AUTO)</label><input type="text" id="f-val" readonly style="background:#f1f5f9; font-weight:bold; color:var(--primary);"></div>
             </div>
             <button class="btn-save" onclick="processar()">✔️ SALVAR REGISTRO</button>
         </div>
@@ -91,20 +92,20 @@
 
     <div id="tab-usuarios" style="display:none;">
         <div class="card">
-            <h3>💲 TABELA DE PREÇOS</h3>
+            <h3>💲 TABELA DE PREÇOS ATUAL</h3>
             <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px;">
-                <div><label>GASOLINA</label><input type="number" id="p-gas" value="6.00"></div>
-                <div><label>ALCOOL</label><input type="number" id="p-alc" value="4.00"></div>
-                <div><label>DIESEL</label><input type="number" id="p-die" value="6.00"></div>
+                <div><label>GASOLINA (R$)</label><input type="number" id="p-gas" step="0.01"></div>
+                <div><label>ALCOOL (R$)</label><input type="number" id="p-alc" step="0.01"></div>
+                <div><label>DIESEL (R$)</label><input type="number" id="p-die" step="0.01"></div>
             </div>
-            <button class="btn-save" onclick="salvarPrecos()" style="background:var(--accent)">SALVAR PREÇOS</button>
+            <button class="btn-save" onclick="salvarPrecos()" style="background:var(--accent)">ATUALIZAR PREÇOS PARA TODOS</button>
         </div>
 
         <div class="card">
-            <h3 id="title-user">👥 GESTÃO DE USUÁRIOS</h3>
+            <h3>👥 GESTÃO DE USUÁRIOS E SENHAS</h3>
             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px;">
-                <input type="text" id="new-user" placeholder="USUÁRIO">
-                <input type="text" id="new-pass" placeholder="SENHA">
+                <input type="text" id="new-user" placeholder="NOME DE USUÁRIO">
+                <input type="text" id="new-pass" placeholder="NOVA SENHA">
                 <select id="new-role" onchange="document.getElementById('div-limite').style.display = (this.value === 'secretarios') ? 'block' : 'none';">
                     <option value="admin">ADMIN (GILVAR/ENIO)</option>
                     <option value="secretarios">SECRETARIO (COM LIMITE)</option>
@@ -112,15 +113,14 @@
                 </select>
                 <div id="div-limite" style="display:none;"><input type="number" id="new-limit" placeholder="LIMITE R$"></div>
             </div>
-            <button class="btn-save" id="btn-user-action" onclick="addUsuario()" style="background:var(--accent)">CADASTRAR CONTA</button>
-            <button class="btn-save" id="btn-cancel-edit" onclick="resetarFormUser()" style="background:var(--danger); display:none;">CANCELAR EDIÇÃO</button>
+            <button class="btn-save" id="btn-user-action" onclick="addUsuario()" style="background:var(--accent)">CADASTRAR / ATUALIZAR USUÁRIO</button>
+            <button class="btn-save" id="btn-cancel-user" onclick="resetarFormUser()" style="background:var(--danger); display:none;">CANCELAR EDIÇÃO</button>
         </div>
         <div class="card"><table><thead><tr><th>USUÁRIO</th><th>CARGO</th><th>LIMITE</th><th>AÇÕES</th></tr></thead><tbody id="user-body"></tbody></table></div>
     </div>
 </div>
 
 <script>
-    // INICIALIZAÇÃO FIREBASE
     const firebaseConfig = {
         apiKey: "AIzaSyDsEQ8L_hWgacZ8xweY3DR9OYt2t151kZE",
         authDomain: "tabela-gasolina.firebaseapp.com",
@@ -130,15 +130,18 @@
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
 
-    let cache = [], userLimit = 0, userRole = "", loginUser = "", precos = {GASOLINA:6, ALCOOL:4, DIESEL:6}, chartSec = null, chartVec = null;
+    let cache = [], userLimit = 0, userRole = "", loginUser = "", chartSec = null, chartVec = null;
+    let precosGlobais = { GASOLINA: 6.00, ALCOOL: 4.00, DIESEL: 6.00 };
 
-    // CARREGAR CONFIGS
+    // Sincronização de Preços em Tempo Real
     db.ref('config/precos').on('value', snap => {
-        if(snap.val()) {
-            precos = snap.val();
-            document.getElementById('p-gas').value = precos.GASOLINA;
-            document.getElementById('p-alc').value = precos.ALCOOL;
-            document.getElementById('p-die').value = precos.DIESEL;
+        const p = snap.val();
+        if(p) {
+            precosGlobais = p;
+            document.getElementById('p-gas').value = p.GASOLINA || 6.00;
+            document.getElementById('p-alc').value = p.ALCOOL || 4.00;
+            document.getElementById('p-die').value = p.DIESEL || 6.00;
+            calc(); // Recalcula o campo se houver algo digitado
         }
     });
 
@@ -149,7 +152,7 @@
         db.ref('usuarios/' + u).once('value', snap => {
             const user = snap.val();
             if(user && user.senha === s) entrar(u, user.role, user.limite || 0);
-            else alert("ACESSO NEGADO!");
+            else alert("DADOS INCORRETOS!");
         });
     }
 
@@ -162,37 +165,45 @@
     }
 
     function salvarPrecos() {
-        const p = { GASOLINA: parseFloat(document.getElementById('p-gas').value), ALCOOL: parseFloat(document.getElementById('p-alc').value), DIESEL: parseFloat(document.getElementById('p-die').value) };
-        db.ref('config/precos').set(p).then(() => alert("PREÇOS ATUALIZADOS!"));
+        const p = { 
+            GASOLINA: parseFloat(document.getElementById('p-gas').value) || 0, 
+            ALCOOL: parseFloat(document.getElementById('p-alc').value) || 0, 
+            DIESEL: parseFloat(document.getElementById('p-die').value) || 0 
+        };
+        db.ref('config/precos').set(p).then(() => alert("TABELA DE PREÇOS ATUALIZADA!"));
     }
 
     function calc() {
         const tipo = document.getElementById('f-tipo').value;
         const litros = parseFloat(document.getElementById('f-lit').value) || 0;
-        document.getElementById('f-val').value = "R$ " + (litros * (precos[tipo] || 0)).toFixed(2);
+        const precoUnitario = precosGlobais[tipo] || 0;
+        const total = (litros * precoUnitario).toFixed(2);
+        document.getElementById('f-val').value = "R$ " + total;
     }
 
     function processar() {
         const placa = document.getElementById('f-placa').value.toUpperCase();
         const litros = parseFloat(document.getElementById('f-lit').value) || 0;
         const tipo = document.getElementById('f-tipo').value;
-        const valor = litros * precos[tipo];
-        if(!placa || litros <= 0) return alert("DADOS INVÁLIDOS!");
+        const valorTotal = litros * precosGlobais[tipo];
 
-        let st = (loginUser === "master" || userRole === "admin" || userRole === "secretarios") ? "AUTORIZADO" : "AGUARDANDO";
+        if(!placa || litros <= 0) return alert("PREENCHA OS CAMPOS CORRETAMENTE!");
+
+        let st = "AGUARDANDO";
+        if(loginUser === "master" || userRole === "admin" || userRole === "secretarios") st = "AUTORIZADO";
 
         if(userRole === 'secretarios') {
-            const gasto = cache.filter(x => x.status === "AUTORIZADO" && x.autorizadoPor === loginUser.toUpperCase()).reduce((a,b)=>a+b.valor, 0);
-            if((gasto + valor) > userLimit) return alert("LIMITE EXCEDIDO!");
+            const gastoAtual = cache.filter(x => x.status === "AUTORIZADO" && x.autorizadoPor === loginUser.toUpperCase()).reduce((a,b)=>a+b.valor, 0);
+            if((gastoAtual + valorTotal) > userLimit) return alert("LIMITE FINANCEIRO EXCEDIDO!");
         }
 
         db.ref('abastecimentos').push({
             placa, data: document.getElementById('f-data').value, motorista: document.getElementById('f-mot').value.toUpperCase(),
-            tipo, secretaria: document.getElementById('f-sec').value, litro: litros, valor: valor,
+            tipo, secretaria: document.getElementById('f-sec').value, litro: litros, valor: valorTotal,
             km: parseFloat(document.getElementById('f-km').value) || 0, status: st, 
             autorizadoPor: st === "AUTORIZADO" ? loginUser.toUpperCase() : "PENDENTE", timestamp: Date.now()
         }).then(() => {
-            Toastify({text: "SALVO!", background: "green"}).showToast();
+            Toastify({text: "LANÇAMENTO REALIZADO!", background: "var(--success)"}).showToast();
             ["f-placa","f-mot","f-km","f-lit","f-val"].forEach(id => document.getElementById(id).value = "");
         });
     }
@@ -202,10 +213,10 @@
         const container = document.getElementById('relatorio-container');
         container.innerHTML = "";
         
-        let headerTxt = `OPERADOR: ${loginUser.toUpperCase()}`;
+        let headerTxt = `SESSÃO: ${loginUser.toUpperCase()} (${userRole.toUpperCase()})`;
         if(userRole === 'secretarios') {
             const gasto = cache.filter(x => x.status === "AUTORIZADO" && x.autorizadoPor === loginUser.toUpperCase()).reduce((a,b)=>a+b.valor, 0);
-            headerTxt += ` | SALDO: R$ ${(userLimit - gasto).toFixed(2)}`;
+            headerTxt += ` | SALDO DISPONÍVEL: R$ ${(userLimit - gasto).toFixed(2)}`;
         }
         container.innerHTML = `<div class="mini-card">${headerTxt}</div>`;
 
@@ -216,15 +227,20 @@
             dados.forEach(d => {
                 const hist = cache.filter(v => v.placa === d.placa && v.km < d.km).sort((a,b) => b.km - a.km);
                 const media = (hist.length > 0 && d.litro > 0) ? ((d.km - hist[0].km) / d.litro) : 0;
-                let corMedia = (media > 0 && ((d.tipo === "GASOLINA" && media < 7) || (d.tipo === "DIESEL" && media < 2.5))) ? "alerta-media" : "";
+                let corAlerta = (media > 0 && ((d.tipo === "GASOLINA" && media < 7) || (d.tipo === "DIESEL" && media < 2.5))) ? "alerta-media" : "";
 
-                linhas += `<tr class="${corMedia}">
+                // LÓGICA DA LIXEIRA: VISÍVEL PARA MASTER OU ADMIN
+                const btnDeletar = (loginUser === "master" || userRole === "admin") 
+                    ? `<button class="btn-acao" onclick="if(confirm('EXCLUIR REGISTRO?')) db.ref('abastecimentos/${d.id}').remove()">🗑️</button>` 
+                    : "";
+
+                linhas += `<tr class="${corAlerta}">
                     <td>${d.data.split('-').reverse().join('/')}</td><td><b>${d.placa}</b></td><td>${d.tipo}</td><td>${d.motorista}</td>
                     <td><span class="status-tag status-${d.status.toLowerCase()}">${d.status}</span></td>
                     <td>${media > 0 ? media.toFixed(2) : '---'}</td><td>R$ ${d.valor.toFixed(2)}</td>
                     <td class="no-print">
                         ${(d.status === 'AGUARDANDO' && (loginUser === 'master' || userRole === 'admin')) ? `<button class="btn-auth" onclick="db.ref('abastecimentos/${d.id}').update({status:'AUTORIZADO', autorizadoPor:loginUser.toUpperCase()})">LIBERAR</button>` : ''}
-                        ${(loginUser === 'master' || userRole === 'admin') ? `<button style="background:none;border:none;cursor:pointer" onclick="if(confirm('EXCLUIR?')) db.ref('abastecimentos/${d.id}').remove()">🗑️</button>` : ''}
+                        ${btnDeletar}
                     </td></tr>`;
             });
             container.innerHTML += `<div style="background:var(--primary);color:white;padding:8px;font-size:10px;margin-top:15px;border-radius:5px">${sec}</div>
@@ -245,13 +261,14 @@
         chartVec = new Chart(document.getElementById('chartVec'), { type: 'bar', data: { labels: sortedVec.map(x => x[0]), datasets: [{ label: 'R$', data: sortedVec.map(x => x[1]), backgroundColor: '#0f172a' }] }, options: { responsive: true, maintainAspectRatio: false }});
     }
 
-    // GESTÃO DE USUÁRIOS (COM EDIÇÃO)
+    // GESTÃO DE USUÁRIOS
     function addUsuario() {
         const u = document.getElementById('new-user').value.toLowerCase().trim();
         const s = document.getElementById('new-pass').value.trim();
         const r = document.getElementById('new-role').value;
         const l = parseFloat(document.getElementById('new-limit').value) || 0;
-        if(u && s) db.ref('usuarios/'+u).set({senha:s, role:r, limite:l}).then(() => { alert("OK!"); resetarFormUser(); listUsuarios(); });
+        if(!u || !s) return alert("PREENCHA NOME E SENHA!");
+        db.ref('usuarios/'+u).set({senha:s, role:r, limite:l}).then(() => { alert("USUÁRIO SALVO!"); resetarFormUser(); listUsuarios(); });
     }
 
     function prepararEdicao(u, s, r, l) {
@@ -261,13 +278,14 @@
         document.getElementById('new-role').value = r;
         document.getElementById('new-limit').value = l;
         document.getElementById('div-limite').style.display = (r === 'secretarios') ? 'block' : 'none';
-        document.getElementById('btn-user-action').innerHTML = "SALVAR ALTERAÇÕES";
-        document.getElementById('btn-user-action').style.background = "var(--warning)";
-        document.getElementById('btn-user-action').onclick = function() {
+        const btn = document.getElementById('btn-user-action');
+        btn.innerHTML = "💾 SALVAR ALTERAÇÕES";
+        btn.style.background = "var(--warning)";
+        btn.onclick = function() {
             db.ref('usuarios/'+u).update({senha: document.getElementById('new-pass').value, role: document.getElementById('new-role').value, limite: parseFloat(document.getElementById('new-limit').value)||0})
-            .then(() => { alert("ATUALIZADO!"); resetarFormUser(); listUsuarios(); });
+            .then(() => { alert("ALTERADO COM SUCESSO!"); resetarFormUser(); listUsuarios(); });
         };
-        document.getElementById('btn-cancel-edit').style.display = "block";
+        document.getElementById('btn-cancel-user').style.display = "block";
     }
 
     function resetarFormUser() {
@@ -275,10 +293,11 @@
         document.getElementById('new-user').disabled = false;
         document.getElementById('new-pass').value = "";
         document.getElementById('new-limit').value = "";
-        document.getElementById('btn-user-action').innerHTML = "CADASTRAR CONTA";
-        document.getElementById('btn-user-action').style.background = "var(--accent)";
-        document.getElementById('btn-user-action').onclick = addUsuario;
-        document.getElementById('btn-cancel-edit').style.display = "none";
+        const btn = document.getElementById('btn-user-action');
+        btn.innerHTML = "CADASTRAR / ATUALIZAR USUÁRIO";
+        btn.style.background = "var(--accent)";
+        btn.onclick = addUsuario;
+        document.getElementById('btn-cancel-user').style.display = "none";
     }
 
     function listUsuarios() {
@@ -288,13 +307,14 @@
                 const u = c.val(); 
                 tbody.innerHTML += `<tr><td>${c.key.toUpperCase()}</td><td>${u.role}</td><td>${u.limite||'--'}</td>
                 <td>
-                    <button onclick="prepararEdicao('${c.key}','${u.senha}','${u.role}',${u.limite||0})">✏️</button>
-                    <button onclick="if(confirm('EXCLUIR?')) {db.ref('usuarios/${c.key}').remove(); listUsuarios();}">🗑️</button>
+                    <button class="btn-acao" onclick="prepararEdicao('${c.key}','${u.senha}','${u.role}',${u.limite||0})">✏️</button>
+                    <button class="btn-acao" onclick="if(confirm('DELETAR USUÁRIO?')) {db.ref('usuarios/${c.key}').remove(); listUsuarios();}">🗑️</button>
                 </td></tr>`; 
             });
         });
     }
 
+    // Listener Principal
     db.ref('abastecimentos').on('value', snap => {
         cache = []; snap.forEach(i => { let v = i.val(); v.id = i.key; cache.push(v); });
         renderizar();
