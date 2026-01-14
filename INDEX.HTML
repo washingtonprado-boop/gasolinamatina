@@ -22,7 +22,6 @@
         .container { max-width: 1200px; margin: 0 auto; }
         .blurred { filter: blur(15px); pointer-events: none; }
 
-        /* Login */
         #login-screen { 
             position: fixed; inset: 0; background: var(--primary); z-index: 999; 
             display: flex; align-items: center; justify-content: center; flex-direction: column; color: white; 
@@ -33,44 +32,38 @@
             margin-bottom: 10px; text-align: center; font-size: 16px; 
         }
 
-        /* Cards e Layout */
         .card { 
             background: white; border-radius: 12px; padding: 20px; margin-bottom: 20px; 
             box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); border: 1px solid #e2e8f0; 
         }
-        .form-grid { 
-            display: grid; grid-template-columns: 1fr; gap: 15px; 
-        }
-        @media (min-width: 768px) {
-            .form-grid { grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); }
-        }
+        
+        .resumo-geral { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 20px; }
+        .mini-card { background: var(--primary); color: white; padding: 15px; border-radius: 10px; text-align: center; }
+        .mini-card span { display: block; font-size: 10px; opacity: 0.8; margin-bottom: 5px; }
+        .mini-card b { font-size: 1.2em; }
 
-        /* Gráficos Responsivos */
-        .charts-row { display: grid; grid-template-columns: 1fr; gap: 20px; }
-        @media (min-width: 900px) { .charts-row { grid-template-columns: 1fr 1fr; } }
-        .chart-container { position: relative; height: 300px; width: 100%; }
+        .sec-block { margin-top: 25px; border: 2px solid #e2e8f0; border-radius: 12px; overflow: hidden; background: white; }
+        .sec-header { background: var(--primary); color: white; padding: 12px 15px; font-weight: bold; font-size: 14px; }
 
-        /* Tabelas */
-        .table-scroll { overflow-x: auto; margin-top: 15px; border-radius: 8px; border: 1px solid #e2e8f0; }
-        table { width: 100%; border-collapse: collapse; min-width: 700px; font-size: 13px; }
-        th { background: #f8fafc; padding: 12px; text-align: left; border-bottom: 2px solid #e2e8f0; }
-        td { padding: 12px; border-bottom: 1px solid #f1f5f9; }
+        .form-grid { display: grid; grid-template-columns: 1fr; gap: 15px; }
+        @media (min-width: 768px) { .form-grid { grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); } }
 
-        /* Estilos de UI */
-        input, select { 
-            width: 100%; padding: 12px; border: 2px solid #e2e8f0; border-radius: 8px; 
-            font-size: 14px; background: white;
-        }
+        .table-scroll { overflow-x: auto; margin-top: 0; }
+        table { width: 100%; border-collapse: collapse; min-width: 800px; font-size: 11px; }
+        th { background: #f8fafc; padding: 10px; text-align: left; border-bottom: 2px solid #e2e8f0; }
+        td { padding: 10px; border-bottom: 1px solid #f1f5f9; }
+        
+        .subtotal-row { background: #f8fafc; font-weight: bold; color: var(--primary); }
+        .consumo-baixo { background-color: #fee2e2 !important; color: #991b1b; }
+
+        input, select { width: 100%; padding: 12px; border: 2px solid #e2e8f0; border-radius: 8px; font-size: 14px; background: white; }
         label { font-size: 11px; font-weight: bold; color: #64748b; margin-bottom: 5px; display: block; }
-        .btn { 
-            width: 100%; padding: 15px; border: none; border-radius: 8px; 
-            font-weight: bold; cursor: pointer; color: white; 
-        }
+        .btn { width: 100%; padding: 15px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; color: white; }
         .btn-save { background: var(--success); font-size: 16px; }
-        .btn-edit { background: var(--warning); padding: 5px 10px; }
-        .btn-del { background: var(--danger); padding: 5px 10px; }
+        .btn-edit { background: var(--warning); padding: 5px 10px; border: none; border-radius: 4px; color: white; cursor: pointer; }
+        .btn-del { background: var(--danger); padding: 5px 10px; border: none; border-radius: 4px; color: white; cursor: pointer; }
 
-        @media print { .no-print { display: none !important; } }
+        @media print { .no-print { display: none !important; } .sec-block { break-inside: avoid; border: 1px solid #ccc; } }
     </style>
 </head>
 <body>
@@ -85,39 +78,42 @@
 
 <div class="container blurred" id="app">
     
-    <div class="charts-row no-print">
+    <div class="charts-row no-print" style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
         <div class="card">
-            <h4 style="margin: 0 0 15px 0;">💰 GASTOS POR SECRETARIA</h4>
-            <div class="chart-container"><canvas id="chartSec"></canvas></div>
+            <h4>💰 GASTOS POR SECRETARIA</h4>
+            <div class="chart-container" style="height:250px;"><canvas id="chartSec"></canvas></div>
         </div>
         <div class="card">
-            <h4 style="margin: 0 0 15px 0;">🚛 TOP 5 VEÍCULOS (R$)</h4>
-            <div class="chart-container"><canvas id="chartVec"></canvas></div>
+            <h4>🚛 TOP 5 VEÍCULOS (R$)</h4>
+            <div class="chart-container" style="height:250px;"><canvas id="chartVec"></canvas></div>
         </div>
     </div>
 
     <div class="card no-print">
-        <h3 style="margin-top: 0;">⛽ NOVO LANÇAMENTO</h3>
+        <h3>⛽ NOVO LANÇAMENTO</h3>
         <div class="form-grid">
             <div><label>PLACA</label><input type="text" id="f-placa" placeholder="ABC1234" oninput="sugerir(this.value)"></div>
             <div>
                 <label>SECRETARIA</label>
                 <select id="f-sec">
                     <option value="AVULSOS">AVULSOS / GERAL</option>
-                    <option value="Secretaria Municipal de Administração e Finanças">ADM. E FINANÇAS</option>
-                    <option value="Secretaria de Infraestrutura e Serviços Públicos">INFRAESTRUTURA</option>
-                    <option value="Controlador Interno">CONTROLADORIA</option>
-                    <option value="Secretaria de Comunicação">COMUNICAÇÃO</option>
-                    <option value="Secretaria Municipal de Educação">EDUCAÇÃO</option>
-                    <option value="Secretaria Municipal de Saúde">SAÚDE</option>
-                    <option value="Secretaria de Agricultura, Abastecimento, Meio Ambiente e Desenvolvimento Econômico">AGRICULTURA</option>
-                    <option value="Secretaria de Cultura, Esporte e Lazer">CULTURA E ESPORTE</option>
-                    <option value="Secretaria de Governo">GOVERNO</option>
-                    <option value="Secretaria de Planejamento">PLANEJAMENTO</option>
-                    <option value="Secretaria de Assistência Social">ASSISTÊNCIA SOCIAL</option>
+                    <option value="Administração e Finanças">ADM. E FINANÇAS</option>
+                    <option value="Infraestrutura e Serviços">INFRAESTRUTURA</option>
+                    <option value="Educação">EDUCAÇÃO</option>
+                    <option value="Saúde">SAÚDE</option>
+                    <option value="Agricultura e Meio Ambiente">AGRICULTURA</option>
+                    <option value="Assistência Social">ASSISTÊNCIA SOCIAL</option>
                 </select>
             </div>
             <div><label>MOTORISTA</label><input type="text" id="f-mot"></div>
+            <div>
+                <label>AUTORIZADO POR</label>
+                <select id="f-aut">
+                    <option value="NÃO INFORMADO">SELECIONE</option>
+                    <option value="GILVAR">GILVAR</option>
+                    <option value="ENIO">ENIO</option>
+                </select>
+            </div>
             <div><label>POSTO</label><select id="f-posto" onchange="calc()"><option>POSTO VITOR</option><option>POSTO MATINA</option></select></div>
             <div><label>VALOR LITRO (R$)</label><input type="number" id="f-preco" value="5.89" step="0.01" oninput="calc()"></div>
             <div><label>DATA</label><input type="date" id="f-data"></div>
@@ -137,27 +133,17 @@
             <div><label>SECRETARIA</label><select id="rel-sec" onchange="aplicarFiltros()"><option value="">TODAS</option></select></div>
             <div><label>BUSCA (PLACA/MOTORISTA)</label><input type="text" id="busca" placeholder="DIGITE..." oninput="aplicarFiltros()"></div>
         </div>
-        <div style="margin-top: 15px; display: flex; gap: 10px; flex-wrap: wrap;">
+        <div style="margin-top: 15px; display: flex; gap: 10px;">
             <button class="btn" style="background: var(--accent); width: auto;" onclick="window.print()">🖨️ IMPRIMIR PDF</button>
-            <button class="btn" style="background: #10b981; width: auto;" onclick="exportarExcel()">Excel</button>
+            <button class="btn" style="background: #10b981; width: auto;" onclick="exportarExcel()">EXCEL</button>
         </div>
     </div>
 
-    <div class="card">
-        <div class="table-scroll">
-            <table id="tabela">
-                <thead>
-                    <tr><th>DATA</th><th>PLACA</th><th>MOTORISTA</th><th>KM</th><th>LITROS</th><th>TOTAL</th><th class="no-print">AÇÕES</th></tr>
-                </thead>
-                <tbody></tbody>
-            </table>
-        </div>
-    </div>
+    <div id="relatorio-container"></div>
 
 </div>
 
 <script>
-    // CONFIGURAÇÃO FIREBASE
     const firebaseConfig = {
         apiKey: "AIzaSyDsEQ8L_hWgacZ8xweY3DR9OYt2t151kZE",
         authDomain: "tabela-gasolina.firebaseapp.com",
@@ -171,7 +157,6 @@
     const db = firebase.database();
 
     let cache = [], editID = null, chartSec = null, chartVec = null;
-
     document.getElementById('f-data').valueAsDate = new Date();
 
     function logar() {
@@ -194,13 +179,15 @@
             placa: document.getElementById('f-placa').value.toUpperCase(),
             secretaria: document.getElementById('f-sec').value,
             motorista: document.getElementById('f-mot').value.toUpperCase(),
+            autorizador: document.getElementById('f-aut').value, // SALVANDO AUTORIZADOR
             posto: document.getElementById('f-posto').value,
             data: document.getElementById('f-data').value,
             km: parseFloat(document.getElementById('f-km').value) || 0,
             litro: parseFloat(document.getElementById('f-lit').value) || 0,
             valor: parseFloat(document.getElementById('f-val').value) || 0
         };
-        if(!d.placa || !d.valor) return alert("PLACA E VALOR SÃO OBRIGATÓRIOS!");
+        
+        if(!d.placa || !d.valor) return alert("PLACA E VALOR OBRIGATÓRIOS!");
         
         if(editID) {
             db.ref('abastecimentos/' + editID).set(d).then(() => cancelarEdicao());
@@ -220,6 +207,7 @@
 
     function limparForm() {
         ["f-placa","f-km","f-lit","f-val","f-mot"].forEach(id => document.getElementById(id).value = "");
+        document.getElementById('f-aut').value = "NÃO INFORMADO";
         editID = null;
     }
 
@@ -231,21 +219,62 @@
     });
 
     function renderizar(lista) {
-        const tbody = document.querySelector("#tabela tbody");
-        tbody.innerHTML = "";
-        lista.slice().reverse().forEach(d => {
-            tbody.innerHTML += `<tr>
-                <td>${d.data.split('-').reverse().join('/')}</td>
-                <td><b>${d.placa}</b></td>
-                <td>${d.motorista}</td>
-                <td>${d.km}</td>
-                <td>${d.litro.toFixed(2)}L</td>
-                <td>R$ ${d.valor.toFixed(2)}</td>
-                <td class="no-print">
-                    <button class="btn-edit" onclick="editar('${d.id}')">✏️</button>
-                    <button class="btn-del" onclick="remover('${d.id}')">🗑️</button>
-                </td>
-            </tr>`;
+        const container = document.getElementById('relatorio-container');
+        container.innerHTML = "";
+
+        if(lista.length === 0) return;
+
+        const tR$ = lista.reduce((a, b) => a + b.valor, 0);
+        const tL = lista.reduce((a, b) => a + b.litro, 0);
+        container.innerHTML = `
+            <div class="resumo-geral">
+                <div class="mini-card"><span>TOTAL INVESTIDO</span><b>R$ ${tR$.toFixed(2)}</b></div>
+                <div class="mini-card" style="background:var(--accent)"><span>TOTAL LITROS</span><b>${tL.toFixed(2)} L</b></div>
+                <div class="mini-card" style="background:var(--success)"><span>LANÇAMENTOS</span><b>${lista.length}</b></div>
+            </div>`;
+
+        const secretarias = [...new Set(lista.map(x => x.secretaria))];
+        secretarias.forEach(sec => {
+            const itens = lista.filter(x => x.secretaria === sec).sort((a,b) => new Date(a.data) - new Date(b.data));
+            let sR$ = 0, sL = 0, linhas = "";
+
+            itens.forEach(d => {
+                const hist = cache.filter(v => v.placa === d.placa && v.data <= d.data && v.id !== d.id).sort((a,b) => new Date(b.data) - new Date(a.data));
+                const kmAnt = hist.length > 0 ? hist[0].km : 0;
+                const media = (kmAnt > 0 && d.km > kmAnt) ? (d.km - kmAnt) / d.litro : 0;
+                const alerta = (media > 0 && media < 5) ? 'class="consumo-baixo"' : '';
+                
+                // FALLBACK PARA REGISTROS ANTIGOS SEM AUTORIZADOR
+                const aut = d.autorizador || "---";
+
+                sR$ += d.valor; sL += d.litro;
+                linhas += `
+                    <tr ${alerta}>
+                        <td>${d.data.split('-').reverse().join('/')}</td>
+                        <td><b>${d.placa}</b></td>
+                        <td>${d.motorista}</td>
+                        <td>${aut}</td> <td>${d.km} <br><small style="font-size:8px;">${kmAnt > 0 ? 'ANT: '+kmAnt : 'INICIAL'}</small></td>
+                        <td>${d.litro.toFixed(2)}L</td>
+                        <td>${media > 0 ? media.toFixed(2) : '---'}</td>
+                        <td>R$ ${d.valor.toFixed(2)}</td>
+                        <td class="no-print">
+                            <button class="btn-edit" onclick="editar('${d.id}')">✏️</button>
+                            <button class="btn-del" onclick="remover('${d.id}')">🗑️</button>
+                        </td>
+                    </tr>`;
+            });
+
+            container.innerHTML += `
+                <div class="sec-block">
+                    <div class="sec-header">🏢 ${sec}</div>
+                    <div class="table-scroll">
+                        <table>
+                            <thead><tr><th>DATA</th><th>PLACA</th><th>MOTORISTA</th><th>AUTORIZADOR</th><th>KM</th><th>LITROS</th><th>MÉDIA</th><th>TOTAL</th><th class="no-print">AÇÕES</th></tr></thead>
+                            <tbody>${linhas}</tbody>
+                            <tfoot><tr class="subtotal-row"><td colspan="5">SUBTOTAL</td><td>${sL.toFixed(2)}L</td><td>-</td><td colspan="2">R$ ${sR$.toFixed(2)}</td></tr></tfoot>
+                        </table>
+                    </div>
+                </div>`;
         });
     }
 
@@ -255,6 +284,7 @@
         document.getElementById('f-placa').value = d.placa;
         document.getElementById('f-sec').value = d.secretaria;
         document.getElementById('f-mot').value = d.motorista;
+        document.getElementById('f-aut').value = d.autorizador || "NÃO INFORMADO";
         document.getElementById('f-data').value = d.data;
         document.getElementById('f-km').value = d.km;
         document.getElementById('f-lit').value = d.litro;
@@ -264,32 +294,25 @@
         window.scrollTo(0,0);
     }
 
-    function cancelarEdicao() {
-        limparForm();
-        document.getElementById('btn-save').innerText = "✔️ SALVAR REGISTRO";
-        document.getElementById('btn-cancel').style.display = 'none';
-    }
-
+    function cancelarEdicao() { limparForm(); document.getElementById('btn-save').innerText = "✔️ SALVAR REGISTRO"; document.getElementById('btn-cancel').style.display = 'none'; }
     function remover(id) { if(confirm("EXCLUIR REGISTRO?")) db.ref('abastecimentos').child(id).remove(); }
 
     function atualizarGraficos() {
-        // Lógica Secretaria
         const secMap = {}; cache.forEach(d => secMap[d.secretaria] = (secMap[d.secretaria] || 0) + d.valor);
         if(chartSec) chartSec.destroy();
         chartSec = new Chart(document.getElementById('chartSec'), {
             type: 'doughnut',
-            data: { labels: Object.keys(secMap), datasets: [{ data: Object.values(secMap), backgroundColor: ['#3b82f6','#10b981','#f59e0b','#ef4444','#8b5cf6','#6366f1'] }] },
+            data: { labels: Object.keys(secMap), datasets: [{ data: Object.values(secMap), backgroundColor: ['#3b82f6','#10b981','#f59e0b','#ef4444','#8b5cf6'] }] },
             options: { responsive: true, maintainAspectRatio: false }
         });
 
-        // Lógica Top Veículos
         const vecMap = {}; cache.forEach(d => vecMap[d.placa] = (vecMap[d.placa] || 0) + d.valor);
         const sortedVec = Object.entries(vecMap).sort((a,b) => b[1] - a[1]).slice(0,5);
         if(chartVec) chartVec.destroy();
         chartVec = new Chart(document.getElementById('chartVec'), {
             type: 'bar',
-            data: { labels: sortedVec.map(x => x[0]), datasets: [{ label: 'Gasto Total (R$)', data: sortedVec.map(x => x[1]), backgroundColor: '#0f172a' }] },
-            options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true } } }
+            data: { labels: sortedVec.map(x => x[0]), datasets: [{ label: 'R$', data: sortedVec.map(x => x[1]), backgroundColor: '#0f172a' }] },
+            options: { responsive: true, maintainAspectRatio: false }
         });
     }
 
@@ -315,11 +338,11 @@
     }
 
     function exportarExcel() {
-        let csv = "DATA;PLACA;MOTORISTA;KM;LITROS;VALOR\n";
-        cache.forEach(d => csv += `${d.data};${d.placa};${d.motorista};${d.km};${d.litro};${d.valor}\n`);
-        const blob = new Blob([csv], { type: 'text/csv' });
+        let csv = "DATA;PLACA;MOTORISTA;AUTORIZADOR;KM;LITROS;VALOR\n";
+        cache.forEach(d => csv += `${d.data};${d.placa};${d.motorista};${d.autorizador || ''};${d.km};${d.litro};${d.valor}\n`);
+        const blob = new Blob(["\ufeff" + csv], { type: 'text/csv;charset=utf-8;' });
         const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a'); a.setAttribute('hidden', ''); a.setAttribute('href', url); a.setAttribute('download', 'relatorio_matina.csv'); document.body.appendChild(a); a.click(); document.body.removeChild(a);
+        const a = document.createElement('a'); a.setAttribute('href', url); a.setAttribute('download', 'relatorio_matina.csv'); a.click();
     }
 </script>
 </body>
