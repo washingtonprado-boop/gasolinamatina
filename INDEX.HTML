@@ -30,8 +30,6 @@
         .login-box input { width: 100%; padding: 15px; border-radius: 10px; border: none; margin-bottom: 10px; text-align: center; font-size: 16px; }
 
         .card { background: white; border-radius: 12px; padding: 20px; margin-bottom: 20px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); border: 1px solid #e2e8f0; }
-        
-        .resumo-geral { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 20px; }
         .mini-card { background: var(--primary); color: white; padding: 15px; border-radius: 10px; text-align: center; }
 
         .sec-block { margin-top: 25px; border: 2px solid #e2e8f0; border-radius: 12px; overflow: hidden; background: white; }
@@ -45,7 +43,7 @@
         .status-aguardando { background: var(--warning); color: #000; }
         .status-autorizado { background: var(--success); color: #fff; }
 
-        .btn-auth { background: var(--success); color: white; border: none; padding: 6px 10px; border-radius: 4px; cursor: pointer; font-weight: bold; margin-right: 5px; }
+        .btn-auth { background: var(--success); color: white; border: none; padding: 6px 10px; border-radius: 4px; cursor: pointer; font-weight: bold; }
         .btn-save { background: var(--success); font-size: 16px; margin-top: 10px; color: white; border: none; padding: 15px; border-radius: 8px; cursor: pointer; font-weight: bold;}
 
         input, select { width: 100%; padding: 12px; border: 2px solid #e2e8f0; border-radius: 8px; font-size: 14px; background: white; margin-bottom: 5px; }
@@ -58,7 +56,8 @@
 <div id="login-screen">
     <h2>MATINA/BA ⛽</h2>
     <div class="login-box">
-        <input type="password" id="senha" placeholder="DIGITE A SENHA" onkeydown="if(event.key==='Enter') logar()">
+        <input type="text" id="user" placeholder="USUÁRIO (admin ou frentista)">
+        <input type="password" id="senha" placeholder="SENHA" onkeydown="if(event.key==='Enter') logar()">
         <button class="btn-save" style="width:100%" onclick="logar()">ENTRAR NO SISTEMA</button>
     </div>
 </div>
@@ -122,15 +121,23 @@
     let cache = [], chartSec = null, chartVec = null;
     let isAdmin = false;
 
+    // NOVO SISTEMA DE LOGIN
     function logar() {
+        const usuario = document.getElementById('user').value.toLowerCase();
         const senha = document.getElementById('senha').value.toLowerCase();
-        if(senha === "admin") { isAdmin = true; }
-        else if(senha === "frentista") { isAdmin = false; }
-        else { alert("SENHA INCORRETA"); return; }
+
+        if (usuario === "admin" && senha === "admin") {
+            isAdmin = true;
+        } else if (usuario === "frentista" && senha === "frentista") {
+            isAdmin = false;
+        } else {
+            alert("USUÁRIO OU SENHA INCORRETOS");
+            return;
+        }
         
         document.getElementById('login-screen').style.display = 'none';
         document.getElementById('app').classList.remove('blurred');
-        renderizar(); // Força renderização após o login para mostrar botões
+        renderizar();
     }
 
     function calc(origem) {
@@ -161,7 +168,8 @@
             km: kmAtual,
             litro: parseFloat(document.getElementById('f-lit').value) || 0,
             valor: parseFloat(document.getElementById('f-val').value) || 0,
-            status: isAdmin ? "AUTORIZADO" : "AGUARDANDO"
+            status: isAdmin ? "AUTORIZADO" : "AGUARDANDO",
+            timestamp: Date.now()
         };
         
         if(!d.placa || !d.valor) return alert("DADOS INCOMPLETOS!");
@@ -212,11 +220,10 @@
                 const kmAnt = cache.filter(v => v.placa === d.placa && v.status === "AUTORIZADO" && v.id !== d.id).sort((a,b) => b.km - a.km)[0]?.km || 0;
                 const media = (kmAnt > 0 && d.km > kmAnt) ? (d.km - kmAnt) / d.litro : 0;
                 
-                // LÓGICA DO BOTÃO: Aparece se for Admin e o status for Aguardando
                 let acoesHtml = "";
                 if (isAdmin) {
                     if (!isAut) {
-                        acoesHtml += `<button class="btn-auth" onclick="db.ref('abastecimentos/${d.id}').update({status:'AUTORIZADO'})">LIBERAR</button>`;
+                        acoesHtml += `<button class="btn-auth" onclick="db.ref('abastecimentos/${d.id}').update({status:'AUTORIZADO'})">LIBERAR</button> `;
                     }
                     acoesHtml += `<button onclick="if(confirm('EXCLUIR?')) db.ref('abastecimentos/${d.id}').remove()" style="border:none; background:none; cursor:pointer; font-size:16px;">🗑️</button>`;
                 }
@@ -252,7 +259,7 @@
 
     function atualizarGraficos() {
         const aut = cache.filter(x => x.status === "AUTORIZADO");
-        if(aut.length === 0) return; // Evita erro se não houver autorizados
+        if(aut.length === 0) return;
 
         const secMap = {}; aut.forEach(d => secMap[d.secretaria] = (secMap[d.secretaria] || 0) + d.valor);
         if(chartSec) chartSec.destroy();
