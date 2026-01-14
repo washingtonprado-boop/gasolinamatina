@@ -49,7 +49,7 @@
         @media (min-width: 768px) { .form-grid { grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); } }
 
         .table-scroll { overflow-x: auto; margin-top: 0; }
-        table { width: 100%; border-collapse: collapse; min-width: 850px; font-size: 11px; }
+        table { width: 100%; border-collapse: collapse; min-width: 900px; font-size: 11px; }
         th { background: #f8fafc; padding: 10px; text-align: left; border-bottom: 2px solid #e2e8f0; }
         td { padding: 10px; border-bottom: 1px solid #f1f5f9; }
         
@@ -60,8 +60,8 @@
         label { font-size: 11px; font-weight: bold; color: #64748b; margin-bottom: 5px; display: block; }
         .btn { width: 100%; padding: 15px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; color: white; }
         .btn-save { background: var(--success); font-size: 16px; }
-        .btn-edit { background: var(--warning); padding: 5px 10px; border: none; border-radius: 4px; color: white; }
-        .btn-del { background: var(--danger); padding: 5px 10px; border: none; border-radius: 4px; color: white; }
+        .btn-edit { background: var(--warning); padding: 5px 10px; border: none; border-radius: 4px; color: white; cursor: pointer; }
+        .btn-del { background: var(--danger); padding: 5px 10px; border: none; border-radius: 4px; color: white; cursor: pointer; }
 
         @media print { .no-print { display: none !important; } .sec-block { break-inside: avoid; border: 1px solid #ccc; } }
     </style>
@@ -96,17 +96,17 @@
             <div>
                 <label>SECRETARIA</label>
                 <select id="f-sec">
-                    <option value="AVULSOS">AVULSOS / GERAL</option>
-                    <option value="Administração e Finanças">ADM. E FINANÇAS</option>
-                    <option value="Infraestrutura e Serviços">INFRAESTRUTURA</option>
-                    <option value="Educação">EDUCAÇÃO</option>
-                    <option value="Saúde">SAÚDE</option>
-                    <option value="Agricultura e Meio Ambiente">AGRICULTURA</option>
+                    <option value="Administração e Finanças">ADMINISTRAÇÃO E FINANÇAS</option>
+                    <option value="Agricultura e Meio Ambiente">AGRICULTURA E MEIO AMBIENTE</option>
                     <option value="Assistência Social">ASSISTÊNCIA SOCIAL</option>
+                    <option value="AVULSOS">AVULSOS / GERAL</option>
                     <option value="Comunicação">COMUNICAÇÃO</option>
+                    <option value="Cultura, Esporte e Lazer">CULTURA, ESPORTE E LAZER</option>
+                    <option value="Educação">EDUCAÇÃO</option>
                     <option value="Governo">GOVERNO</option>
+                    <option value="Infraestrutura e Serviços">INFRAESTRUTURA E SERVIÇOS</option>
                     <option value="Planejamento">PLANEJAMENTO</option>
-                    <option value="Cultura, Esporte e Lazer">CULTURA E ESPORTE</option>
+                    <option value="Saúde">SAÚDE</option>
                 </select>
             </div>
             <div><label>MOTORISTA</label><input type="text" id="f-mot"></div>
@@ -196,10 +196,12 @@
     }
 
     function sugerir(val) {
-        const item = cache.find(x => x.placa === val.toUpperCase());
-        if(item) {
-            document.getElementById('f-sec').value = item.secretaria;
-            document.getElementById('f-mot').value = item.motorista;
+        const itens = cache.filter(x => x.placa === val.toUpperCase()).sort((a,b) => new Date(b.data) - new Date(a.data));
+        if(itens.length > 0) {
+            const last = itens[0];
+            document.getElementById('f-sec').value = last.secretaria;
+            document.getElementById('f-mot').value = last.motorista;
+            document.getElementById('f-posto').value = last.posto; // Sugere o último posto usado
         }
     }
 
@@ -230,7 +232,9 @@
                 <div class="mini-card" style="background:var(--success)"><span>LANÇAMENTOS</span><b>${lista.length}</b></div>
             </div>`;
 
-        const secretarias = [...new Set(lista.map(x => x.secretaria))];
+        // Ordena as secretarias em ordem alfabética para os blocos
+        const secretarias = [...new Set(lista.map(x => x.secretaria))].sort();
+        
         secretarias.forEach(sec => {
             const itens = lista.filter(x => x.secretaria === sec).sort((a,b) => new Date(a.data) - new Date(b.data));
             let sR$ = 0, sL = 0, linhas = "";
@@ -248,6 +252,7 @@
                         <td><b>${d.placa}</b></td>
                         <td>${d.motorista}</td>
                         <td>${d.autorizador || '---'}</td>
+                        <td>${d.posto}</td>
                         <td>${d.km} <br><small style="font-size:8px;">${kmAnt > 0 ? 'ANT: '+kmAnt : 'INICIAL'}</small></td>
                         <td>${d.litro.toFixed(2)}L</td>
                         <td>${media > 0 ? media.toFixed(2) : '---'}</td>
@@ -264,9 +269,9 @@
                     <div class="sec-header">🏢 ${sec.toUpperCase()}</div>
                     <div class="table-scroll">
                         <table>
-                            <thead><tr><th>DATA</th><th>PLACA</th><th>MOTORISTA</th><th>AUTORIZADO</th><th>KM</th><th>LITROS</th><th>MÉDIA</th><th>TOTAL</th><th class="no-print">AÇÕES</th></tr></thead>
+                            <thead><tr><th>DATA</th><th>PLACA</th><th>MOTORISTA</th><th>AUTORIZADO</th><th>POSTO</th><th>KM</th><th>LITROS</th><th>MÉDIA</th><th>TOTAL</th><th class="no-print">AÇÕES</th></tr></thead>
                             <tbody>${linhas}</tbody>
-                            <tfoot><tr class="subtotal-row"><td colspan="5">SUBTOTAL</td><td>${sL.toFixed(2)}L</td><td>-</td><td colspan="2">R$ ${sR$.toFixed(2)}</td></tr></tfoot>
+                            <tfoot><tr class="subtotal-row"><td colspan="6">SUBTOTAL SECRETARIA</td><td>${sL.toFixed(2)}L</td><td>-</td><td colspan="2">R$ ${sR$.toFixed(2)}</td></tr></tfoot>
                         </table>
                     </div>
                 </div>`;
@@ -280,6 +285,7 @@
         document.getElementById('f-sec').value = d.secretaria;
         document.getElementById('f-mot').value = d.motorista;
         document.getElementById('f-aut').value = d.autorizador || "NÃO INFORMADO";
+        document.getElementById('f-posto').value = d.posto;
         document.getElementById('f-data').value = d.data;
         document.getElementById('f-km').value = d.km;
         document.getElementById('f-lit').value = d.litro;
@@ -294,10 +300,13 @@
 
     function atualizarGraficos() {
         const secMap = {}; cache.forEach(d => secMap[d.secretaria] = (secMap[d.secretaria] || 0) + d.valor);
+        const sortedSecLabels = Object.keys(secMap).sort();
+        const sortedSecValues = sortedSecLabels.map(label => secMap[label]);
+
         if(chartSec) chartSec.destroy();
         chartSec = new Chart(document.getElementById('chartSec'), {
             type: 'doughnut',
-            data: { labels: Object.keys(secMap), datasets: [{ data: Object.values(secMap), backgroundColor: ['#3b82f6','#10b981','#f59e0b','#ef4444','#8b5cf6'] }] },
+            data: { labels: sortedSecLabels, datasets: [{ data: sortedSecValues, backgroundColor: ['#3b82f6','#10b981','#f59e0b','#ef4444','#8b5cf6','#6366f1','#06b6d4','#f43f5e','#ec4899','#84cc16','#0ea5e9'] }] },
             options: { responsive: true, maintainAspectRatio: false }
         });
 
@@ -306,7 +315,7 @@
         if(chartVec) chartVec.destroy();
         chartVec = new Chart(document.getElementById('chartVec'), {
             type: 'bar',
-            data: { labels: sortedVec.map(x => x[0]), datasets: [{ label: 'R$', data: sortedVec.map(x => x[1]), backgroundColor: '#0f172a' }] },
+            data: { labels: sortedVec.map(x => x[0]), datasets: [{ label: 'TOTAL R$', data: sortedVec.map(x => x[1]), backgroundColor: '#0f172a' }] },
             options: { responsive: true, maintainAspectRatio: false }
         });
     }
@@ -324,13 +333,13 @@
 
     function popularFiltroSecretaria() {
         const select = document.getElementById('rel-sec');
-        const secs = [...new Set(cache.map(x => x.secretaria))];
+        const secs = [...new Set(cache.map(x => x.secretaria))].sort();
         select.innerHTML = '<option value="">TODAS</option>' + secs.map(s => `<option value="${s}">${s}</option>`).join('');
     }
 
     function exportarExcel() {
-        let csv = "DATA;PLACA;SECRETARIA;MOTORISTA;AUTORIZADOR;KM;LITROS;VALOR\n";
-        cache.forEach(d => csv += `${d.data};${d.placa};${d.secretaria};${d.motorista};${d.autorizador || ''};${d.km};${d.litro};${d.valor}\n`);
+        let csv = "DATA;PLACA;SECRETARIA;MOTORISTA;AUTORIZADOR;POSTO;KM;LITROS;VALOR\n";
+        cache.forEach(d => csv += `${d.data};${d.placa};${d.secretaria};${d.motorista};${d.autorizador || ''};${d.posto};${d.km};${d.litro};${d.valor}\n`);
         const blob = new Blob(["\ufeff" + csv], { type: 'text/csv;charset=utf-8;' });
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement('a'); a.setAttribute('href', url); a.setAttribute('download', 'relatorio_matina.csv'); a.click();
