@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SISTEMA MATINA/BA - LIMITE ATIVO</title>
+    <title>SISTEMA MATINA/BA - COMPLETO COM GRÁFICOS</title>
     
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-database-compat.js"></script>
@@ -31,6 +31,7 @@
         table { width: 100%; border-collapse: collapse; min-width: 1000px; font-size: 10px; }
         th { background: #f8fafc; padding: 10px; text-align: left; border-bottom: 2px solid #e2e8f0; }
         td { padding: 10px; border-bottom: 1px solid #f1f5f9; }
+        .alerta-media { background-color: #fee2e2 !important; color: #b91c1c !important; font-weight: bold; }
         .btn-save { background: var(--success); color: white; border: none; padding: 15px; border-radius: 8px; cursor: pointer; font-weight: bold; width: 100%; margin-top: 10px; }
         .status-tag { padding: 3px 6px; border-radius: 4px; font-weight: bold; font-size: 9px; }
         .status-aguardando { background: var(--warning); color: #000; }
@@ -61,30 +62,34 @@
     </div>
 
     <div id="tab-geral">
-        <div id="status-financeiro" class="mini-card">CARREGANDO DADOS...</div>
+        <div id="status-financeiro" class="mini-card">CARREGANDO...</div>
+
+        <div class="charts-row no-print">
+            <div class="card"><h4>💰 GASTOS POR SECRETARIA (R$)</h4><div style="height:250px;"><canvas id="chartSec"></canvas></div></div>
+            <div class="card"><h4>🚛 TOP 5 VEÍCULOS (R$)</h4><div style="height:250px;"><canvas id="chartVec"></canvas></div></div>
+        </div>
 
         <div class="card no-print">
             <h3>⛽ NOVO LANÇAMENTO</h3>
             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px;">
                 <div><label>PLACA</label><input type="text" id="f-placa" oninput="sugerir(this.value)"></div>
                 <div><label>SECRETARIA</label><select id="f-sec">
-                    <option>ADMINISTRAÇÃO E FINANÇAS</option><option>AGRICULTURA E MEIO AMBIENTE</option>
-                    <option>ASSISTÊNCIA SOCIAL</option><option>EDUCAÇÃO</option><option>SAÚDE</option>
-                    <option>INFRAESTRUTURA E SERVIÇOS</option><option>AVULSOS / GERAL</option>
+                    <option value="ADMINISTRAÇÃO E FINANÇAS">ADMINISTRAÇÃO E FINANÇAS</option>
+                    <option value="AGRICULTURA E MEIO AMBIENTE">AGRICULTURA E MEIO AMBIENTE</option>
+                    <option value="ASSISTÊNCIA SOCIAL">ASSISTÊNCIA SOCIAL</option>
+                    <option value="EDUCAÇÃO">EDUCAÇÃO</option>
+                    <option value="SAÚDE">SAÚDE</option>
+                    <option value="INFRAESTRUTURA E SERVIÇOS">INFRAESTRUTURA E SERVIÇOS</option>
+                    <option value="AVULSOS / GERAL">AVULSOS / GERAL</option>
                 </select></div>
                 <div><label>MOTORISTA</label><input type="text" id="f-mot"></div>
                 <div><label>COMBUSTÍVEL</label><select id="f-tipo" onchange="calc()"><option value="GASOLINA">GASOLINA</option><option value="ALCOOL">ALCOOL</option><option value="DIESEL">DIESEL</option></select></div>
                 <div><label>DATA</label><input type="date" id="f-data"></div>
                 <div><label>KM ATUAL</label><input type="number" id="f-km"></div>
                 <div><label>LITROS</label><input type="number" id="f-lit" step="0.01" oninput="calc()"></div>
-                <div><label>VALOR TOTAL</label><input type="text" id="f-val" readonly style="background:#f1f5f9; font-weight:bold;"></div>
+                <div><label>VALOR TOTAL (R$)</label><input type="text" id="f-val" readonly style="background:#f1f5f9; font-weight:bold;"></div>
             </div>
-            <button class="btn-save" onclick="processar()">✔️ ENVIAR SOLICITAÇÃO</button>
-        </div>
-        
-        <div class="charts-row no-print">
-            <div class="card"><h4>💰 GASTOS POR SECRETARIA</h4><div style="height:230px;"><canvas id="chartSec"></canvas></div></div>
-            <div class="card"><h4>🚛 TOP 5 VEÍCULOS (R$)</h4><div style="height:230px;"><canvas id="chartVec"></canvas></div></div>
+            <button class="btn-save" onclick="processar()">✔️ ENVIAR PARA APROVAÇÃO</button>
         </div>
         
         <div id="relatorio-container"></div>
@@ -94,27 +99,32 @@
         <div class="card">
             <h3>💲 TABELA DE PREÇOS</h3>
             <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px;">
-                <div><label>GASOLINA</label><input type="number" id="p-gas"></div>
-                <div><label>ALCOOL</label><input type="number" id="p-alc"></div>
-                <div><label>DIESEL</label><input type="number" id="p-die"></div>
+                <input type="number" id="p-gas" placeholder="GASOLINA">
+                <input type="number" id="p-alc" placeholder="ALCOOL">
+                <input type="number" id="p-die" placeholder="DIESEL">
             </div>
-            <button class="btn-save" onclick="salvarPrecos()" style="background:var(--accent)">SALVAR PREÇOS</button>
+            <button class="btn-save" onclick="salvarPrecos()" style="background:var(--accent)">ATUALIZAR PREÇOS</button>
         </div>
         <div class="card">
             <h3>👥 GESTÃO DE USUÁRIOS</h3>
             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px;">
                 <input type="text" id="new-user" placeholder="USUÁRIO">
                 <input type="text" id="new-pass" placeholder="SENHA">
-                <select id="new-role" onchange="document.getElementById('div-limite').style.display = (this.value === 'secretarios') ? 'block' : 'none';">
-                    <option value="admin">ADMIN (GILVAR/ENIO)</option>
-                    <option value="secretarios">SECRETARIO (COM LIMITE)</option>
-                    <option value="frentista">FRENTISTA</option>
+                <select id="new-role" onchange="toggleUserFields()">
+                    <option value="admin">ADMIN (TOTAL)</option>
+                    <option value="secretarios">SECRETARIO (RESTRITO)</option>
                 </select>
-                <div id="div-limite" style="display:none;"><input type="number" id="new-limit" placeholder="LIMITE R$"></div>
+                <input type="number" id="new-limit" placeholder="LIMITE R$">
+                <select id="new-sec-vinc">
+                    <option value="">VINCULAR SECRETARIA...</option>
+                    <option>ADMINISTRAÇÃO E FINANÇAS</option><option>AGRICULTURA E MEIO AMBIENTE</option>
+                    <option>ASSISTÊNCIA SOCIAL</option><option>EDUCAÇÃO</option><option>SAÚDE</option>
+                    <option>INFRAESTRUTURA E SERVIÇOS</option><option>AVULSOS / GERAL</option>
+                </select>
             </div>
             <button class="btn-save" onclick="addUsuario()" style="background:var(--accent)">SALVAR USUÁRIO</button>
         </div>
-        <div class="card"><table><thead><tr><th>USUÁRIO</th><th>CARGO</th><th>LIMITE</th><th>AÇÕES</th></tr></thead><tbody id="user-body"></tbody></table></div>
+        <div class="card"><table><thead><tr><th>USUÁRIO</th><th>VÍNCULO</th><th>LIMITE</th><th>AÇÕES</th></tr></thead><tbody id="user-body"></tbody></table></div>
     </div>
 </div>
 
@@ -128,26 +138,30 @@
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
 
-    let cache = [], userLimit = 0, userRole = "", loginUser = "", precos = {GASOLINA:6, ALCOOL:4, DIESEL:6}, chartSec, chartVec;
+    let cache = [], userLimit = 0, userRole = "", loginUser = "", userSecretaria = "", precos = {GASOLINA:6, ALCOOL:4, DIESEL:6}, chartSec, chartVec;
 
     db.ref('config/precos').on('value', snap => { if(snap.val()) precos = snap.val(); });
 
     function logar() {
         const u = document.getElementById('user').value.toLowerCase().trim();
         const s = document.getElementById('senha').value.trim();
-        if(u === "master" && s === "1234") return entrar("master", "master", 0);
+        if(u === "master" && s === "1234") return entrar("master", "master", 0, "");
         db.ref('usuarios/' + u).once('value', snap => {
             const user = snap.val();
-            if(user && user.senha === s) entrar(u, user.role, user.limite || 0);
+            if(user && user.senha === s) entrar(u, user.role, user.limite || 0, user.secretariaVinculada || "");
             else alert("ACESSO NEGADO!");
         });
     }
 
-    function entrar(u, role, limit) {
-        loginUser = u; userRole = role; userLimit = limit;
+    function entrar(u, role, limit, sec) {
+        loginUser = u; userRole = role; userLimit = limit; userSecretaria = sec;
         document.getElementById('login-screen').style.display = 'none';
         document.getElementById('app').classList.remove('blurred');
         document.getElementById('btn-tab-users').style.display = (u === "master") ? 'block' : 'none';
+        if(role === 'secretarios' && sec !== "") {
+            document.getElementById('f-sec').value = sec;
+            document.getElementById('f-sec').disabled = true;
+        }
         renderizar();
     }
 
@@ -159,33 +173,35 @@
 
     function processar() {
         const placa = document.getElementById('f-placa').value.toUpperCase();
+        const data = document.getElementById('f-data').value;
         const litros = parseFloat(document.getElementById('f-lit').value) || 0;
         const valor = litros * precos[document.getElementById('f-tipo').value];
+        const sec = document.getElementById('f-sec').value;
 
         if(!placa || litros <= 0) return alert("PREENCHA OS CAMPOS!");
 
-        // LÓGICA DE LIMITE PARA SECRETÁRIOS
-        if(userRole === 'secretarios') {
-            const gastoAtual = cache
-                .filter(x => x.status === "AUTORIZADO" && x.solicitadoPor === loginUser.toUpperCase())
-                .reduce((a, b) => a + b.valor, 0);
+        // ALERTA DE REABASTECIMENTO NO MESMO DIA
+        if(cache.find(x => x.placa === placa && x.data === data)) {
+            if(!confirm("⚠️ O VEÍCULO JÁ ABASTECEU HOJE. DESEJA CONTINUAR?")) return;
+        }
 
-            if((gastoAtual + valor) > userLimit) {
-                alert(`LIMITE EXCEDIDO!\nDisponível: R$ ${(userLimit - gastoAtual).toFixed(2)}\nTentativa: R$ ${valor.toFixed(2)}`);
-                return;
-            }
+        // TRAVA DE LIMITE (AUTORIZADOS + AGUARDANDO)
+        if(userRole === 'secretarios') {
+            const gastoComprometido = cache
+                .filter(x => (x.status === "AUTORIZADO" || x.status === "AGUARDANDO") && x.secretaria === userSecretaria)
+                .reduce((a, b) => a + b.valor, 0);
+            if((gastoComprometido + valor) > userLimit) return alert(`LIMITE EXCEDIDO! SALDO: R$ ${(userLimit - gastoComprometido).toFixed(2)}`);
         }
 
         let st = (loginUser === 'master' || userRole === 'admin') ? "AUTORIZADO" : "AGUARDANDO";
 
         db.ref('abastecimentos').push({
-            placa, data: document.getElementById('f-data').value, motorista: document.getElementById('f-mot').value.toUpperCase(),
-            tipo: document.getElementById('f-tipo').value, secretaria: document.getElementById('f-sec').value,
-            litro: litros, valor: valor, km: parseFloat(document.getElementById('f-km').value) || 0,
-            status: st, solicitadoPor: loginUser.toUpperCase(), autorizadoPor: st === "AUTORIZADO" ? loginUser.toUpperCase() : "PENDENTE",
-            timestamp: Date.now()
+            placa, data, motorista: document.getElementById('f-mot').value.toUpperCase(),
+            tipo: document.getElementById('f-tipo').value, secretaria: sec,
+            litro: litros, valor, km: parseFloat(document.getElementById('f-km').value) || 0,
+            status: st, solicitadoPor: loginUser.toUpperCase(), timestamp: Date.now()
         }).then(() => {
-            Toastify({text: "ENVIADO COM SUCESSO!", background: "green"}).showToast();
+            Toastify({text: "SOLICITAÇÃO ENVIADA!", background: "green"}).showToast();
             ["f-placa","f-mot","f-km","f-lit","f-val"].forEach(id => document.getElementById(id).value = "");
         });
     }
@@ -193,37 +209,65 @@
     function renderizar() {
         if(!loginUser) return;
         
-        // MENSAGEM DE SALDO NO TOPO
         const statusDiv = document.getElementById('status-financeiro');
+        let listaSecs = [...new Set(cache.map(x => x.secretaria))].sort();
+
         if(userRole === 'secretarios') {
-            const gasto = cache.filter(x => x.status === "AUTORIZADO" && x.solicitadoPor === loginUser.toUpperCase()).reduce((a, b) => a + b.valor, 0);
-            const saldo = userLimit - gasto;
-            statusDiv.innerHTML = `OPERADOR: ${loginUser.toUpperCase()} | LIMITE: R$ ${userLimit.toFixed(2)} | DISPONÍVEL: <span style="color:${saldo < 100 ? 'red' : '#22c55e'}">R$ ${saldo.toFixed(2)}</span>`;
+            const gasto = cache.filter(x => (x.status === "AUTORIZADO" || x.status === "AGUARDANDO") && x.secretaria === userSecretaria).reduce((a, b) => a + b.valor, 0);
+            statusDiv.innerHTML = `SECRETARIA: ${userSecretaria} | SALDO DISPONÍVEL: R$ ${(userLimit - gasto).toFixed(2)}`;
+            listaSecs = [userSecretaria];
         } else {
-            statusDiv.innerHTML = `OPERADOR: ${loginUser.toUpperCase()} (${userRole.toUpperCase()})`;
+            statusDiv.innerHTML = `PAINEL GESTOR - OPERADOR: ${loginUser.toUpperCase()}`;
         }
 
         const container = document.getElementById('relatorio-container');
         container.innerHTML = "";
-        const secs = [...new Set(cache.map(x => x.secretaria))].sort();
-        
-        secs.forEach(sec => {
-            const itens = cache.filter(x => x.secretaria === sec);
+
+        listaSecs.forEach(sec => {
+            const itens = cache.filter(x => x.secretaria === sec).sort((a,b) => b.timestamp - a.timestamp);
+            if(itens.length === 0) return;
+
             let linhas = "";
             itens.forEach(d => {
-                linhas += `<tr>
-                    <td>${d.data.split('-').reverse().join('/')}</td><td><b>${d.placa}</b></td>
+                const hist = cache.filter(v => v.placa === d.placa && v.timestamp < d.timestamp).sort((a,b) => b.timestamp - a.timestamp);
+                let media = 0; if(hist.length > 0 && d.litro > 0) media = (d.km - hist[0].km) / d.litro;
+                let alerta = (media > 0 && ((d.tipo === "GASOLINA" && media < 7) || (d.tipo === "DIESEL" && media < 2.5))) ? "alerta-media" : "";
+
+                linhas += `<tr class="${alerta}">
+                    <td>${d.data.split('-').reverse().join('/')}</td>
+                    <td><b>${d.placa}</b></td>
                     <td><span class="status-tag status-${d.status.toLowerCase()}">${d.status}</span></td>
+                    <td>${media > 0 ? media.toFixed(2) : '---'}</td>
                     <td>R$ ${d.valor.toFixed(2)}</td>
-                    <td>
-                        ${(d.status === 'AGUARDANDO' && (loginUser === 'master' || userRole === 'admin')) ? `<button onclick="db.ref('abastecimentos/${d.id}').update({status:'AUTORIZADO', autorizadoPor:loginUser.toUpperCase()})">LIBERAR</button>` : ''}
-                        ${(loginUser === 'master' || userRole === 'admin') ? `<button onclick="db.ref('abastecimentos/${d.id}').remove()">🗑️</button>` : ''}
+                    <td class="no-print">
+                        ${(d.status === 'AGUARDANDO' && (loginUser === 'master' || userRole === 'admin')) ? `<button onclick="db.ref('abastecimentos/${d.id}').update({status:'AUTORIZADO'})">✅</button>` : ''}
+                        ${(loginUser === 'master' || userRole === 'admin') ? `<button onclick="if(confirm('EXCLUIR?')) db.ref('abastecimentos/${d.id}').remove()">🗑️</button>` : ''}
                     </td></tr>`;
             });
-            container.innerHTML += `<div style="background:#0f172a; color:white; padding:5px; margin-top:10px; border-radius:4px">${sec}</div>
-            <table><thead><tr><th>DATA</th><th>PLACA</th><th>STATUS</th><th>VALOR</th><th>AÇÕES</th></tr></thead><tbody>${linhas}</tbody></table>`;
+            container.innerHTML += `<div style="background:var(--primary); color:white; padding:8px; margin-top:15px; border-radius:5px">${sec}</div>
+            <table><thead><tr><th>DATA</th><th>PLACA</th><th>STATUS</th><th>KM/L</th><th>VALOR</th><th class="no-print">AÇÕES</th></tr></thead><tbody>${linhas}</tbody></table>`;
         });
         atualizarGraficos();
+    }
+
+    function atualizarGraficos() {
+        const dadosGrafico = cache.filter(x => {
+            if(userRole === 'secretarios') return x.status === "AUTORIZADO" && x.secretaria === userSecretaria;
+            return x.status === "AUTORIZADO";
+        });
+
+        if(dadosGrafico.length === 0) return;
+
+        // GASTO POR SEC
+        const secMap = {}; dadosGrafico.forEach(d => secMap[d.secretaria] = (secMap[d.secretaria] || 0) + d.valor);
+        if(chartSec) chartSec.destroy();
+        chartSec = new Chart(document.getElementById('chartSec'), { type: 'pie', data: { labels: Object.keys(secMap), datasets: [{ data: Object.values(secMap), backgroundColor: ['#3b82f6','#10b981','#f59e0b','#ef4444','#8b5cf6','#ec4899'] }] }, options: { responsive: true, maintainAspectRatio: false }});
+
+        // TOP VEICULOS
+        const vecMap = {}; dadosGrafico.forEach(d => vecMap[d.placa] = (vecMap[d.placa] || 0) + d.valor);
+        const sortedVec = Object.entries(vecMap).sort((a,b) => b[1] - a[1]).slice(0,5);
+        if(chartVec) chartVec.destroy();
+        chartVec = new Chart(document.getElementById('chartVec'), { type: 'bar', data: { labels: sortedVec.map(x => x[0]), datasets: [{ label: 'R$', data: sortedVec.map(x => x[1]), backgroundColor: '#0f172a' }] }, options: { responsive: true, maintainAspectRatio: false }});
     }
 
     db.ref('abastecimentos').on('value', snap => {
@@ -231,42 +275,37 @@
         renderizar();
     });
 
-    // Funções de apoio (Gráficos, Preços, Usuários) permanecem as mesmas...
+    function toggleUserFields() {
+        const role = document.getElementById('new-role').value;
+        document.getElementById('new-limit').style.display = (role === 'secretarios') ? 'block' : 'none';
+        document.getElementById('new-sec-vinc').style.display = (role === 'secretarios') ? 'block' : 'none';
+    }
+
+    function addUsuario() {
+        const u = document.getElementById('new-user').value.toLowerCase().trim();
+        db.ref('usuarios/'+u).set({senha:document.getElementById('new-pass').value, role:document.getElementById('new-role').value, limite:parseFloat(document.getElementById('new-limit').value)||0, secretariaVinculada:document.getElementById('new-sec-vinc').value}).then(() => listUsuarios());
+    }
+
+    function listUsuarios() {
+        db.ref('usuarios').once('value', snap => {
+            const tbody = document.getElementById('user-body'); tbody.innerHTML = "";
+            snap.forEach(c => { const u = c.val(); tbody.innerHTML += `<tr><td>${c.key.toUpperCase()}</td><td>${u.secretariaVinculada||'TOTAL'}</td><td>${u.limite}</td><td><button onclick="db.ref('usuarios/${c.key}').remove(); listUsuarios()">🗑️</button></td></tr>`; });
+        });
+    }
+
+    function salvarPrecos() {
+        db.ref('config/precos').set({GASOLINA:parseFloat(document.getElementById('p-gas').value), ALCOOL:parseFloat(document.getElementById('p-alc').value), DIESEL:parseFloat(document.getElementById('p-die').value)}).then(() => alert("OK!"));
+    }
+
     function switchTab(t) {
         document.getElementById('tab-geral').style.display = (t === 'geral') ? 'block' : 'none';
         document.getElementById('tab-usuarios').style.display = (t === 'usuarios') ? 'block' : 'none';
         if(t === 'usuarios') listUsuarios();
     }
 
-    function atualizarGraficos() {
-        const aut = cache.filter(x => x.status === "AUTORIZADO");
-        if(aut.length === 0) return;
-        const secMap = {}; aut.forEach(d => secMap[d.secretaria] = (secMap[d.secretaria] || 0) + d.valor);
-        if(chartSec) chartSec.destroy();
-        chartSec = new Chart(document.getElementById('chartSec'), { type: 'doughnut', data: { labels: Object.keys(secMap), datasets: [{ data: Object.values(secMap), backgroundColor: ['#3b82f6','#10b981','#f59e0b','#ef4444','#8b5cf6'] }] }, options: { responsive: true, maintainAspectRatio: false }});
-    }
-
-    function listUsuarios() {
-        db.ref('usuarios').once('value', snap => {
-            const tbody = document.getElementById('user-body'); tbody.innerHTML = "";
-            snap.forEach(c => { 
-                const u = c.val(); 
-                tbody.innerHTML += `<tr><td>${c.key.toUpperCase()}</td><td>${u.role}</td><td>${u.limite||'--'}</td><td><button onclick="db.ref('usuarios/${c.key}').remove(); listUsuarios()">🗑️</button></td></tr>`; 
-            });
-        });
-    }
-
-    function addUsuario() {
-        const u = document.getElementById('new-user').value.toLowerCase().trim();
-        const s = document.getElementById('new-pass').value.trim();
-        const r = document.getElementById('new-role').value;
-        const l = parseFloat(document.getElementById('new-limit').value) || 0;
-        if(u && s) db.ref('usuarios/'+u).set({senha:s, role:r, limite:l}).then(() => { alert("SALVO!"); listUsuarios(); });
-    }
-
-    function salvarPrecos() {
-        const p = { GASOLINA: parseFloat(document.getElementById('p-gas').value), ALCOOL: parseFloat(document.getElementById('p-alc').value), DIESEL: parseFloat(document.getElementById('p-die').value) };
-        db.ref('config/precos').set(p).then(() => alert("PREÇOS ATUALIZADOS!"));
+    function sugerir(v) {
+        const last = cache.filter(x => x.placa === v.toUpperCase()).sort((a,b) => b.timestamp - a.timestamp)[0];
+        if(last) { document.getElementById('f-mot').value = last.motorista; }
     }
     document.getElementById('f-data').valueAsDate = new Date();
 </script>
