@@ -1,40 +1,231 @@
-// Localize este trecho dentro da função renderizar() no seu código:
-
-const itens = cache.filter(x => x.secretaria === sec).sort((a,b) => new Date(a.data) - new Date(b.data));
-let sR$ = 0, sL = 0, linhas = "";
-
-itens.forEach(d => {
-    if(d.status === "AUTORIZADO") { sR$ += d.valor; sL += d.litro; }
-
-    // --- CORREÇÃO DA MÉDIA ---
-    // Busca o abastecimento anterior (por data ou timestamp) para comparar o KM
-    const historicoPlaca = cache
-        .filter(v => v.placa === d.placa && v.km < d.km)
-        .sort((a, b) => b.km - a.km); // Ordena do maior KM para o menor
-
-    const kmAnt = historicoPlaca.length > 0 ? historicoPlaca[0].km : 0;
-    const diferencaKm = d.km - kmAnt;
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestão de Combustível - Matina/BA</title>
     
-    // Só calcula se houver KM anterior e se os litros forem maiores que zero
-    const media = (kmAnt > 0 && d.litro > 0) ? (diferencaKm / d.litro) : 0;
-    // -------------------------
+    <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-database-compat.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css">
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
 
-    let btn = "";
-    if(isAdmin) {
-        if(d.status !== "AUTORIZADO") btn += `<button class="btn-auth" onclick="db.ref('abastecimentos/${d.id}').update({status:'AUTORIZADO'})">LIBERAR</button> `;
-        btn += `<button onclick="if(confirm('EXCLUIR?')) db.ref('abastecimentos/${d.id}').remove()" style="border:none; background:none; cursor:pointer">🗑️</button>`;
+    <style>
+        :root { --primary: #0f172a; --accent: #3b82f6; --success: #22c55e; --warning: #f59e0b; --danger: #ef4444; --bg: #f1f5f9; }
+        * { box-sizing: border-box; font-family: 'Segoe UI', sans-serif; text-transform: uppercase; }
+        body { background-color: var(--bg); margin: 0; padding: 10px; color: #1e293b; }
+        .container { max-width: 1300px; margin: 0 auto; }
+        .blurred { filter: blur(15px); pointer-events: none; }
+        #login-screen { position: fixed; inset: 0; background: var(--primary); z-index: 999; display: flex; align-items: center; justify-content: center; flex-direction: column; color: white; }
+        .login-box { width: 90%; max-width: 320px; text-align: center;}
+        .login-box input { width: 100%; padding: 15px; border-radius: 10px; border: none; margin-bottom: 10px; text-align: center; font-size: 16px; }
+        .card { background: white; border-radius: 12px; padding: 20px; margin-bottom: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); border: 1px solid #e2e8f0; }
+        .mini-card { background: var(--primary); color: white; padding: 15px; border-radius: 10px; text-align: center; font-weight: bold; }
+        .sec-block { margin-top: 25px; border: 2px solid #e2e8f0; border-radius: 12px; overflow: hidden; background: white; }
+        .sec-header { background: var(--primary); color: white; padding: 12px 15px; font-weight: bold; font-size: 13px; }
+        table { width: 100%; border-collapse: collapse; min-width: 1000px; font-size: 10px; }
+        th { background: #f8fafc; padding: 10px; text-align: left; border-bottom: 2px solid #e2e8f0; }
+        td { padding: 10px; border-bottom: 1px solid #f1f5f9; }
+        .status-tag { padding: 3px 6px; border-radius: 4px; font-size: 9px; font-weight: bold; }
+        .status-aguardando { background: var(--warning); color: #000; }
+        .status-autorizado { background: var(--success); color: #fff; }
+        .btn-auth { background: var(--success); color: white; border: none; padding: 6px 10px; border-radius: 4px; cursor: pointer; font-weight: bold; }
+        .btn-save { background: var(--success); font-size: 16px; margin-top: 10px; color: white; border: none; padding: 15px; border-radius: 8px; cursor: pointer; font-weight: bold; width: 100%; }
+        input, select { width: 100%; padding: 12px; border: 2px solid #e2e8f0; border-radius: 8px; font-size: 13px; background: white; margin-bottom: 5px; }
+        label { font-size: 10px; font-weight: bold; color: #64748b; display: block; margin-bottom: 3px; }
+        @media print { .no-print { display: none !important; } }
+    </style>
+</head>
+<body>
+
+<div id="login-screen">
+    <h2>SISTEMA DE ABASTECIMENTO ⛽</h2>
+    <div class="login-box">
+        <input type="text" id="user" placeholder="USUÁRIO">
+        <input type="password" id="senha" placeholder="SENHA" onkeydown="if(event.key==='Enter') logar()">
+        <button class="btn-save" onclick="logar()">ENTRAR</button>
+    </div>
+</div>
+
+<div class="container blurred" id="app">
+    <div class="charts-row no-print" style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+        <div class="card"><h4>💰 GASTOS POR SECRETARIA (R$)</h4><div style="height:250px;"><canvas id="chartSec"></canvas></div></div>
+        <div class="card"><h4>🚛 TOP 5 VEÍCULOS (R$)</h4><div style="height:250px;"><canvas id="chartVec"></canvas></div></div>
+    </div>
+
+    <div class="card no-print">
+        <h3>⛽ NOVO LANÇAMENTO</h3>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px;">
+            <div><label>PLACA</label><input type="text" id="f-placa" oninput="sugerir(this.value)"></div>
+            <div><label>SECRETARIA</label>
+                <select id="f-sec">
+                    <option value="Administração e Finanças">ADMINISTRAÇÃO E FINANÇAS</option>
+                    <option value="Agricultura e Meio Ambiente">AGRICULTURA E MEIO AMBIENTE</option>
+                    <option value="Assistência Social">ASSISTÊNCIA SOCIAL</option>
+                    <option value="AVULSOS">AVULSOS / GERAL</option>
+                    <option value="Comunicação">COMUNICAÇÃO</option>
+                    <option value="Cultura, Esporte e Lazer">CULTURA, ESPORTE E LAZER</option>
+                    <option value="Educação">EDUCAÇÃO</option>
+                    <option value="Governo">GOVERNO</option>
+                    <option value="Infraestrutura e Serviços">INFRAESTRUTURA E SERVIÇOS</option>
+                    <option value="Planejamento">PLANEJAMENTO</option>
+                    <option value="Saúde">SAÚDE</option>
+                </select>
+            </div>
+            <div><label>MOTORISTA</label><input type="text" id="f-mot"></div>
+            <div><label>DESTINO</label><input type="text" id="f-destino" placeholder="EX: ZONA RURAL / SALVADOR"></div>
+            <div><label>AUTORIZADO POR</label><select id="f-aut"><option value="GILVAR">GILVAR</option><option value="ENIO">ENIO</option></select></div>
+            <div><label>POSTO</label><select id="f-posto" onchange="calc()"><option>POSTO VITOR</option><option>POSTO MATINA</option></select></div>
+            <div><label>VALOR LITRO</label><input type="text" id="f-preco" value="5,89" oninput="mascaraMoeda(this); calc()"></div>
+            <div><label>DATA</label><input type="date" id="f-data"></div>
+            <div><label>KM ATUAL</label><input type="number" id="f-km"></div>
+            <div><label>LITROS</label><input type="number" id="f-lit" step="0.01" oninput="calc('L')"></div>
+            <div><label>TOTAL (R$)</label><input type="text" id="f-val" oninput="mascaraMoeda(this); calc('V')"></div>
+        </div>
+        <button id="btn-save" class="btn-save" onclick="processar()">✔️ SALVAR REGISTRO</button>
+    </div>
+    <div id="relatorio-container"></div>
+</div>
+
+<script>
+    const firebaseConfig = {
+        apiKey: "AIzaSyDsEQ8L_hWgacZ8xweY3DR9OYt2t151kZE",
+        authDomain: "tabela-gasolina.firebaseapp.com",
+        databaseURL: "https://tabela-gasolina-default-rtdb.firebaseio.com", 
+        projectId: "tabela-gasolina",
+        storageBucket: "tabela-gasolina.firebasestorage.app",
+        messagingSenderId: "77121029722",
+        appId: "1:77121029722:web:641b26a6cdf4c287f53a63"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+
+    let cache = [], chartSec = null, chartVec = null, isAdmin = false;
+
+    function logar() {
+        const u = document.getElementById('user').value.toLowerCase();
+        const s = document.getElementById('senha').value.toLowerCase();
+        if(u === "admin" && s === "admin") isAdmin = true;
+        else if(u === "frentista" && s === "frentista") isAdmin = false;
+        else return alert("ACESSO NEGADO");
+        document.getElementById('login-screen').style.display = 'none';
+        document.getElementById('app').classList.remove('blurred');
+        renderizar();
     }
 
-    linhas += `<tr>
-        <td>${d.data.split('-').reverse().join('/')}</td>
-        <td><b>${d.placa}</b></td>
-        <td>${d.motorista}</td>
-        <td>${d.destino}</td>
-        <td><span class="status-tag status-${d.status === 'AUTORIZADO' ? 'autorizado' : 'aguardando'}">${d.status}</span></td>
-        <td>${d.km}</td>
-        <td>${d.litro.toFixed(2)}</td>
-        <td style="font-weight:bold; color:var(--accent)">${media > 0 ? media.toFixed(2) : '--'}</td>
-        <td>R$ ${d.valor.toFixed(2)}</td>
-        <td class="no-print">${btn}</td>
-    </tr>`;
-});
+    function mascaraMoeda(campo) {
+        let v = campo.value.replace(/\D/g, "");
+        v = (v / 100).toFixed(2).replace(".", ",");
+        campo.value = v;
+    }
+
+    function calc(origem) {
+        const preco = parseFloat(document.getElementById('f-preco').value.replace(",", ".")) || 0;
+        const l = document.getElementById('f-lit'), v = document.getElementById('f-val');
+        if(origem === 'L') {
+            v.value = (l.value * preco).toFixed(2).replace(".", ",");
+        } else if(origem === 'V') {
+            const valorTotal = parseFloat(v.value.replace(",", ".")) || 0;
+            if(preco > 0) l.value = (valorTotal / preco).toFixed(2);
+        }
+    }
+
+    function processar() {
+        const placa = document.getElementById('f-placa').value.toUpperCase();
+        const kmAtual = parseFloat(document.getElementById('f-km').value) || 0;
+        const ultKm = cache.filter(x => x.placa === placa).sort((a,b) => b.km - a.km)[0]?.km || 0;
+        
+        if(kmAtual < ultKm) return alert("ERRO: KM MENOR QUE O ÚLTIMO REGISTRO ("+ultKm+")");
+
+        const d = {
+            placa,
+            secretaria: document.getElementById('f-sec').value,
+            motorista: document.getElementById('f-mot').value.toUpperCase(),
+            destino: document.getElementById('f-destino').value.toUpperCase(),
+            autorizador: document.getElementById('f-aut').value,
+            posto: document.getElementById('f-posto').value,
+            data: document.getElementById('f-data').value,
+            km: kmAtual,
+            litro: parseFloat(document.getElementById('f-lit').value) || 0,
+            valor: parseFloat(document.getElementById('f-val').value.replace(",", ".")) || 0,
+            status: isAdmin ? "AUTORIZADO" : "AGUARDANDO",
+            timestamp: Date.now()
+        };
+        
+        if(!d.placa || !d.valor || !d.destino) return alert("PREENCHA TODOS OS CAMPOS, INCLUINDO DESTINO!");
+        db.ref('abastecimentos').push(d);
+        ["f-placa","f-km","f-lit","f-val","f-mot","f-destino"].forEach(i => document.getElementById(i).value = "");
+        document.getElementById('f-data').valueAsDate = new Date();
+        Toastify({text: "SUCESSO!", style: {background: "green"}}).showToast();
+    }
+
+    function sugerir(val) {
+        const item = cache.filter(x => x.placa === val.toUpperCase()).sort((a,b) => b.timestamp - a.timestamp)[0];
+        if(item) {
+            document.getElementById('f-sec').value = item.secretaria;
+            document.getElementById('f-mot').value = item.motorista;
+        }
+    }
+
+    db.ref('abastecimentos').on('value', snap => {
+        cache = []; snap.forEach(i => { let v = i.val(); v.id = i.key; cache.push(v); });
+        renderizar();
+        atualizarGraficos();
+    });
+
+    function renderizar() {
+        const container = document.getElementById('relatorio-container');
+        if (!container) return;
+        container.innerHTML = "";
+        const aut = cache.filter(x => x.status === "AUTORIZADO");
+        container.innerHTML = `<div class="mini-card" style="margin-bottom:15px">TOTAL AUTORIZADO: R$ ${aut.reduce((a,b)=>a+b.valor,0).toFixed(2)}</div>`;
+
+        [...new Set(cache.map(x => x.secretaria))].sort().forEach(sec => {
+            const itens = cache.filter(x => x.secretaria === sec).sort((a,b) => new Date(a.data) - new Date(b.data));
+            let sR$ = 0, sL = 0, linhas = "";
+            itens.forEach(d => {
+                if(d.status === "AUTORIZADO") { sR$ += d.valor; sL += d.litro; }
+                const kmAnt = cache.filter(v => v.placa === d.placa && v.status === "AUTORIZADO" && v.id !== d.id).sort((a,b) => b.km - a.km)[0]?.km || 0;
+                const media = (kmAnt > 0 && d.km > kmAnt) ? (d.km - kmAnt) / d.litro : 0;
+                let btn = "";
+                if(isAdmin) {
+                    if(d.status !== "AUTORIZADO") btn += `<button class="btn-auth" onclick="db.ref('abastecimentos/${d.id}').update({status:'AUTORIZADO'})">LIBERAR</button> `;
+                    btn += `<button onclick="if(confirm('EXCLUIR?')) db.ref('abastecimentos/${d.id}').remove()" style="border:none; background:none; cursor:pointer">🗑️</button>`;
+                }
+                linhas += `<tr>
+                    <td>${d.data.split('-').reverse().join('/')}</td>
+                    <td><b>${d.placa}</b></td>
+                    <td>${d.motorista}</td>
+                    <td>${d.destino}</td>
+                    <td><span class="status-tag status-${d.status === 'AUTORIZADO' ? 'autorizado' : 'aguardando'}">${d.status}</span></td>
+                    <td>${d.km}</td>
+                    <td>${d.litro.toFixed(2)}</td>
+                    <td>${media > 0 ? media.toFixed(2) : '--'}</td>
+                    <td>R$ ${d.valor.toFixed(2)}</td>
+                    <td class="no-print">${btn}</td>
+                </tr>`;
+            });
+            container.innerHTML += `<div class="sec-block"><div class="sec-header">${sec}</div><div style="overflow-x:auto"><table>
+                <thead><tr><th>DATA</th><th>PLACA</th><th>MOTORISTA</th><th>DESTINO</th><th>STATUS</th><th>KM</th><th>LITROS</th><th>MÉDIA</th><th>TOTAL</th><th class="no-print">AÇÕES</th></tr></thead>
+                <tbody>${linhas}</tbody>
+                <tfoot><tr style="background:#f8fafc; font-weight:bold"><td colspan="6">SUBTOTAL AUTORIZADO</td><td>${sL.toFixed(2)}L</td><td>-</td><td colspan="2">R$ ${sR$.toFixed(2)}</td></tr></tfoot>
+            </table></div></div>`;
+        });
+    }
+
+    function atualizarGraficos() {
+        const aut = cache.filter(x => x.status === "AUTORIZADO");
+        if(aut.length === 0) return;
+        const secMap = {}; aut.forEach(d => secMap[d.secretaria] = (secMap[d.secretaria] || 0) + d.valor);
+        if(chartSec) chartSec.destroy();
+        chartSec = new Chart(document.getElementById('chartSec'), { type: 'doughnut', data: { labels: Object.keys(secMap), datasets: [{ data: Object.values(secMap), backgroundColor: ['#3b82f6','#10b981','#f59e0b','#ef4444','#8b5cf6','#ec4899','#06b6d4'] }] }, options: { responsive: true, maintainAspectRatio: false }});
+        const vecMap = {}; aut.forEach(d => vecMap[d.placa] = (vecMap[d.placa] || 0) + d.valor);
+        const sortedVec = Object.entries(vecMap).sort((a,b) => b[1] - a[1]).slice(0,5);
+        if(chartVec) chartVec.destroy();
+        chartVec = new Chart(document.getElementById('chartVec'), { type: 'bar', data: { labels: sortedVec.map(x => x[0]), datasets: [{ label: 'TOTAL R$', data: sortedVec.map(x => x[1]), backgroundColor: '#0f172a' }] }, options: { responsive: true, maintainAspectRatio: false }});
+    }
+    document.getElementById('f-data').valueAsDate = new Date();
+</script>
+</body>
+</html>
