@@ -26,44 +26,31 @@
             position: fixed; inset: 0; background: var(--primary); z-index: 999; 
             display: flex; align-items: center; justify-content: center; flex-direction: column; color: white; 
         }
-        .login-box { width: 90%; max-width: 320px; }
-        .login-box input { 
-            width: 100%; padding: 15px; border-radius: 10px; border: none; 
-            margin-bottom: 10px; text-align: center; font-size: 16px; 
-        }
+        .login-box { width: 90%; max-width: 320px; text-align: center;}
+        .login-box input { width: 100%; padding: 15px; border-radius: 10px; border: none; margin-bottom: 10px; text-align: center; font-size: 16px; }
 
-        .card { 
-            background: white; border-radius: 12px; padding: 20px; margin-bottom: 20px; 
-            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); border: 1px solid #e2e8f0; 
-        }
+        .card { background: white; border-radius: 12px; padding: 20px; margin-bottom: 20px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); border: 1px solid #e2e8f0; }
         
         .resumo-geral { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 20px; }
         .mini-card { background: var(--primary); color: white; padding: 15px; border-radius: 10px; text-align: center; }
-        .mini-card span { display: block; font-size: 10px; opacity: 0.8; margin-bottom: 5px; }
-        .mini-card b { font-size: 1.2em; }
 
         .sec-block { margin-top: 25px; border: 2px solid #e2e8f0; border-radius: 12px; overflow: hidden; background: white; }
         .sec-header { background: var(--primary); color: white; padding: 12px 15px; font-weight: bold; font-size: 13px; }
 
-        .form-grid { display: grid; grid-template-columns: 1fr; gap: 15px; }
-        @media (min-width: 768px) { .form-grid { grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); } }
-
-        .table-scroll { overflow-x: auto; margin-top: 0; }
         table { width: 100%; border-collapse: collapse; min-width: 900px; font-size: 11px; }
         th { background: #f8fafc; padding: 10px; text-align: left; border-bottom: 2px solid #e2e8f0; }
         td { padding: 10px; border-bottom: 1px solid #f1f5f9; }
         
-        .subtotal-row { background: #f8fafc; font-weight: bold; color: var(--primary); }
-        .consumo-baixo { background-color: #fee2e2 !important; color: #991b1b; }
+        .status-tag { padding: 3px 6px; border-radius: 4px; font-size: 9px; font-weight: bold; }
+        .status-aguardando { background: var(--warning); color: #000; }
+        .status-autorizado { background: var(--success); color: #fff; }
 
-        input, select { width: 100%; padding: 12px; border: 2px solid #e2e8f0; border-radius: 8px; font-size: 14px; background: white; }
-        label { font-size: 11px; font-weight: bold; color: #64748b; margin-bottom: 5px; display: block; }
-        .btn { width: 100%; padding: 15px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; color: white; }
-        .btn-save { background: var(--success); font-size: 16px; }
-        .btn-edit { background: var(--warning); padding: 5px 10px; border: none; border-radius: 4px; color: white; cursor: pointer; }
-        .btn-del { background: var(--danger); padding: 5px 10px; border: none; border-radius: 4px; color: white; cursor: pointer; }
+        .btn-auth { background: var(--success); color: white; border: none; padding: 6px 10px; border-radius: 4px; cursor: pointer; font-weight: bold; margin-right: 5px; }
+        .btn-save { background: var(--success); font-size: 16px; margin-top: 10px; color: white; border: none; padding: 15px; border-radius: 8px; cursor: pointer; font-weight: bold;}
 
-        @media print { .no-print { display: none !important; } .sec-block { break-inside: avoid; border: 1px solid #ccc; } }
+        input, select { width: 100%; padding: 12px; border: 2px solid #e2e8f0; border-radius: 8px; font-size: 14px; background: white; margin-bottom: 5px; }
+        label { font-size: 11px; font-weight: bold; color: #64748b; display: block; margin-bottom: 3px; }
+        @media print { .no-print { display: none !important; } }
     </style>
 </head>
 <body>
@@ -72,29 +59,22 @@
     <h2>MATINA/BA ⛽</h2>
     <div class="login-box">
         <input type="password" id="senha" placeholder="DIGITE A SENHA" onkeydown="if(event.key==='Enter') logar()">
-        <button class="btn" style="background: var(--accent);" onclick="logar()">ENTRAR</button>
+        <button class="btn-save" style="width:100%" onclick="logar()">ENTRAR NO SISTEMA</button>
     </div>
 </div>
 
 <div class="container blurred" id="app">
     
     <div class="charts-row no-print" style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
-        <div class="card">
-            <h4>💰 GASTOS POR SECRETARIA</h4>
-            <div class="chart-container" style="height:250px;"><canvas id="chartSec"></canvas></div>
-        </div>
-        <div class="card">
-            <h4>🚛 TOP 5 VEÍCULOS (R$)</h4>
-            <div class="chart-container" style="height:250px;"><canvas id="chartVec"></canvas></div>
-        </div>
+        <div class="card"><h4>💰 GASTOS POR SECRETARIA</h4><div style="height:250px;"><canvas id="chartSec"></canvas></div></div>
+        <div class="card"><h4>🚛 TOP 5 VEÍCULOS</h4><div style="height:250px;"><canvas id="chartVec"></canvas></div></div>
     </div>
 
     <div class="card no-print">
         <h3>⛽ NOVO LANÇAMENTO</h3>
-        <div class="form-grid">
-            <div><label>PLACA</label><input type="text" id="f-placa" placeholder="ABC1234" oninput="sugerir(this.value)"></div>
-            <div>
-                <label>SECRETARIA</label>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 15px;">
+            <div><label>PLACA</label><input type="text" id="f-placa" oninput="sugerir(this.value)"></div>
+            <div><label>SECRETARIA</label>
                 <select id="f-sec">
                     <option value="Administração e Finanças">ADMINISTRAÇÃO E FINANÇAS</option>
                     <option value="Agricultura e Meio Ambiente">AGRICULTURA E MEIO AMBIENTE</option>
@@ -110,41 +90,20 @@
                 </select>
             </div>
             <div><label>MOTORISTA</label><input type="text" id="f-mot"></div>
-            <div>
-                <label>AUTORIZADO POR</label>
-                <select id="f-aut">
-                    <option value="NÃO INFORMADO">SELECIONE</option>
-                    <option value="GILVAR">GILVAR</option>
-                    <option value="ENIO">ENIO</option>
-                </select>
+            <div><label>AUTORIZADO POR</label>
+                <select id="f-aut"><option value="GILVAR">GILVAR</option><option value="ENIO">ENIO</option></select>
             </div>
             <div><label>POSTO</label><select id="f-posto" onchange="calc()"><option>POSTO VITOR</option><option>POSTO MATINA</option></select></div>
-            <div><label>VALOR LITRO (R$)</label><input type="number" id="f-preco" value="5.89" step="0.01" oninput="calc()"></div>
+            <div><label>VALOR LITRO</label><input type="number" id="f-preco" value="5.89" step="0.01" oninput="calc()"></div>
             <div><label>DATA</label><input type="date" id="f-data"></div>
             <div><label>KM ATUAL</label><input type="number" id="f-km"></div>
             <div><label>LITROS</label><input type="number" id="f-lit" step="0.01" oninput="calc('L')"></div>
             <div><label>TOTAL (R$)</label><input type="number" id="f-val" step="0.01" oninput="calc('V')"></div>
         </div>
-        <button id="btn-save" class="btn btn-save" style="margin-top: 20px;" onclick="processar()">✔️ SALVAR REGISTRO</button>
-        <button id="btn-cancel" class="btn" style="background: #64748b; margin-top: 10px; display: none;" onclick="cancelarEdicao()">CANCELAR</button>
-    </div>
-
-    <div class="card no-print">
-        <h3>📊 FILTROS E RELATÓRIOS</h3>
-        <div class="form-grid">
-            <div><label>DE:</label><input type="date" id="rel-ini" onchange="aplicarFiltros()"></div>
-            <div><label>ATÉ:</label><input type="date" id="rel-fim" onchange="aplicarFiltros()"></div>
-            <div><label>SECRETARIA</label><select id="rel-sec" onchange="aplicarFiltros()"><option value="">TODAS</option></select></div>
-            <div><label>BUSCA (PLACA/MOTORISTA)</label><input type="text" id="busca" placeholder="DIGITE..." oninput="aplicarFiltros()"></div>
-        </div>
-        <div style="margin-top: 15px; display: flex; gap: 10px;">
-            <button class="btn" style="background: var(--accent); width: auto;" onclick="window.print()">🖨️ IMPRIMIR PDF</button>
-            <button class="btn" style="background: #10b981; width: auto;" onclick="exportarExcel()">EXCEL</button>
-        </div>
+        <button id="btn-save" class="btn-save" style="width:100%" onclick="processar()">✔️ SALVAR REGISTRO</button>
     </div>
 
     <div id="relatorio-container"></div>
-
 </div>
 
 <script>
@@ -160,14 +119,18 @@
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
 
-    let cache = [], editID = null, chartSec = null, chartVec = null;
-    document.getElementById('f-data').valueAsDate = new Date();
+    let cache = [], chartSec = null, chartVec = null;
+    let isAdmin = false;
 
     function logar() {
-        if(document.getElementById('senha').value.toLowerCase() === "admin") {
-            document.getElementById('login-screen').style.display = 'none';
-            document.getElementById('app').classList.remove('blurred');
-        } else { alert("SENHA INCORRETA"); }
+        const senha = document.getElementById('senha').value.toLowerCase();
+        if(senha === "admin") { isAdmin = true; }
+        else if(senha === "frentista") { isAdmin = false; }
+        else { alert("SENHA INCORRETA"); return; }
+        
+        document.getElementById('login-screen').style.display = 'none';
+        document.getElementById('app').classList.remove('blurred');
+        renderizar(); // Força renderização após o login para mostrar botões
     }
 
     function calc(origem) {
@@ -179,138 +142,127 @@
     }
 
     function processar() {
+        const placa = document.getElementById('f-placa').value.toUpperCase();
+        const kmAtual = parseFloat(document.getElementById('f-km').value) || 0;
+        const ultKm = cache.filter(x => x.placa === placa).sort((a,b) => b.km - a.km)[0]?.km || 0;
+        
+        if(kmAtual < ultKm) {
+            alert("ERRO: KM ATUAL ("+kmAtual+") NÃO PODE SER MENOR QUE O ÚLTIMO ("+ultKm+")");
+            return;
+        }
+
         const d = {
-            placa: document.getElementById('f-placa').value.toUpperCase(),
+            placa: placa,
             secretaria: document.getElementById('f-sec').value,
             motorista: document.getElementById('f-mot').value.toUpperCase(),
             autorizador: document.getElementById('f-aut').value,
             posto: document.getElementById('f-posto').value,
             data: document.getElementById('f-data').value,
-            km: parseFloat(document.getElementById('f-km').value) || 0,
+            km: kmAtual,
             litro: parseFloat(document.getElementById('f-lit').value) || 0,
-            valor: parseFloat(document.getElementById('f-val').value) || 0
+            valor: parseFloat(document.getElementById('f-val').value) || 0,
+            status: isAdmin ? "AUTORIZADO" : "AGUARDANDO"
         };
-        if(!d.placa || !d.valor) return alert("PLACA E VALOR OBRIGATÓRIOS!");
-        if(editID) { db.ref('abastecimentos/' + editID).set(d).then(() => cancelarEdicao()); } 
-        else { db.ref('abastecimentos').push(d); limparForm(); }
+        
+        if(!d.placa || !d.valor) return alert("DADOS INCOMPLETOS!");
+        db.ref('abastecimentos').push(d);
+        limparForm();
+        Toastify({text: "REGISTRO PROCESSADO!", style: {background: "green"}}).showToast();
     }
 
     function sugerir(val) {
-        const itens = cache.filter(x => x.placa === val.toUpperCase()).sort((a,b) => new Date(b.data) - new Date(a.data));
-        if(itens.length > 0) {
-            const last = itens[0];
-            document.getElementById('f-sec').value = last.secretaria;
-            document.getElementById('f-mot').value = last.motorista;
-            document.getElementById('f-posto').value = last.posto; // Sugere o último posto usado
+        const item = cache.filter(x => x.placa === val.toUpperCase()).sort((a,b) => b.timestamp - a.timestamp)[0];
+        if(item) {
+            document.getElementById('f-sec').value = item.secretaria;
+            document.getElementById('f-mot').value = item.motorista;
+            document.getElementById('f-posto').value = item.posto;
         }
     }
 
     function limparForm() {
         ["f-placa","f-km","f-lit","f-val","f-mot"].forEach(id => document.getElementById(id).value = "");
-        document.getElementById('f-aut').value = "NÃO INFORMADO";
-        editID = null;
+        document.getElementById('f-data').valueAsDate = new Date();
     }
 
     db.ref('abastecimentos').on('value', snap => {
         cache = []; snap.forEach(i => { let v = i.val(); v.id = i.key; cache.push(v); });
-        popularFiltroSecretaria();
-        aplicarFiltros();
+        renderizar();
         atualizarGraficos();
     });
 
-    function renderizar(lista) {
+    function renderizar() {
         const container = document.getElementById('relatorio-container');
+        if (!container) return;
         container.innerHTML = "";
-        if(lista.length === 0) return;
-
-        const tR$ = lista.reduce((a, b) => a + b.valor, 0);
-        const tL = lista.reduce((a, b) => a + b.litro, 0);
-        container.innerHTML = `
-            <div class="resumo-geral">
-                <div class="mini-card"><span>TOTAL GERAL</span><b>R$ ${tR$.toFixed(2)}</b></div>
-                <div class="mini-card" style="background:var(--accent)"><span>TOTAL LITROS</span><b>${tL.toFixed(2)} L</b></div>
-                <div class="mini-card" style="background:var(--success)"><span>LANÇAMENTOS</span><b>${lista.length}</b></div>
-            </div>`;
-
-        // Ordena as secretarias em ordem alfabética para os blocos
-        const secretarias = [...new Set(lista.map(x => x.secretaria))].sort();
         
+        const autorizados = cache.filter(x => x.status === "AUTORIZADO");
+        const tR$ = autorizados.reduce((a, b) => a + b.valor, 0);
+        
+        container.innerHTML = `<div class="mini-card" style="margin-bottom:15px; padding:20px;">TOTAL GERAL AUTORIZADO: <b>R$ ${tR$.toFixed(2)}</b></div>`;
+
+        const secretarias = [...new Set(cache.map(x => x.secretaria))].sort();
         secretarias.forEach(sec => {
-            const itens = lista.filter(x => x.secretaria === sec).sort((a,b) => new Date(a.data) - new Date(b.data));
+            const itens = cache.filter(x => x.secretaria === sec).sort((a,b) => new Date(a.data) - new Date(b.data));
             let sR$ = 0, sL = 0, linhas = "";
 
             itens.forEach(d => {
-                const hist = cache.filter(v => v.placa === d.placa && v.data <= d.data && v.id !== d.id).sort((a,b) => new Date(b.data) - new Date(a.data));
-                const kmAnt = hist.length > 0 ? hist[0].km : 0;
+                const isAut = d.status === "AUTORIZADO";
+                if(isAut) { sR$ += d.valor; sL += d.litro; }
+
+                const kmAnt = cache.filter(v => v.placa === d.placa && v.status === "AUTORIZADO" && v.id !== d.id).sort((a,b) => b.km - a.km)[0]?.km || 0;
                 const media = (kmAnt > 0 && d.km > kmAnt) ? (d.km - kmAnt) / d.litro : 0;
-                const alerta = (media > 0 && media < 5) ? 'class="consumo-baixo"' : '';
                 
-                sR$ += d.valor; sL += d.litro;
+                // LÓGICA DO BOTÃO: Aparece se for Admin e o status for Aguardando
+                let acoesHtml = "";
+                if (isAdmin) {
+                    if (!isAut) {
+                        acoesHtml += `<button class="btn-auth" onclick="db.ref('abastecimentos/${d.id}').update({status:'AUTORIZADO'})">LIBERAR</button>`;
+                    }
+                    acoesHtml += `<button onclick="if(confirm('EXCLUIR?')) db.ref('abastecimentos/${d.id}').remove()" style="border:none; background:none; cursor:pointer; font-size:16px;">🗑️</button>`;
+                }
+
                 linhas += `
-                    <tr ${alerta}>
+                    <tr>
                         <td>${d.data.split('-').reverse().join('/')}</td>
                         <td><b>${d.placa}</b></td>
                         <td>${d.motorista}</td>
-                        <td>${d.autorizador || '---'}</td>
-                        <td>${d.posto}</td>
-                        <td>${d.km} <br><small style="font-size:8px;">${kmAnt > 0 ? 'ANT: '+kmAnt : 'INICIAL'}</small></td>
+                        <td>${d.autorizador}</td>
+                        <td><span class="status-tag status-${d.status === 'AUTORIZADO' ? 'autorizado' : 'aguardando'}">${d.status}</span></td>
+                        <td>${d.km}</td>
                         <td>${d.litro.toFixed(2)}L</td>
                         <td>${media > 0 ? media.toFixed(2) : '---'}</td>
                         <td>R$ ${d.valor.toFixed(2)}</td>
-                        <td class="no-print">
-                            <button class="btn-edit" onclick="editar('${d.id}')">✏️</button>
-                            <button class="btn-del" onclick="remover('${d.id}')">🗑️</button>
-                        </td>
+                        <td class="no-print">${acoesHtml}</td>
                     </tr>`;
             });
 
             container.innerHTML += `
                 <div class="sec-block">
-                    <div class="sec-header">🏢 ${sec.toUpperCase()}</div>
-                    <div class="table-scroll">
+                    <div class="sec-header">🏢 ${sec}</div>
+                    <div style="overflow-x:auto">
                         <table>
-                            <thead><tr><th>DATA</th><th>PLACA</th><th>MOTORISTA</th><th>AUTORIZADO</th><th>POSTO</th><th>KM</th><th>LITROS</th><th>MÉDIA</th><th>TOTAL</th><th class="no-print">AÇÕES</th></tr></thead>
+                            <thead><tr><th>DATA</th><th>PLACA</th><th>MOTORISTA</th><th>AUTORIZADO</th><th>STATUS</th><th>KM</th><th>LITROS</th><th>MÉDIA</th><th>TOTAL</th><th class="no-print">AÇÕES</th></tr></thead>
                             <tbody>${linhas}</tbody>
-                            <tfoot><tr class="subtotal-row"><td colspan="6">SUBTOTAL SECRETARIA</td><td>${sL.toFixed(2)}L</td><td>-</td><td colspan="2">R$ ${sR$.toFixed(2)}</td></tr></tfoot>
+                            <tfoot><tr style="background:#f8fafc; font-weight:bold"><td colspan="6">SUBTOTAL AUTORIZADO</td><td>${sL.toFixed(2)}L</td><td>-</td><td colspan="2">R$ ${sR$.toFixed(2)}</td></tr></tfoot>
                         </table>
                     </div>
                 </div>`;
         });
     }
 
-    function editar(id) {
-        const d = cache.find(x => x.id === id);
-        editID = id;
-        document.getElementById('f-placa').value = d.placa;
-        document.getElementById('f-sec').value = d.secretaria;
-        document.getElementById('f-mot').value = d.motorista;
-        document.getElementById('f-aut').value = d.autorizador || "NÃO INFORMADO";
-        document.getElementById('f-posto').value = d.posto;
-        document.getElementById('f-data').value = d.data;
-        document.getElementById('f-km').value = d.km;
-        document.getElementById('f-lit').value = d.litro;
-        document.getElementById('f-val').value = d.valor;
-        document.getElementById('btn-save').innerText = "ATUALIZAR REGISTRO";
-        document.getElementById('btn-cancel').style.display = 'block';
-        window.scrollTo(0,0);
-    }
-
-    function cancelarEdicao() { limparForm(); document.getElementById('btn-save').innerText = "✔️ SALVAR REGISTRO"; document.getElementById('btn-cancel').style.display = 'none'; }
-    function remover(id) { if(confirm("EXCLUIR REGISTRO?")) db.ref('abastecimentos').child(id).remove(); }
-
     function atualizarGraficos() {
-        const secMap = {}; cache.forEach(d => secMap[d.secretaria] = (secMap[d.secretaria] || 0) + d.valor);
-        const sortedSecLabels = Object.keys(secMap).sort();
-        const sortedSecValues = sortedSecLabels.map(label => secMap[label]);
+        const aut = cache.filter(x => x.status === "AUTORIZADO");
+        if(aut.length === 0) return; // Evita erro se não houver autorizados
 
+        const secMap = {}; aut.forEach(d => secMap[d.secretaria] = (secMap[d.secretaria] || 0) + d.valor);
         if(chartSec) chartSec.destroy();
         chartSec = new Chart(document.getElementById('chartSec'), {
             type: 'doughnut',
-            data: { labels: sortedSecLabels, datasets: [{ data: sortedSecValues, backgroundColor: ['#3b82f6','#10b981','#f59e0b','#ef4444','#8b5cf6','#6366f1','#06b6d4','#f43f5e','#ec4899','#84cc16','#0ea5e9'] }] },
+            data: { labels: Object.keys(secMap), datasets: [{ data: Object.values(secMap), backgroundColor: ['#3b82f6','#10b981','#f59e0b','#ef4444','#8b5cf6','#ec4899','#06b6d4'] }] },
             options: { responsive: true, maintainAspectRatio: false }
         });
 
-        const vecMap = {}; cache.forEach(d => vecMap[d.placa] = (vecMap[d.placa] || 0) + d.valor);
+        const vecMap = {}; aut.forEach(d => vecMap[d.placa] = (vecMap[d.placa] || 0) + d.valor);
         const sortedVec = Object.entries(vecMap).sort((a,b) => b[1] - a[1]).slice(0,5);
         if(chartVec) chartVec.destroy();
         chartVec = new Chart(document.getElementById('chartVec'), {
@@ -318,31 +270,6 @@
             data: { labels: sortedVec.map(x => x[0]), datasets: [{ label: 'TOTAL R$', data: sortedVec.map(x => x[1]), backgroundColor: '#0f172a' }] },
             options: { responsive: true, maintainAspectRatio: false }
         });
-    }
-
-    function aplicarFiltros() {
-        const ini = document.getElementById('rel-ini').value;
-        const fim = document.getElementById('rel-fim').value;
-        const sec = document.getElementById('rel-sec').value;
-        const busca = document.getElementById('busca').value.toUpperCase();
-        const filtrado = cache.filter(d => {
-            return (!ini || d.data >= ini) && (!fim || d.data <= fim) && (!sec || d.secretaria === sec) && (!busca || d.placa.includes(busca) || d.motorista.includes(busca));
-        });
-        renderizar(filtrado);
-    }
-
-    function popularFiltroSecretaria() {
-        const select = document.getElementById('rel-sec');
-        const secs = [...new Set(cache.map(x => x.secretaria))].sort();
-        select.innerHTML = '<option value="">TODAS</option>' + secs.map(s => `<option value="${s}">${s}</option>`).join('');
-    }
-
-    function exportarExcel() {
-        let csv = "DATA;PLACA;SECRETARIA;MOTORISTA;AUTORIZADOR;POSTO;KM;LITROS;VALOR\n";
-        cache.forEach(d => csv += `${d.data};${d.placa};${d.secretaria};${d.motorista};${d.autorizador || ''};${d.posto};${d.km};${d.litro};${d.valor}\n`);
-        const blob = new Blob(["\ufeff" + csv], { type: 'text/csv;charset=utf-8;' });
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a'); a.setAttribute('href', url); a.setAttribute('download', 'relatorio_matina.csv'); a.click();
     }
 </script>
 </body>
