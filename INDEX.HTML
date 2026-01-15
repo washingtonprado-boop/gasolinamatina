@@ -27,28 +27,86 @@
       display: flex; 
       align-items: center; 
       justify-content: center; 
-      flex-direction: column; 
       color: white; 
   }
-  .login-box { 
-      width: 90%; 
-      max-width: 380px; 
-      background: rgba(255,255,255,0.95);
-      padding: 40px;
+  .login-container {
+      display: flex;
+      max-width: 1100px;
+      width: 90%;
+      background: white;
       border-radius: 20px;
+      overflow: hidden;
       box-shadow: 0 20px 60px rgba(0,0,0,0.3);
-      text-align: center; 
+  }
+  .login-left {
+      flex: 1;
+      background: linear-gradient(135deg, rgba(102, 126, 234, 0.9), rgba(118, 75, 162, 0.9));
+      padding: 40px 30px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      position: relative;
+  }
+  .login-left::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: url('https://i.imgur.com/qtUXYi3.png') center/cover;
+      opacity: 0.05;
+  }
+  .login-logo {
+      width: 100%;
+      max-width: 300px;
+      margin-bottom: 30px;
+      position: relative;
+      z-index: 1;
+  }
+  .login-left h1 {
+      font-size: 32px;
+      margin: 0 0 15px 0;
+      position: relative;
+      z-index: 1;
+  }
+  .login-left p {
+      font-size: 16px;
+      opacity: 0.9;
+      position: relative;
+      z-index: 1;
+  }
+  .login-box { 
+      flex: 1;
+      padding: 60px 50px;
+      background: white;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+  }
+  @media (max-width: 768px) {
+      .login-container {
+          flex-direction: column;
+          width: 95%;
+      }
+      .login-left {
+          padding: 40px 20px;
+      }
+      .login-box {
+          padding: 40px 30px;
+      }
   }
   .login-box h2 { 
       margin-bottom: 10px; 
       font-size: 32px; 
       color: var(--primary);
-      text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
+      text-shadow: none;
+      text-align: center;
   }
   .login-box p { 
       color: #64748b; 
-      font-size: 12px; 
+      font-size: 14px; 
       margin-bottom: 30px;
+      text-align: center;
   }
   .login-box input { 
       width: 100%; 
@@ -459,12 +517,19 @@
 
 <!-- Tela de Login -->
 <div id="login-screen">
-  <div class="login-box">
-    <h2>🚗 COMBUSTÍVEL</h2>
-    <p>SISTEMA DE CONTROLE E GESTÃO</p>
-    <input type="text" id="user" placeholder="USUÁRIO" autocomplete="username">
-    <input type="password" id="senha" placeholder="SENHA" autocomplete="current-password" onkeypress="if(event.key==='Enter') logar()">
-    <button class="btn-login" onclick="logar()">🔐 ENTRAR</button>
+  <div class="login-container">
+    <div class="login-left">
+      <img src="https://i.imgur.com/AKM25W1.png" alt="Logo" class="login-logo">
+      <h1>SISTEMA DE CONTROLE</h1>
+      <p>Gestão Inteligente de Combustível</p>
+    </div>
+    <div class="login-box">
+      <h2>🚗 BEM-VINDO</h2>
+      <p>Faça login para continuar</p>
+      <input type="text" id="user" placeholder="USUÁRIO" autocomplete="username">
+      <input type="password" id="senha" placeholder="SENHA" autocomplete="current-password" onkeypress="if(event.key==='Enter') logar()">
+      <button class="btn-login" onclick="logar()">🔐 ENTRAR</button>
+    </div>
   </div>
 </div>
 
@@ -651,6 +716,71 @@
   
   <div id="tab-users" style="display:none;">
     <div class="card">
+      <h3>🚗 CADASTRO DE VEÍCULOS</h3>
+      <div class="grid-form">
+        <div>
+          <label>PLACA *</label>
+          <input type="text" id="vei-placa" placeholder="ABC-1234" maxlength="8">
+        </div>
+        <div>
+          <label>MODELO</label>
+          <input type="text" id="vei-modelo" placeholder="EX: GOL, SAVEIRO">
+        </div>
+        <div>
+          <label>SECRETARIA</label>
+          <select id="vei-sec">
+            <option value="">SELECIONE...</option>
+            <option>ADMINISTRAÇÃO E FINANÇAS</option>
+            <option>AGRICULTURA E MEIO AMBIENTE</option>
+            <option>ASSISTÊNCIA SOCIAL</option>
+            <option>EDUCAÇÃO</option>
+            <option>SAÚDE</option>
+            <option>INFRAESTRUTURA E SERVIÇOS</option>
+            <option>AVULSOS / GERAL</option>
+          </select>
+        </div>
+        <div>
+          <label>MOTORISTA PADRÃO</label>
+          <input type="text" id="vei-motorista" placeholder="NOME DO MOTORISTA">
+        </div>
+        <div>
+          <label>TIPO DE COMBUSTÍVEL</label>
+          <select id="vei-combustivel">
+            <option value="GASOLINA">GASOLINA</option>
+            <option value="ALCOOL">ÁLCOOL</option>
+            <option value="DIESEL">DIESEL</option>
+            <option value="FLEX">FLEX (GASOLINA/ÁLCOOL)</option>
+          </select>
+        </div>
+        <div>
+          <label>ANO</label>
+          <input type="number" id="vei-ano" placeholder="2020" min="1980" max="2030">
+        </div>
+      </div>
+      <button class="btn-save" onclick="salvarVeiculo()" style="background: linear-gradient(135deg, var(--success) 0%, #16a34a 100%);">➕ SALVAR VEÍCULO</button>
+    </div>
+    
+    <div class="card">
+      <h3>📋 VEÍCULOS CADASTRADOS</h3>
+      <div class="table-wrapper">
+        <table>
+          <thead>
+            <tr>
+              <th>PLACA</th>
+              <th>MODELO</th>
+              <th>SECRETARIA</th>
+              <th>MOTORISTA PADRÃO</th>
+              <th>COMBUSTÍVEL</th>
+              <th>ANO</th>
+              <th class="no-print">AÇÕES</th>
+            </tr>
+          </thead>
+          <tbody id="veiculos-body"></tbody>
+        </table>
+      </div>
+    </div>
+    
+    <div class="card">
       <h3>💲 TABELA DE PREÇOS</h3>
       <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px;">
         <div>
@@ -761,6 +891,7 @@
   };
   
   let cache = [];
+  let veiculos = [];
   let userLimit = 0;
   let userRole = "";
   let loginUser = "";
@@ -777,6 +908,15 @@
       document.getElementById('p-alc').value = precos.ALCOOL;
       document.getElementById('p-die').value = precos.DIESEL;
     }
+  });
+  
+  db.ref('veiculos').on('value', snap => {
+    veiculos = [];
+    snap.forEach(item => {
+      let v = item.val();
+      v.id = item.key;
+      veiculos.push(v);
+    });
   });
   
   function logar() {
@@ -1468,10 +1608,26 @@
   }
   
   function sugerir(valor) {
-    const ultimoAbast = cache.filter(x => x.placa === valor.toUpperCase())
+    const placa = valor.toUpperCase().trim();
+    
+    // Busca no cadastro de veículos
+    const veiculo = veiculos.find(v => v.placa === placa);
+    if (veiculo) {
+      document.getElementById('f-mot').value = veiculo.motorista || '';
+      document.getElementById('f-sec').value = veiculo.secretaria || '';
+      document.getElementById('f-tipo').value = veiculo.combustivel === 'FLEX' ? 'GASOLINA' : veiculo.combustivel;
+      calc();
+      return;
+    }
+    
+    // Busca no histórico de abastecimentos
+    const ultimoAbast = cache.filter(x => x.placa === placa)
       .sort((a, b) => b.timestamp - a.timestamp)[0];
     if (ultimoAbast) {
       document.getElementById('f-mot').value = ultimoAbast.motorista;
+      document.getElementById('f-sec').value = ultimoAbast.secretaria;
+      document.getElementById('f-tipo').value = ultimoAbast.tipo;
+      calc();
     }
   }
   
@@ -1491,6 +1647,7 @@
       document.getElementById('tab-users').style.display = 'block';
       document.getElementById('btn-tab-users').classList.add('active');
       listUsuarios();
+      listVeiculos();
     }
   }
   
@@ -1647,6 +1804,68 @@
     });
     renderizar();
   });
+  
+  function salvarVeiculo() {
+    const placa = document.getElementById('vei-placa').value.toUpperCase().trim();
+    const modelo = document.getElementById('vei-modelo').value.toUpperCase().trim();
+    const secretaria = document.getElementById('vei-sec').value;
+    const motorista = document.getElementById('vei-motorista').value.toUpperCase().trim();
+    const combustivel = document.getElementById('vei-combustivel').value;
+    const ano = document.getElementById('vei-ano').value;
+    
+    if (!placa || placa.length < 7) {
+      mostrarNotificacao("❌ PLACA INVÁLIDA!", "error");
+      return;
+    }
+    
+    db.ref('veiculos/' + placa.replace(/[^A-Z0-9]/g, '')).set({
+      placa: placa,
+      modelo: modelo,
+      secretaria: secretaria,
+      motorista: motorista,
+      combustivel: combustivel,
+      ano: ano,
+      cadastradoEm: Date.now()
+    }).then(() => {
+      mostrarNotificacao("✅ VEÍCULO SALVO COM SUCESSO!", "success");
+      document.getElementById('vei-placa').value = '';
+      document.getElementById('vei-modelo').value = '';
+      document.getElementById('vei-sec').value = '';
+      document.getElementById('vei-motorista').value = '';
+      document.getElementById('vei-combustivel').value = 'GASOLINA';
+      document.getElementById('vei-ano').value = '';
+      listVeiculos();
+    });
+  }
+  
+  function listVeiculos() {
+    db.ref('veiculos').once('value', snap => {
+      const tbody = document.getElementById('veiculos-body');
+      tbody.innerHTML = "";
+      if (!snap.exists()) {
+        tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding:40px;">📭 NENHUM VEÍCULO CADASTRADO</td></tr>';
+        return;
+      }
+      snap.forEach(c => {
+        const v = c.val();
+        tbody.innerHTML += `
+          <tr>
+            <td><b>${v.placa}</b></td>
+            <td>${v.modelo || '---'}</td>
+            <td>${v.secretaria || '---'}</td>
+            <td>${v.motorista || '---'}</td>
+            <td><span class="badge ${v.combustivel === 'GASOLINA' ? 'badge-danger' : v.combustivel === 'DIESEL' ? 'badge-warning' : 'badge-success'}">${v.combustivel || '---'}</span></td>
+            <td>${v.ano || '---'}</td>
+            <td class="no-print">
+              <button class="btn-action btn-deletar" onclick="if(confirm('⚠️ EXCLUIR VEÍCULO ${v.placa}?')) { db.ref('veiculos/${c.key}').remove().then(() => { mostrarNotificacao('✅ VEÍCULO EXCLUÍDO!', 'success'); listVeiculos(); }); }">
+                🗑️ EXCLUIR
+              </button>
+            </td>
+          </tr>
+        `;
+      });
+    });
+  }
   
   document.getElementById('f-data').valueAsDate = new Date();
   toggleUserFields();
