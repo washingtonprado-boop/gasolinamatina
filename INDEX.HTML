@@ -5,7 +5,7 @@
 <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css">
 <script src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/html5-qrcode/2.3.8/html5-qrcode.min.js"></script>
+<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 
 <style>
   :root { 
@@ -55,8 +55,8 @@
       content: '';
       position: absolute;
       inset: 0;
-      background: url('https://i.imgur.com/qtUXYi3.png') center/cover;
-      opacity: 0.05;
+      background: url('https://i.imgur.com/your-image-id.png') center/cover;
+      opacity: 0.15;
   }
   .login-logo {
       width: 100%;
@@ -550,7 +550,7 @@
 <div id="login-screen">
   <div class="login-container">
     <div class="login-left">
-      <img src="https://i.imgur.com/AKM25W1.png" alt="Logo" class="login-logo">
+      <img src="https://i.imgur.com/5U5TwNF.png" alt="Logo" class="login-logo">
       <h1>SISTEMA DE CONTROLE</h1>
       <p>Gestão Inteligente de Combustível</p>
     </div>
@@ -772,9 +772,9 @@
           <input type="text" id="vei-modelo" placeholder="EX: GOL, SAVEIRO">
         </div>
         <div>
-          <label>SECRETARIA</label>
+          <label>SECRETARIA (OPCIONAL)</label>
           <select id="vei-sec">
-            <option value="">SELECIONE...</option>
+            <option value="">NENHUMA (COMPARTILHADO)</option>
             <option>ADMINISTRAÇÃO E FINANÇAS</option>
             <option>AGRICULTURA E MEIO AMBIENTE</option>
             <option>ASSISTÊNCIA SOCIAL</option>
@@ -785,7 +785,7 @@
           </select>
         </div>
         <div>
-          <label>MOTORISTA PADRÃO</label>
+          <label>MOTORISTA PADRÃO (OPCIONAL)</label>
           <input type="text" id="vei-motorista" placeholder="NOME DO MOTORISTA">
         </div>
         <div>
@@ -811,26 +811,6 @@
         <div id="qrcode"></div>
         <p style="margin-top:10px;"><strong>PLACA:</strong> <span id="qr-placa-text"></span></p>
         <button class="btn-save" style="background: linear-gradient(135deg, var(--accent) 0%, #667eea 100%);" onclick="baixarQRCode()">💾 BAIXAR QR CODE</button>
-      </div>
-    </div>
-    
-    <div class="card">
-      <h3>📋 VEÍCULOS CADASTRADOS</h3>
-      <div class="table-wrapper">
-        <table>
-          <thead>
-            <tr>
-              <th>PLACA</th>
-              <th>MODELO</th>
-              <th>SECRETARIA</th>
-              <th>MOTORISTA PADRÃO</th>
-              <th>COMBUSTÍVEL</th>
-              <th>ANO</th>
-              <th class="no-print">AÇÕES</th>
-            </tr>
-          </thead>
-          <tbody id="veiculos-body"></tbody>
-        </table>
       </div>
     </div>
     
@@ -1883,6 +1863,10 @@
       cadastradoEm: Date.now()
     }).then(() => {
       mostrarNotificacao("✅ VEÍCULO SALVO COM SUCESSO!", "success");
+      
+      // Gera QR Code
+      gerarQRCode(placa);
+      
       document.getElementById('vei-placa').value = '';
       document.getElementById('vei-modelo').value = '';
       document.getElementById('vei-sec').value = '';
@@ -1891,6 +1875,80 @@
       document.getElementById('vei-ano').value = '';
       listVeiculos();
     });
+  }
+  
+  function gerarQRCode(placa) {
+    const qrDisplay = document.getElementById('qr-display');
+    const qrcodeDiv = document.getElementById('qrcode');
+    qrcodeDiv.innerHTML = '';
+    
+    new QRCode(qrcodeDiv, {
+      text: placa,
+      width: 256,
+      height: 256,
+      colorDark: "#000000",
+      colorLight: "#ffffff",
+      correctLevel: QRCode.CorrectLevel.H
+    });
+    
+    document.getElementById('qr-placa-text').textContent = placa;
+    qrDisplay.style.display = 'block';
+    
+    setTimeout(() => {
+      qrDisplay.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, 300);
+  }
+  
+  function baixarQRCode() {
+    const canvas = document.querySelector('#qrcode canvas');
+    const placa = document.getElementById('qr-placa-text').textContent;
+    
+    if (canvas) {
+      const link = document.createElement('a');
+      link.download = `QRCode_${placa}.png`;
+      link.href = canvas.toDataURL();
+      link.click();
+      mostrarNotificacao("✅ QR CODE BAIXADO!", "success");
+    }
+  }
+  
+  function iniciarScanner() {
+    const scannerArea = document.getElementById('qr-scanner-area');
+    scannerArea.style.display = 'block';
+    
+    html5QrCode = new Html5Qrcode("qr-reader");
+    
+    html5QrCode.start(
+      { facingMode: "environment" },
+      {
+        fps: 10,
+        qrbox: { width: 250, height: 250 }
+      },
+      (decodedText) => {
+        document.getElementById('f-placa').value = decodedText;
+        sugerir(decodedText);
+        pararScanner();
+        mostrarNotificacao("✅ QR CODE LIDO: " + decodedText, "success");
+      },
+      (errorMessage) => {
+        // Ignora erros de leitura contínua
+      }
+    ).catch(err => {
+      console.error("Erro ao iniciar scanner:", err);
+      mostrarNotificacao("❌ ERRO AO ACESSAR CÂMERA!", "error");
+      scannerArea.style.display = 'none';
+    });
+  }
+  
+  function pararScanner() {
+    if (html5QrCode) {
+      html5QrCode.stop().then(() => {
+        document.getElementById('qr-scanner-area').style.display = 'none';
+        html5QrCode = null;
+      }).catch(err => {
+        console.error("Erro ao parar scanner:", err);
+      });
+    }
   }
   
   function listVeiculos() {
@@ -1912,6 +1970,7 @@
             <td><span class="badge ${v.combustivel === 'GASOLINA' ? 'badge-danger' : v.combustivel === 'DIESEL' ? 'badge-warning' : 'badge-success'}">${v.combustivel || '---'}</span></td>
             <td>${v.ano || '---'}</td>
             <td class="no-print">
+              <button class="btn-action" style="background:#8b5cf6;color:white;" onclick="gerarQRCode('${v.placa}')">📱 QR CODE</button>
               <button class="btn-action btn-deletar" onclick="if(confirm('⚠️ EXCLUIR VEÍCULO ${v.placa}?')) { db.ref('veiculos/${c.key}').remove().then(() => { mostrarNotificacao('✅ VEÍCULO EXCLUÍDO!', 'success'); listVeiculos(); }); }">
                 🗑️ EXCLUIR
               </button>
