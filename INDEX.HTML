@@ -4,6 +4,8 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css">
 <script src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html5-qrcode/2.3.8/html5-qrcode.min.js"></script>
 
 <style>
   :root { 
@@ -41,7 +43,7 @@
   .login-left {
       flex: 1;
       background: linear-gradient(135deg, rgba(102, 126, 234, 0.9), rgba(118, 75, 162, 0.9));
-      padding: 40px 30px;
+      padding: 60px 40px;
       display: flex;
       flex-direction: column;
       align-items: center;
@@ -461,6 +463,35 @@
       0% { transform: rotate(0deg); }
       100% { transform: rotate(360deg); }
   }
+  
+  .qr-scanner-container {
+      background: white;
+      padding: 20px;
+      border-radius: 12px;
+      margin-bottom: 20px;
+      text-align: center;
+  }
+  .qr-scanner-container video {
+      width: 100%;
+      max-width: 400px;
+      border-radius: 8px;
+      border: 3px solid var(--accent);
+  }
+  #qr-reader {
+      width: 100%;
+      max-width: 400px;
+      margin: 0 auto;
+  }
+  .qr-code-display {
+      margin-top: 20px;
+      padding: 20px;
+      background: #f8fafc;
+      border-radius: 8px;
+  }
+  .qr-code-display canvas {
+      margin: 10px auto;
+      display: block;
+  }
 </style>
 
 <!-- Modal para Edição de Usuários -->
@@ -567,6 +598,20 @@
     <!-- Novo Abastecimento -->
     <div class="card no-print">
       <h3>⛽ NOVO ABASTECIMENTO</h3>
+      
+      <!-- Scanner QR Code -->
+      <div class="qr-scanner-container" id="qr-scanner-area" style="display:none;">
+        <h4>📷 ESCANEIE O QR CODE DO VEÍCULO</h4>
+        <div id="qr-reader"></div>
+        <button class="btn-save" style="background: linear-gradient(135deg, var(--danger) 0%, #dc2626 100%); margin-top:15px;" onclick="pararScanner()">❌ CANCELAR SCANNER</button>
+      </div>
+      
+      <div style="text-align:center; margin-bottom:15px;">
+        <button class="btn-save" style="background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%); max-width:300px; margin:0 auto;" onclick="iniciarScanner()">
+          📱 ESCANEAR QR CODE
+        </button>
+      </div>
+      
       <div class="grid-form">
         <div>
           <label>PLACA *</label>
@@ -758,6 +803,15 @@
         </div>
       </div>
       <button class="btn-save" onclick="salvarVeiculo()" style="background: linear-gradient(135deg, var(--success) 0%, #16a34a 100%);">➕ SALVAR VEÍCULO</button>
+      
+      <!-- Gerador de QR Code -->
+      <div class="qr-code-display" id="qr-display" style="display:none;">
+        <h4>📱 QR CODE GERADO</h4>
+        <p style="font-size:12px; color:#64748b;">IMPRIMA E COLE NO VEÍCULO</p>
+        <div id="qrcode"></div>
+        <p style="margin-top:10px;"><strong>PLACA:</strong> <span id="qr-placa-text"></span></p>
+        <button class="btn-save" style="background: linear-gradient(135deg, var(--accent) 0%, #667eea 100%);" onclick="baixarQRCode()">💾 BAIXAR QR CODE</button>
+      </div>
     </div>
     
     <div class="card">
@@ -900,6 +954,7 @@
   let precos = { GASOLINA: 6, ALCOOL: 4, DIESEL: 6 };
   let chartSec = null;
   let chartVec = null;
+  let html5QrCode = null;
   
   db.ref('config/precos').on('value', snap => {
     if (snap.val()) {
