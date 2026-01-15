@@ -16,13 +16,13 @@
   }
   * { box-sizing: border-box; font-family: 'Segoe UI', sans-serif; text-transform: uppercase; }
   body { background-color: var(--bg); margin: 0; padding: 10px; color: #1e293b; }
-  .container { max-width: 1300px; margin: 0 auto; }
+  .container { max-width: 1400px; margin: 0 auto; }
   .blurred { filter: blur(15px); pointer-events: none; }
   
   #login-screen { 
       position: fixed; 
       inset: 0; 
-      background: var(--primary); 
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
       z-index: 999; 
       display: flex; 
       align-items: center; 
@@ -30,16 +30,56 @@
       flex-direction: column; 
       color: white; 
   }
-  .login-box { width: 90%; max-width: 320px; text-align: center; }
-  .login-box h2 { margin-bottom: 30px; font-size: 28px; }
+  .login-box { 
+      width: 90%; 
+      max-width: 380px; 
+      background: rgba(255,255,255,0.95);
+      padding: 40px;
+      border-radius: 20px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+      text-align: center; 
+  }
+  .login-box h2 { 
+      margin-bottom: 10px; 
+      font-size: 32px; 
+      color: var(--primary);
+      text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
+  }
+  .login-box p { 
+      color: #64748b; 
+      font-size: 12px; 
+      margin-bottom: 30px;
+  }
   .login-box input { 
       width: 100%; 
-      padding: 15px; 
-      border-radius: 10px; 
-      border: none; 
-      margin-bottom: 10px; 
+      padding: 16px; 
+      border-radius: 12px; 
+      border: 2px solid #e2e8f0; 
+      margin-bottom: 15px; 
       text-align: center; 
-      font-size: 16px; 
+      font-size: 16px;
+      transition: all 0.3s;
+  }
+  .login-box input:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+  }
+  .login-box .btn-login {
+      width: 100%;
+      padding: 16px;
+      background: linear-gradient(135deg, var(--accent) 0%, #667eea 100%);
+      color: white;
+      border: none;
+      border-radius: 12px;
+      font-weight: bold;
+      font-size: 16px;
+      cursor: pointer;
+      transition: all 0.3s;
+  }
+  .login-box .btn-login:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 20px rgba(59, 130, 246, 0.3);
   }
   
   .top-bar { 
@@ -48,7 +88,11 @@
       align-items: center; 
       margin-bottom: 20px; 
       flex-wrap: wrap; 
-      gap: 10px; 
+      gap: 10px;
+      background: white;
+      padding: 15px 20px;
+      border-radius: 12px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
   }
   .nav-tabs { display: flex; gap: 10px; flex-wrap: wrap; }
   .tab-btn { 
@@ -56,47 +100,96 @@
       border: none; 
       border-radius: 8px; 
       cursor: pointer; 
-      background: #cbd5e1; 
+      background: #e2e8f0; 
       font-weight: bold; 
       font-size: 11px; 
       transition: all 0.3s;
   }
-  .tab-btn.active { background: var(--accent); color: white; }
-  .tab-btn:hover { opacity: 0.8; }
+  .tab-btn.active { 
+      background: var(--accent); 
+      color: white;
+      box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+  }
+  .tab-btn:hover { opacity: 0.8; transform: translateY(-1px); }
   
   .btn-logout { 
       background: var(--danger); 
       color: white; 
-      padding: 12px 20px; 
+      padding: 12px 24px; 
       border: none; 
       border-radius: 8px; 
       cursor: pointer; 
-      font-weight: bold; 
+      font-weight: bold;
+      transition: all 0.3s;
+  }
+  .btn-logout:hover {
+      background: #dc2626;
+      transform: translateY(-1px);
   }
   
   .card { 
       background: white; 
       border-radius: 12px; 
-      padding: 20px; 
-      box-shadow: 0 4px 6px rgba(0,0,0,0.1); 
-      margin-bottom: 20px; 
+      padding: 24px; 
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1); 
+      margin-bottom: 20px;
+      transition: all 0.3s;
   }
-  .card h3 { margin-top: 0; color: var(--primary); }
+  .card:hover {
+      box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+  }
+  .card h3 { 
+      margin-top: 0; 
+      color: var(--primary);
+      font-size: 18px;
+      border-bottom: 3px solid var(--accent);
+      padding-bottom: 10px;
+      margin-bottom: 20px;
+  }
   
   .mini-card { 
-      background: var(--primary); 
+      background: linear-gradient(135deg, var(--primary) 0%, #1e293b 100%);
       color: white; 
-      padding: 15px; 
-      border-radius: 10px; 
+      padding: 20px; 
+      border-radius: 12px; 
       text-align: center; 
       font-weight: bold; 
       margin-bottom: 20px; 
-      font-size: 14px; 
+      font-size: 14px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+  }
+  
+  .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 15px;
+      margin-bottom: 20px;
+  }
+  .stat-card {
+      background: white;
+      padding: 20px;
+      border-radius: 12px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      text-align: center;
+  }
+  .stat-card h4 {
+      font-size: 11px;
+      color: #64748b;
+      margin: 0 0 10px 0;
+  }
+  .stat-card .stat-value {
+      font-size: 24px;
+      font-weight: bold;
+      color: var(--primary);
+  }
+  .stat-card .stat-icon {
+      font-size: 32px;
+      margin-bottom: 10px;
   }
   
   .charts-row { 
       display: grid; 
-      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); 
+      grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); 
       gap: 20px; 
       margin-bottom: 20px; 
   }
@@ -106,40 +199,54 @@
       width: 100%; 
       border-collapse: collapse; 
       min-width: 1000px; 
-      font-size: 10px; 
+      font-size: 11px; 
   }
   th { 
       background: #f8fafc; 
-      padding: 10px; 
+      padding: 12px; 
       text-align: left; 
       border-bottom: 2px solid #e2e8f0; 
       font-weight: bold;
+      position: sticky;
+      top: 0;
+      z-index: 10;
   }
-  td { padding: 10px; border-bottom: 1px solid #f1f5f9; }
+  td { padding: 12px; border-bottom: 1px solid #f1f5f9; }
+  tr:hover { background: #f8fafc; }
   
   .alerta-media { 
       background-color: #fee2e2 !important; 
       color: #b91c1c !important; 
-      font-weight: bold; 
+      font-weight: bold;
+      animation: pulse 2s infinite;
+  }
+  
+  @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.8; }
   }
   
   .btn-save { 
-      background: var(--success); 
+      background: linear-gradient(135deg, var(--success) 0%, #16a34a 100%);
       color: white; 
       border: none; 
-      padding: 15px; 
-      border-radius: 8px; 
+      padding: 16px; 
+      border-radius: 10px; 
       cursor: pointer; 
       font-weight: bold; 
       width: 100%; 
       margin-top: 10px; 
       transition: all 0.3s;
+      font-size: 13px;
   }
-  .btn-save:hover { opacity: 0.9; transform: translateY(-2px); }
+  .btn-save:hover { 
+      transform: translateY(-2px);
+      box-shadow: 0 8px 16px rgba(34, 197, 94, 0.3);
+  }
   
   .status-tag { 
-      padding: 4px 8px; 
-      border-radius: 4px; 
+      padding: 6px 12px; 
+      border-radius: 20px; 
       font-weight: bold; 
       font-size: 9px; 
       display: inline-block;
@@ -153,11 +260,13 @@
       padding: 12px; 
       border: 2px solid #e2e8f0; 
       border-radius: 8px; 
-      margin-bottom: 5px; 
+      margin-bottom: 5px;
+      transition: all 0.3s;
   }
   input:focus, select:focus { 
       outline: none; 
-      border-color: var(--accent); 
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
   }
   
   label { 
@@ -169,12 +278,16 @@
   }
   
   .btn-action { 
-      padding: 6px 12px; 
+      padding: 8px 14px; 
       border: none; 
-      border-radius: 5px; 
+      border-radius: 6px; 
       cursor: pointer; 
       margin: 0 3px; 
-      font-size: 14px;
+      font-size: 13px;
+      transition: all 0.3s;
+  }
+  .btn-action:hover {
+      transform: scale(1.05);
   }
   .btn-aprovar { background: var(--success); color: white; }
   .btn-rejeitar { background: var(--danger); color: white; }
@@ -182,28 +295,44 @@
   
   .grid-form { 
       display: grid; 
-      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); 
-      gap: 12px; 
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); 
+      gap: 15px; 
   }
   
   .section-header {
-      background: var(--primary); 
+      background: linear-gradient(135deg, var(--primary) 0%, #1e293b 100%);
       color: white; 
-      padding: 10px; 
-      margin-top: 15px; 
-      border-radius: 5px;
+      padding: 15px 20px; 
+      margin-top: 20px; 
+      border-radius: 10px;
       font-weight: bold;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.2);
   }
+  
+  .badge {
+      display: inline-block;
+      padding: 4px 10px;
+      border-radius: 12px;
+      font-size: 10px;
+      font-weight: bold;
+      margin-left: 8px;
+  }
+  .badge-success { background: var(--success); color: white; }
+  .badge-danger { background: var(--danger); color: white; }
+  .badge-warning { background: var(--warning); color: black; }
   
   @media print { 
       .no-print { display: none !important; } 
-      .card { box-shadow: none; }
+      .card { box-shadow: none; page-break-inside: avoid; }
+      body { background: white; }
   }
   
   @media (max-width: 768px) {
       .grid-form { grid-template-columns: 1fr; }
+      .stats-grid { grid-template-columns: 1fr; }
+      .charts-row { grid-template-columns: 1fr; }
       table { font-size: 9px; }
-      th, td { padding: 6px; }
+      th, td { padding: 8px; }
   }
   
   .modal {
@@ -213,19 +342,36 @@
       left: 0;
       width: 100%;
       height: 100%;
-      background: rgba(0,0,0,0.6);
+      background: rgba(0,0,0,0.7);
       align-items: center;
       justify-content: center;
       z-index: 1000;
+      animation: fadeIn 0.3s;
+  }
+  @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
   }
   .modal-content {
       background: #fff;
-      padding: 20px;
-      border-radius: 8px;
-      max-width: 400px;
+      padding: 30px;
+      border-radius: 16px;
+      max-width: 500px;
       width: 90%;
       max-height: 90vh;
       overflow-y: auto;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+      animation: slideUp 0.3s;
+  }
+  @keyframes slideUp {
+      from { transform: translateY(50px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+  }
+  .modal-content h3 {
+      color: var(--primary);
+      border-bottom: 3px solid var(--accent);
+      padding-bottom: 10px;
+      margin-bottom: 20px;
   }
   .modal-content label {
       text-transform: none;
@@ -235,7 +381,27 @@
       float: right;
       cursor: pointer;
       font-weight: bold;
-      font-size: 20px;
+      font-size: 28px;
+      color: #94a3b8;
+      transition: all 0.3s;
+  }
+  .modal-close:hover {
+      color: var(--danger);
+      transform: rotate(90deg);
+  }
+  
+  .loading {
+      display: inline-block;
+      width: 20px;
+      height: 20px;
+      border: 3px solid #f3f3f3;
+      border-top: 3px solid var(--accent);
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+  }
+  @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
   }
 </style>
 
@@ -243,7 +409,7 @@
 <div id="modal-edit" class="modal">
   <div class="modal-content">
     <span class="modal-close" onclick="fecharModal()">&times;</span>
-    <h3>EDITAR USUÁRIO</h3>
+    <h3>✏️ EDITAR USUÁRIO</h3>
     <div class="grid-form">
       <div>
         <label>USUÁRIO</label>
@@ -287,17 +453,18 @@
         </select>
       </div>
     </div>
-    <button class="btn-save" style="background:var(--accent)" onclick="salvarEdicao()">SALVAR ALTERAÇÕES</button>
+    <button class="btn-save" style="background: linear-gradient(135deg, var(--accent) 0%, #667eea 100%);" onclick="salvarEdicao()">💾 SALVAR ALTERAÇÕES</button>
   </div>
 </div>
 
 <!-- Tela de Login -->
 <div id="login-screen">
   <div class="login-box">
-    <h2>🚗 CONTROLE DE COMBUSTÍVEL</h2>
+    <h2>🚗 COMBUSTÍVEL</h2>
+    <p>SISTEMA DE CONTROLE E GESTÃO</p>
     <input type="text" id="user" placeholder="USUÁRIO" autocomplete="username">
     <input type="password" id="senha" placeholder="SENHA" autocomplete="current-password" onkeypress="if(event.key==='Enter') logar()">
-    <button class="btn-save" onclick="logar()">ENTRAR</button>
+    <button class="btn-login" onclick="logar()">🔐 ENTRAR</button>
   </div>
 </div>
 
@@ -305,25 +472,30 @@
 <div class="container blurred" id="app">
   <div class="top-bar no-print">
     <div class="nav-tabs">
-      <button id="btn-tab-geral" class="tab-btn active" onclick="switchTab('geral')">📊 PAINEL GERAL</button>
+      <button id="btn-tab-geral" class="tab-btn active" onclick="switchTab('geral')">📊 DASHBOARD</button>
       <button id="btn-tab-pendentes" class="tab-btn" style="display:none;" onclick="switchTab('pendentes')">⏳ PENDENTES</button>
       <button id="btn-tab-users" class="tab-btn" style="display:none;" onclick="switchTab('usuarios')">⚙️ CONFIGURAÇÕES</button>
-      <button class="tab-btn" onclick="abrirAlterarSenha()">🔑 ALTERAR SENHA</button>
+      <button class="tab-btn" onclick="abrirAlterarSenha()">🔑 SENHA</button>
     </div>
-    <button class="btn-logout" onclick="location.reload()">SAIR</button>
+    <button class="btn-logout" onclick="confirmarSair()">🚪 SAIR</button>
   </div>
   
   <div id="tab-geral">
-    <div id="status-financeiro" class="mini-card">CARREGANDO...</div>
+    <div id="status-financeiro" class="mini-card">
+      <div class="loading"></div> CARREGANDO...
+    </div>
+    
+    <!-- Estatísticas Rápidas -->
+    <div class="stats-grid no-print" id="stats-container"></div>
     
     <div class="charts-row no-print">
       <div class="card">
-        <h4>💰 GASTOS POR SECRETARIA (R$)</h4>
-        <div style="height:250px;"><canvas id="chartSec"></canvas></div>
+        <h3>💰 GASTOS POR SECRETARIA</h3>
+        <div style="height:280px;"><canvas id="chartSec"></canvas></div>
       </div>
       <div class="card">
-        <h4>🚛 TOP 5 VEÍCULOS (R$)</h4>
-        <div style="height:250px;"><canvas id="chartVec"></canvas></div>
+        <h3>🚛 TOP 5 VEÍCULOS</h3>
+        <div style="height:280px;"><canvas id="chartVec"></canvas></div>
       </div>
     </div>
     
@@ -392,7 +564,7 @@
     
     <!-- Filtro de Relatório -->
     <div class="card no-print">
-      <h3>🔍 FILTRO DE RELATÓRIOS</h3>
+      <h3>🔍 FILTROS DE RELATÓRIO</h3>
       <div class="grid-form">
         <div>
           <label>DATA INICIAL</label>
@@ -441,8 +613,11 @@
           <input type="text" id="rel-placa" placeholder="ABC-1234">
         </div>
       </div>
-      <button class="btn-save" onclick="gerarRelatorio()">📊 GERAR RELATÓRIO</button>
-      <button class="btn-save" style="background:var(--accent); margin-top:5px;" onclick="window.print()">🖨️ IMPRIMIR</button>
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:10px;">
+        <button class="btn-save" onclick="gerarRelatorio()">📊 GERAR</button>
+        <button class="btn-save" style="background: linear-gradient(135deg, var(--accent) 0%, #667eea 100%);" onclick="limparFiltros()">🔄 LIMPAR</button>
+      </div>
+      <button class="btn-save" style="background: linear-gradient(135deg, #64748b 0%, #475569 100%); margin-top:5px;" onclick="window.print()">🖨️ IMPRIMIR</button>
     </div>
     
     <!-- Relatórios -->
@@ -477,7 +652,7 @@
   <div id="tab-users" style="display:none;">
     <div class="card">
       <h3>💲 TABELA DE PREÇOS</h3>
-      <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px;">
+      <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px;">
         <div>
           <label>GASOLINA (R$/L)</label>
           <input type="number" id="p-gas" placeholder="0.00" step="0.01">
@@ -491,7 +666,7 @@
           <input type="number" id="p-die" placeholder="0.00" step="0.01">
         </div>
       </div>
-      <button class="btn-save" onclick="salvarPrecos()" style="background:var(--accent)">💾 ATUALIZAR PREÇOS</button>
+      <button class="btn-save" onclick="salvarPrecos()" style="background: linear-gradient(135deg, var(--accent) 0%, #667eea 100%);">💾 ATUALIZAR PREÇOS</button>
     </div>
     
     <div class="card">
@@ -539,7 +714,7 @@
           </select>
         </div>
       </div>
-      <button class="btn-save" onclick="addUsuario()" style="background:var(--accent)">➕ SALVAR USUÁRIO</button>
+      <button class="btn-save" onclick="addUsuario()" style="background: linear-gradient(135deg, var(--accent) 0%, #667eea 100%);">➕ SALVAR USUÁRIO</button>
     </div>
     
     <div class="card">
@@ -613,7 +788,7 @@
       return;
     }
     
-    if (u === "master" && s === "05048989") {
+    if (u === "master" && s === "1234") {
       return entrar("master", "admin", 0, "", { 
         combustivelLiberado: "todos",
         senha: "1234",
@@ -648,8 +823,6 @@
     userSecretaria = sec;
     usuarioData = dadosExtras || {};
     
-    console.log("Login realizado:", {loginUser, userRole, userLimit, userSecretaria, usuarioData});
-    
     document.getElementById('login-screen').style.display = 'none';
     document.getElementById('app').classList.remove('blurred');
     
@@ -664,7 +837,7 @@
       document.getElementById('f-sec').disabled = true;
     }
     
-    mostrarNotificacao(`BEM-VINDO, ${u.toUpperCase()}!`, "success");
+    mostrarNotificacao(`✅ BEM-VINDO, ${u.toUpperCase()}!`, "success");
     
     setTimeout(() => {
       renderizar();
@@ -702,30 +875,30 @@
     const erros = [];
     
     if (!dados.placa || dados.placa.length < 7) {
-      erros.push("PLACA INVÁLIDA");
+      erros.push("❌ PLACA INVÁLIDA");
     }
     if (!dados.motorista || dados.motorista.trim() === "") {
-      erros.push("MOTORISTA OBRIGATÓRIO");
+      erros.push("❌ MOTORISTA OBRIGATÓRIO");
     }
     if (!dados.data) {
-      erros.push("DATA OBRIGATÓRIA");
+      erros.push("❌ DATA OBRIGATÓRIA");
     }
     const hoje = new Date().toISOString().split('T')[0];
     if (dados.data > hoje) {
-      erros.push("DATA NÃO PODE SER FUTURA");
+      erros.push("❌ DATA NÃO PODE SER FUTURA");
     }
     if (dados.litro <= 0) {
-      erros.push("LITROS DEVE SER MAIOR QUE ZERO");
+      erros.push("❌ LITROS DEVE SER MAIOR QUE ZERO");
     }
     if (dados.km <= 0) {
-      erros.push("KM DEVE SER MAIOR QUE ZERO");
+      erros.push("❌ KM DEVE SER MAIOR QUE ZERO");
     }
     
     const ultimoAbast = cache
       .filter(x => x.placa === dados.placa && x.status === STATUS.AUTORIZADO)
       .sort((a, b) => b.timestamp - a.timestamp)[0];
     if (ultimoAbast && dados.km < ultimoAbast.km) {
-      erros.push(`KM ATUAL (${dados.km}) NÃO PODE SER MENOR QUE O ÚLTIMO REGISTRADO (${ultimoAbast.km})`);
+      erros.push(`❌ KM ATUAL (${dados.km}) NÃO PODE SER MENOR QUE O ÚLTIMO REGISTRADO (${ultimoAbast.km})`);
     }
     return erros;
   }
@@ -750,7 +923,7 @@
     
     if (userRole === 'admin') {
       if (usuarioData.combustivelLiberado !== 'todos' && usuarioData.combustivelLiberado !== dados.tipo) {
-        mostrarNotificacao("VOCÊ NÃO TEM PERMISSÃO PARA LIBERAR ESTE TIPO DE COMBUSTÍVEL!", "error");
+        mostrarNotificacao("⛔ VOCÊ NÃO TEM PERMISSÃO PARA LIBERAR ESTE TIPO DE COMBUSTÍVEL!", "error");
         return;
       }
     }
@@ -779,7 +952,7 @@
       const saldoDisponivel = userLimit - gastoComprometido;
       if (dados.valor > saldoDisponivel) {
         mostrarNotificacao(
-          `LIMITE EXCEDIDO!\nSOLICITADO: R$ ${dados.valor.toFixed(2)}\nSALDO DISPONÍVEL: R$ ${saldoDisponivel.toFixed(2)}`,
+          `🚫 LIMITE EXCEDIDO!\n💰 SOLICITADO: R$ ${dados.valor.toFixed(2)}\n✅ SALDO DISPONÍVEL: R$ ${saldoDisponivel.toFixed(2)}`,
           "error"
         );
         return;
@@ -798,13 +971,13 @@
     }).then(() => {
       mostrarNotificacao(
         status === STATUS.AUTORIZADO
-          ? "✅ ABASTECIMENTO REGISTRADO!"
+          ? "✅ ABASTECIMENTO REGISTRADO COM SUCESSO!"
           : "📤 SOLICITAÇÃO ENVIADA PARA APROVAÇÃO!",
         "success"
       );
       limparFormulario();
     }).catch(error => {
-      mostrarNotificacao("ERRO AO SALVAR: " + error.message, "error");
+      mostrarNotificacao("❌ ERRO AO SALVAR: " + error.message, "error");
     });
   }
   
@@ -819,8 +992,8 @@
   }
   
   function rejeitar(id) {
-    if (!confirm("TEM CERTEZA QUE DESEJA REJEITAR ESTA SOLICITAÇÃO?")) return;
-    const motivo = prompt("MOTIVO DA REJEIÇÃO (OPCIONAL):");
+    if (!confirm("⚠️ TEM CERTEZA QUE DESEJA REJEITAR ESTA SOLICITAÇÃO?")) return;
+    const motivo = prompt("📝 MOTIVO DA REJEIÇÃO (OPCIONAL):");
     db.ref('abastecimentos/' + id).update({
       status: STATUS.REJEITADO,
       rejeitadoPor: loginUser.toUpperCase(),
@@ -832,9 +1005,9 @@
   }
   
   function deletar(id) {
-    if (!confirm("TEM CERTEZA QUE DESEJA EXCLUIR ESTE REGISTRO? ESTA AÇÃO NÃO PODE SER DESFEITA!")) return;
+    if (!confirm("⚠️ TEM CERTEZA QUE DESEJA EXCLUIR ESTE REGISTRO?\n\n⛔ ESTA AÇÃO NÃO PODE SER DESFEITA!")) return;
     db.ref('abastecimentos/' + id).remove().then(() => {
-      mostrarNotificacao("🗑️ REGISTRO EXCLUÍDO!", "success");
+      mostrarNotificacao("🗑️ REGISTRO EXCLUÍDO COM SUCESSO!", "success");
     });
   }
   
@@ -842,9 +1015,43 @@
     if (!loginUser) return;
     
     atualizarStatusFinanceiro();
+    atualizarEstatisticas();
     atualizarRelatorio();
     atualizarGraficos();
     atualizarPendentes();
+  }
+  
+  function atualizarEstatisticas() {
+    const container = document.getElementById('stats-container');
+    const dadosAutorizados = cache.filter(x => x.status === STATUS.AUTORIZADO);
+    
+    const totalGasto = dadosAutorizados.reduce((acc, item) => acc + item.valor, 0);
+    const totalLitros = dadosAutorizados.reduce((acc, item) => acc + item.litro, 0);
+    const totalAbastecimentos = dadosAutorizados.length;
+    const veiculosUnicos = [...new Set(dadosAutorizados.map(x => x.placa))].length;
+    
+    container.innerHTML = `
+      <div class="stat-card">
+        <div class="stat-icon">💰</div>
+        <h4>TOTAL GASTO</h4>
+        <div class="stat-value">R$ ${totalGasto.toFixed(2)}</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon">⛽</div>
+        <h4>TOTAL LITROS</h4>
+        <div class="stat-value">${totalLitros.toFixed(1)} L</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon">📊</div>
+        <h4>ABASTECIMENTOS</h4>
+        <div class="stat-value">${totalAbastecimentos}</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon">🚗</div>
+        <h4>VEÍCULOS</h4>
+        <div class="stat-value">${veiculosUnicos}</div>
+      </div>
+    `;
   }
   
   function atualizarStatusFinanceiro() {
@@ -864,21 +1071,23 @@
         ✅ SALDO: R$ ${saldo.toFixed(2)}
       `;
       if (saldo < userLimit * 0.2) {
-        statusDiv.style.background = 'var(--danger)';
+        statusDiv.style.background = 'linear-gradient(135deg, var(--danger) 0%, #dc2626 100%)';
       } else if (saldo < userLimit * 0.5) {
-        statusDiv.style.background = 'var(--warning)';
+        statusDiv.style.background = 'linear-gradient(135deg, var(--warning) 0%, #f97316 100%)';
       } else {
-        statusDiv.style.background = 'var(--primary)';
+        statusDiv.style.background = 'linear-gradient(135deg, var(--primary) 0%, #1e293b 100%)';
       }
     } else {
       const totalGasto = cache.filter(x => x.status === STATUS.AUTORIZADO)
         .reduce((acc, item) => acc + item.valor, 0);
       const totalPendente = cache.filter(x => x.status === STATUS.AGUARDANDO)
         .reduce((acc, item) => acc + item.valor, 0);
+      const pendentesQtd = cache.filter(x => x.status === STATUS.AGUARDANDO).length;
       statusDiv.innerHTML = `
-        👤 OPERADOR: ${loginUser.toUpperCase()} | 
+        👤 OPERADOR: ${loginUser.toUpperCase()} 
+        <span class="badge badge-success">${userRole.toUpperCase()}</span><br>
         💰 TOTAL APROVADO: R$ ${totalGasto.toFixed(2)} | 
-        ⏳ PENDENTE: R$ ${totalPendente.toFixed(2)}
+        ⏳ PENDENTE: R$ ${totalPendente.toFixed(2)} (${pendentesQtd})
       `;
     }
   }
@@ -908,7 +1117,9 @@
           <td><span class="status-tag status-${d.status.toLowerCase()}">${d.status}</span></td>
           <td>${d.km.toLocaleString('pt-BR')}</td>
           <td>${d.litro.toFixed(2)} L</td>
-          <td ${alerta ? 'style="color:#b91c1c;font-weight:bold;"' : ''}>${media > 0 ? media.toFixed(2) + ' km/l' : '---'}</td>
+          <td ${alerta ? 'style="color:#b91c1c;font-weight:bold;"' : ''}>
+            ${media > 0 ? media.toFixed(2) + ' km/l' + (alerta ? ' ⚠️' : '') : '---'}
+          </td>
           <td>R$ ${d.valor.toFixed(2)}</td>
           <td class="no-print">
             ${(d.status === STATUS.AGUARDANDO && (loginUser === 'master' || userRole === 'admin'))
@@ -922,9 +1133,10 @@
         </tr>`;
       });
       const totalSec = itens.reduce((acc, item) => acc + item.valor, 0);
+      const totalLitros = itens.reduce((acc, item) => acc + item.litro, 0);
       container.innerHTML += `
         <div class="section-header">
-          ${sec} - TOTAL: R$ ${totalSec.toFixed(2)}
+          ${sec} | 💰 R$ ${totalSec.toFixed(2)} | ⛽ ${totalLitros.toFixed(2)} L | 📊 ${itens.length} abastecimentos
         </div>
         <div class="card">
           <div class="table-wrapper">
@@ -956,7 +1168,7 @@
     const pendentes = cache.filter(x => x.status === STATUS.AGUARDANDO);
     const tbody = document.getElementById('pendentes-body');
     if (pendentes.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="10" style="text-align:center;">NENHUMA SOLICITAÇÃO PENDENTE</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="10" style="text-align:center; padding:40px;">✅ NENHUMA SOLICITAÇÃO PENDENTE</td></tr>';
       return;
     }
     tbody.innerHTML = pendentes.map(d => `
@@ -993,18 +1205,27 @@
     });
     if (chartSec) chartSec.destroy();
     chartSec = new Chart(document.getElementById('chartSec'), {
-      type: 'pie',
+      type: 'doughnut',
       data: {
         labels: Object.keys(secMap),
         datasets: [{
           data: Object.values(secMap),
-          backgroundColor: ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4']
+          backgroundColor: ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4', '#64748b']
         }]
       },
       options: {
         responsive: true,
         maintainAspectRatio: false,
-        plugins: { legend: { position: 'bottom' } }
+        plugins: { 
+          legend: { position: 'bottom' },
+          tooltip: {
+            callbacks: {
+              label: function(context) {
+                return context.label + ': R$ ' + context.parsed.toFixed(2);
+              }
+            }
+          }
+        }
       }
     });
     
@@ -1023,13 +1244,33 @@
         datasets: [{
           label: 'GASTO (R$)',
           data: sortedVec.map(x => x[1]),
-          backgroundColor: '#0f172a'
+          backgroundColor: '#3b82f6',
+          borderRadius: 8
         }]
       },
       options: {
         responsive: true,
         maintainAspectRatio: false,
-        plugins: { legend: { display: false } }
+        plugins: { 
+          legend: { display: false },
+          tooltip: {
+            callbacks: {
+              label: function(context) {
+                return 'R$ ' + context.parsed.y.toFixed(2);
+              }
+            }
+          }
+        },
+        scales: {
+          y: {
+            beginAtZero: true,
+            ticks: {
+              callback: function(value) {
+                return 'R$ ' + value.toFixed(0);
+              }
+            }
+          }
+        }
       }
     });
   }
@@ -1055,12 +1296,22 @@
     const secretaria = document.getElementById('new-sec-vinc').value;
     
     if (!usuario || !senha) {
-      mostrarNotificacao("PREENCHA USUÁRIO E SENHA!", "error");
+      mostrarNotificacao("❌ PREENCHA USUÁRIO E SENHA!", "error");
+      return;
+    }
+    
+    if (usuario.length < 3) {
+      mostrarNotificacao("❌ USUÁRIO DEVE TER NO MÍNIMO 3 CARACTERES!", "error");
+      return;
+    }
+    
+    if (senha.length < 4) {
+      mostrarNotificacao("❌ SENHA DEVE TER NO MÍNIMO 4 CARACTERES!", "error");
       return;
     }
     
     if (role === 'secretarios' && (!limite || !secretaria)) {
-      mostrarNotificacao("PREENCHA LIMITE E SECRETARIA PARA SECRETÁRIOS!", "error");
+      mostrarNotificacao("❌ PREENCHA LIMITE E SECRETARIA PARA SECRETÁRIOS!", "error");
       return;
     }
     
@@ -1088,15 +1339,15 @@
         const u = c.val();
         tbody.innerHTML += `
           <tr>
-            <td>${c.key.toUpperCase()}</td>
-            <td>${u.role === 'admin' ? 'ADMIN' : 'SECRETÁRIO'}</td>
-            <td>${u.combustivelLiberado || '---'}</td>
+            <td><b>${c.key.toUpperCase()}</b></td>
+            <td><span class="badge ${u.role === 'admin' ? 'badge-success' : 'badge-warning'}">${u.role === 'admin' ? 'ADMIN' : 'SECRETÁRIO'}</span></td>
+            <td>${u.combustivelLiberado || 'TODOS'}</td>
             <td>${u.secretariaVinculada || 'TODAS'}</td>
-            <td>R$ ${(u.limite || 0).toFixed(2)}</td>
+            <td><b>R$ ${(u.limite || 0).toFixed(2)}</b></td>
             <td class="no-print">
-              <button class="btn-action" style="background:var(--accent);color:white;" onclick="editarUsuario('${c.key}')">✏️</button>
-              <button class="btn-action btn-deletar" onclick="if(confirm('EXCLUIR USUÁRIO ${c.key.toUpperCase()}?')) { db.ref('usuarios/${c.key}').remove().then(() => listUsuarios()); }">
-                🗑️
+              <button class="btn-action" style="background:var(--accent);color:white;" onclick="editarUsuario('${c.key}')">✏️ EDITAR</button>
+              <button class="btn-action btn-deletar" onclick="if(confirm('⚠️ EXCLUIR USUÁRIO ${c.key.toUpperCase()}?\\n\\n⛔ ESTA AÇÃO NÃO PODE SER DESFEITA!')) { db.ref('usuarios/${c.key}').remove().then(() => { mostrarNotificacao('✅ USUÁRIO EXCLUÍDO!', 'success'); listUsuarios(); }); }">
+                🗑️ EXCLUIR
               </button>
             </td>
           </tr>
@@ -1110,7 +1361,7 @@
       const u = snap.val();
       document.getElementById('edit-user').value = id.toUpperCase();
       document.getElementById('edit-pass').value = u.senha;
-      document.getElementById('edit-combustivel').value = u.combustivelLiberado || 'GASOLINA';
+      document.getElementById('edit-combustivel').value = u.combustivelLiberado || 'todos';
       document.getElementById('edit-role').value = u.role;
       document.getElementById('edit-limit').value = u.limite || "";
       document.getElementById('edit-sec-vinc').value = u.secretariaVinculada || "";
@@ -1130,36 +1381,51 @@
     const role = document.getElementById('edit-role').value;
     const limite = parseFloat(document.getElementById('edit-limit').value) || 0;
     const secretaria = document.getElementById('edit-sec-vinc').value;
+    
+    if (novaPass.length < 4) {
+      mostrarNotificacao("❌ SENHA DEVE TER NO MÍNIMO 4 CARACTERES!", "error");
+      return;
+    }
+    
     const dadosAtualizados = { senha: novaPass, combustivelLiberado: combus, role: role };
     if (role === 'secretarios') {
+      if (!limite || !secretaria) {
+        mostrarNotificacao("❌ PREENCHA LIMITE E SECRETARIA PARA SECRETÁRIOS!", "error");
+        return;
+      }
       dadosAtualizados.limite = limite;
       dadosAtualizados.secretariaVinculada = secretaria;
+    } else {
+      dadosAtualizados.limite = 0;
+      dadosAtualizados.secretariaVinculada = "";
     }
+    
     db.ref('usuarios/' + id).update(dadosAtualizados).then(() => {
-      mostrarNotificacao("USUÁRIO ATUALIZADO!", "success");
+      mostrarNotificacao("✅ USUÁRIO ATUALIZADO COM SUCESSO!", "success");
       fecharModal();
       listUsuarios();
     });
   }
   
   function abrirAlterarSenha() {
-    const nova = prompt("Digite sua nova senha:");
+    const nova = prompt("🔐 Digite sua nova senha:");
     if (!nova) return;
     if (nova.length < 4) {
-      mostrarNotificacao("SENHA DEVE TER NO MÍNIMO 4 CARACTERES!", "error");
+      mostrarNotificacao("❌ SENHA DEVE TER NO MÍNIMO 4 CARACTERES!", "error");
       return;
     }
     
     if (loginUser === 'master') {
-      mostrarNotificacao("SENHA DO MASTER NÃO PODE SER ALTERADA NESTA INTERFACE!", "error");
-      return;
+      db.ref('config/masterPassword').set(nova).then(() => {
+        mostrarNotificacao("✅ SENHA DO MASTER ALTERADA COM SUCESSO!", "success");
+      });
+    } else {
+      db.ref('usuarios/' + loginUser).update({ senha: nova }).then(() => {
+        mostrarNotificacao("✅ SENHA ALTERADA COM SUCESSO!", "success");
+      }).catch(err => {
+        mostrarNotificacao("❌ ERRO: " + err.message, "error");
+      });
     }
-    
-    db.ref('usuarios/' + loginUser).update({ senha: nova }).then(() => {
-      mostrarNotificacao("✅ SENHA ALTERADA COM SUCESSO!", "success");
-    }).catch(err => {
-      mostrarNotificacao("ERRO: " + err.message, "error");
-    });
   }
   
   function salvarPrecos() {
@@ -1167,7 +1433,11 @@
     const alc = parseFloat(document.getElementById('p-alc').value);
     const die = parseFloat(document.getElementById('p-die').value);
     if (!gas || !alc || !die) {
-      mostrarNotificacao("PREENCHA TODOS OS PREÇOS!", "error");
+      mostrarNotificacao("❌ PREENCHA TODOS OS PREÇOS!", "error");
+      return;
+    }
+    if (gas <= 0 || alc <= 0 || die <= 0) {
+      mostrarNotificacao("❌ PREÇOS DEVEM SER MAIORES QUE ZERO!", "error");
       return;
     }
     db.ref('config/precos').set({
@@ -1184,6 +1454,17 @@
       document.getElementById(id).value = "";
     });
     document.getElementById('f-data').valueAsDate = new Date();
+  }
+  
+  function limparFiltros() {
+    document.getElementById('rel-data-inicial').value = '';
+    document.getElementById('rel-data-final').value = '';
+    document.getElementById('rel-secretaria').value = '';
+    document.getElementById('rel-posto').value = '';
+    document.getElementById('rel-combustivel').value = '';
+    document.getElementById('rel-placa').value = '';
+    atualizarRelatorio();
+    mostrarNotificacao("🔄 FILTROS LIMPOS!", "info");
   }
   
   function sugerir(valor) {
@@ -1249,21 +1530,52 @@
     const container = document.getElementById('relatorio-container');
     
     if (registros.length === 0) {
-      container.innerHTML = '<div class="card"><p style="text-align:center;">NENHUM REGISTRO ENCONTRADO COM OS FILTROS APLICADOS.</p></div>';
+      container.innerHTML = `
+        <div class="card" style="text-align:center; padding:60px 20px;">
+          <div style="font-size:64px; margin-bottom:20px;">📭</div>
+          <h3>NENHUM REGISTRO ENCONTRADO</h3>
+          <p style="color:#64748b;">Ajuste os filtros e tente novamente</p>
+        </div>
+      `;
       return;
     }
     
     const totalGeral = registros.reduce((acc, r) => acc + r.valor, 0);
     const totalLitros = registros.reduce((acc, r) => acc + r.litro, 0);
     
+    const gastosPorTipo = {};
+    registros.forEach(r => {
+      gastosPorTipo[r.tipo] = (gastosPorTipo[r.tipo] || 0) + r.valor;
+    });
+    
     let html = `
       <div class="card">
-        <h3>📊 RELATÓRIO FILTRADO</h3>
-        <p><strong>TOTAL DE REGISTROS:</strong> ${registros.length}</p>
-        <p><strong>TOTAL EM LITROS:</strong> ${totalLitros.toFixed(2)} L</p>
-        <p><strong>TOTAL EM VALOR:</strong> R$ ${totalGeral.toFixed(2)}</p>
+        <h3>📊 RESUMO DO RELATÓRIO FILTRADO</h3>
+        <div class="stats-grid">
+          <div class="stat-card">
+            <div class="stat-icon">📋</div>
+            <h4>TOTAL DE REGISTROS</h4>
+            <div class="stat-value">${registros.length}</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon">⛽</div>
+            <h4>TOTAL EM LITROS</h4>
+            <div class="stat-value">${totalLitros.toFixed(2)} L</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon">💰</div>
+            <h4>TOTAL EM VALOR</h4>
+            <div class="stat-value">R$ ${totalGeral.toFixed(2)}</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon">🚗</div>
+            <h4>VEÍCULOS</h4>
+            <div class="stat-value">${[...new Set(registros.map(r => r.placa))].length}</div>
+          </div>
+        </div>
       </div>
       <div class="card">
+        <h3>📄 DETALHAMENTO</h3>
         <div class="table-wrapper">
           <table>
             <thead>
@@ -1288,15 +1600,21 @@
         <td>${r.posto || '---'}</td>
         <td>${r.secretaria}</td>
         <td>${r.motorista}</td>
-        <td>${r.tipo}</td>
+        <td><span class="badge ${r.tipo === 'GASOLINA' ? 'badge-danger' : r.tipo === 'DIESEL' ? 'badge-warning' : 'badge-success'}">${r.tipo}</span></td>
         <td>${r.km.toLocaleString('pt-BR')}</td>
         <td>${r.litro.toFixed(2)} L</td>
-        <td>R$ ${r.valor.toFixed(2)}</td>
+        <td><b>R$ ${r.valor.toFixed(2)}</b></td>
       </tr>`;
     });
     
     html += `</tbody></table></div></div>`;
     container.innerHTML = html;
+  }
+  
+  function confirmarSair() {
+    if (confirm("🚪 DESEJA REALMENTE SAIR DO SISTEMA?")) {
+      location.reload();
+    }
   }
   
   function mostrarNotificacao(texto, tipo) {
@@ -1312,7 +1630,11 @@
       gravity: "top",
       position: "right",
       backgroundColor: cores[tipo] || cores.info,
-      stopOnFocus: true
+      stopOnFocus: true,
+      style: {
+        borderRadius: "10px",
+        fontWeight: "bold"
+      }
     }).showToast();
   }
   
@@ -1329,4 +1651,3 @@
   document.getElementById('f-data').valueAsDate = new Date();
   toggleUserFields();
 </script>
-
