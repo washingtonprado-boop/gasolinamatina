@@ -619,9 +619,8 @@
         </div>
         <div>
           <label>POSTO *</label>
-          <select id="f-posto">
-            <option value="POSTO MATINA">POSTO MATINA</option>
-            <option value="POSTO VICTOR">POSTO VICTOR</option>
+          <select id="f-posto" onchange="atualizarPrecosPosto()">
+            <option value="">SELECIONE O POSTO</option>
           </select>
         </div>
         <div>
@@ -761,6 +760,47 @@
   
   <div id="tab-users" style="display:none;">
     <div class="card">
+      <h3>⛽ CADASTRO DE POSTOS</h3>
+      <div class="grid-form">
+        <div>
+          <label>NOME DO POSTO *</label>
+          <input type="text" id="posto-nome" placeholder="EX: POSTO MATINA">
+        </div>
+        <div>
+          <label>GASOLINA (R$/L) *</label>
+          <input type="number" id="posto-gas" placeholder="0.00" step="0.01" min="0">
+        </div>
+        <div>
+          <label>ÁLCOOL (R$/L) *</label>
+          <input type="number" id="posto-alc" placeholder="0.00" step="0.01" min="0">
+        </div>
+        <div>
+          <label>DIESEL (R$/L) *</label>
+          <input type="number" id="posto-die" placeholder="0.00" step="0.01" min="0">
+        </div>
+      </div>
+      <button class="btn-save" onclick="salvarPosto()" style="background: linear-gradient(135deg, #f59e0b 0%, #f97316 100%);">➕ SALVAR POSTO</button>
+    </div>
+    
+    <div class="card">
+      <h3>⛽ POSTOS CADASTRADOS</h3>
+      <div class="table-wrapper">
+        <table>
+          <thead>
+            <tr>
+              <th>POSTO</th>
+              <th>GASOLINA</th>
+              <th>ÁLCOOL</th>
+              <th>DIESEL</th>
+              <th class="no-print">AÇÕES</th>
+            </tr>
+          </thead>
+          <tbody id="postos-body"></tbody>
+        </table>
+      </div>
+    </div>
+    
+    <div class="card">
       <h3>🚗 CADASTRO DE VEÍCULOS</h3>
       <div class="grid-form">
         <div>
@@ -815,7 +855,8 @@
     </div>
     
     <div class="card">
-      <h3>💲 TABELA DE PREÇOS</h3>
+      <h3>💲 TABELA DE PREÇOS PADRÃO</h3>
+      <p style="font-size:12px; color:#64748b; margin-bottom:15px;">Use apenas se não cadastrar postos específicos</p>
       <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px;">
         <div>
           <label>GASOLINA (R$/L)</label>
@@ -899,6 +940,40 @@
         </table>
       </div>
     </div>
+    
+    <!-- LISTA DE VEÍCULOS MOVIDA PARA O FINAL -->
+    <div class="card">
+      <h3>🚗 VEÍCULOS CADASTRADOS</h3>
+      <div class="table-wrapper">
+        <table>
+          <thead>
+            <tr>
+              <th>PLACA</th>
+              <th>MODELO</th>
+              <th>SECRETARIA</th>
+              <th>MOTORISTA PADRÃO</th>
+              <th>COMBUSTÍVEL</th>
+              <th>ANO</th>
+              <th class="no-print">AÇÕES</th>
+            </tr>
+          </thead>
+          <tbody id="veiculos-body"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal QR Code Global -->
+<div id="modal-qr" class="modal">
+  <div class="modal-content">
+    <span class="modal-close" onclick="fecharModalQR()">&times;</span>
+    <h3>📱 QR CODE DO VEÍCULO</h3>
+    <div style="text-align:center;">
+      <div id="qrcode-modal"></div>
+      <p style="margin-top:15px; font-size:16px;"><strong>PLACA:</strong> <span id="qr-placa-modal"></span></p>
+      <button class="btn-save" style="background: linear-gradient(135deg, var(--accent) 0%, #667eea 100%);" onclick="baixarQRCodeModal()">💾 BAIXAR QR CODE</button>
+    </div>
   </div>
 </div>
 
@@ -926,6 +1001,7 @@
   
   let cache = [];
   let veiculos = [];
+  let postos = [];
   let userLimit = 0;
   let userRole = "";
   let loginUser = "";
@@ -939,9 +1015,6 @@
   db.ref('config/precos').on('value', snap => {
     if (snap.val()) {
       precos = snap.val();
-      document.getElementById('p-gas').value = precos.GASOLINA;
-      document.getElementById('p-alc').value = precos.ALCOOL;
-      document.getElementById('p-die').value = precos.DIESEL;
     }
   });
   
@@ -952,6 +1025,16 @@
       v.id = item.key;
       veiculos.push(v);
     });
+  });
+  
+  db.ref('postos').on('value', snap => {
+    postos = [];
+    snap.forEach(item => {
+      let p = item.val();
+      p.id = item.key;
+      postos.push(p);
+    });
+    atualizarSelectPostos();
   });
   
   function logar() {
@@ -1020,10 +1103,51 @@
   }
   
   function calc() {
+    const postoNome = document.getElementById('f-posto').value;
     const tipo = document.getElementById('f-tipo').value;
     const litros = parseFloat(document.getElementById('f-lit').value) || 0;
-    const valorTotal = litros * precos[tipo];
+    
+    if (!postoNome) {
+      document.getElementById('f-val').value = "R$ 0.00";
+      return;
+    }
+    
+    // Busca o posto selecionado
+    const postoData = postos.find(p => p.nome === postoNome);
+    
+    if (!postoData || !postoData.precos) {
+      mostrarNotificacao("⚠️ POSTO NÃO ENCONTRADO OU SEM PREÇOS CADASTRADOS!", "warning");
+      document.getElementById('f-val').value = "R$ 0.00";
+      return;
+    }
+    
+    const precoLitro = postoData.precos[tipo] || 0;
+    const valorTotal = litros * precoLitro;
+    
     document.getElementById('f-val').value = "R$ " + valorTotal.toFixed(2);
+  }
+  
+  function atualizarPrecosPosto() {
+    calc();
+  }
+  
+  function atualizarSelectPostos() {
+    const select = document.getElementById('f-posto');
+    const selectRel = document.getElementById('rel-posto');
+    
+    if (select) {
+      select.innerHTML = '<option value="">SELECIONE O POSTO</option>';
+      postos.forEach(p => {
+        select.innerHTML += `<option value="${p.nome}">${p.nome}</option>`;
+      });
+    }
+    
+    if (selectRel) {
+      selectRel.innerHTML = '<option value="">TODOS</option>';
+      postos.forEach(p => {
+        selectRel.innerHTML += `<option value="${p.nome}">${p.nome}</option>`;
+      });
+    }
   }
   
   function calcularMedia(abastecimento) {
@@ -1051,6 +1175,9 @@
     
     if (!dados.placa || dados.placa.length < 7) {
       erros.push("❌ PLACA INVÁLIDA");
+    }
+    if (!dados.posto || dados.posto === "") {
+      erros.push("❌ SELECIONE O POSTO");
     }
     if (!dados.motorista || dados.motorista.trim() === "") {
       erros.push("❌ MOTORISTA OBRIGATÓRIO");
@@ -1103,7 +1230,15 @@
       }
     }
     
-    dados.valor = dados.litro * precos[dados.tipo];
+    // Busca preço do posto
+    const postoData = postos.find(p => p.nome === dados.posto);
+    if (!postoData || !postoData.precos) {
+      mostrarNotificacao("❌ ERRO: PREÇOS DO POSTO NÃO ENCONTRADOS!", "error");
+      return;
+    }
+    
+    dados.valor = dados.litro * postoData.precos[dados.tipo];
+    dados.precoPorLitro = postoData.precos[dados.tipo];
     
     const abastecimentoHoje = cache.find(x => 
       x.placa === dados.placa && 
@@ -1683,6 +1818,7 @@
       document.getElementById('btn-tab-users').classList.add('active');
       listUsuarios();
       listVeiculos();
+      listPostos();
     }
   }
   
@@ -1853,7 +1989,10 @@
       return;
     }
     
-    db.ref('veiculos/' + placa.replace(/[^A-Z0-9]/g, '')).set({
+    // Gera ID único para cada veículo usando push()
+    const veiculoRef = db.ref('veiculos').push();
+    
+    veiculoRef.set({
       placa: placa,
       modelo: modelo,
       secretaria: secretaria,
@@ -1874,6 +2013,8 @@
       document.getElementById('vei-combustivel').value = 'GASOLINA';
       document.getElementById('vei-ano').value = '';
       listVeiculos();
+    }).catch(error => {
+      mostrarNotificacao("❌ ERRO AO SALVAR: " + error.message, "error");
     });
   }
   
@@ -1882,21 +2023,53 @@
     const qrcodeDiv = document.getElementById('qrcode');
     qrcodeDiv.innerHTML = '';
     
-    new QRCode(qrcodeDiv, {
-      text: placa,
-      width: 256,
-      height: 256,
-      colorDark: "#000000",
-      colorLight: "#ffffff",
-      correctLevel: QRCode.CorrectLevel.H
-    });
+    try {
+      new QRCode(qrcodeDiv, {
+        text: placa,
+        width: 256,
+        height: 256,
+        colorDark: "#000000",
+        colorLight: "#ffffff",
+        correctLevel: QRCode.CorrectLevel.H
+      });
+      
+      document.getElementById('qr-placa-text').textContent = placa;
+      qrDisplay.style.display = 'block';
+      
+      setTimeout(() => {
+        qrDisplay.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }, 300);
+    } catch (error) {
+      console.error("Erro ao gerar QR Code:", error);
+      mostrarNotificacao("❌ ERRO AO GERAR QR CODE!", "error");
+    }
+  }
+  
+  function gerarQRCodeModal(placa) {
+    const modal = document.getElementById('modal-qr');
+    const qrcodeDiv = document.getElementById('qrcode-modal');
+    qrcodeDiv.innerHTML = '';
     
-    document.getElementById('qr-placa-text').textContent = placa;
-    qrDisplay.style.display = 'block';
-    
-    setTimeout(() => {
-      qrDisplay.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    }, 300);
+    try {
+      new QRCode(qrcodeDiv, {
+        text: placa,
+        width: 256,
+        height: 256,
+        colorDark: "#000000",
+        colorLight: "#ffffff",
+        correctLevel: QRCode.CorrectLevel.H
+      });
+      
+      document.getElementById('qr-placa-modal').textContent = placa;
+      modal.style.display = 'flex';
+    } catch (error) {
+      console.error("Erro ao gerar QR Code:", error);
+      mostrarNotificacao("❌ ERRO AO GERAR QR CODE!", "error");
+    }
+  }
+  
+  function fecharModalQR() {
+    document.getElementById('modal-qr').style.display = 'none';
   }
   
   function baixarQRCode() {
@@ -1910,6 +2083,88 @@
       link.click();
       mostrarNotificacao("✅ QR CODE BAIXADO!", "success");
     }
+  }
+  
+  function baixarQRCodeModal() {
+    const canvas = document.querySelector('#qrcode-modal canvas');
+    const placa = document.getElementById('qr-placa-modal').textContent;
+    
+    if (canvas) {
+      const link = document.createElement('a');
+      link.download = `QRCode_${placa}.png`;
+      link.href = canvas.toDataURL();
+      link.click();
+      mostrarNotificacao("✅ QR CODE BAIXADO!", "success");
+    }
+  }
+  
+  function salvarPosto() {
+    const nome = document.getElementById('posto-nome').value.toUpperCase().trim();
+    const gas = parseFloat(document.getElementById('posto-gas').value);
+    const alc = parseFloat(document.getElementById('posto-alc').value);
+    const die = parseFloat(document.getElementById('posto-die').value);
+    
+    if (!nome) {
+      mostrarNotificacao("❌ PREENCHA O NOME DO POSTO!", "error");
+      return;
+    }
+    
+    if (!gas || !alc || !die || gas <= 0 || alc <= 0 || die <= 0) {
+      mostrarNotificacao("❌ PREENCHA TODOS OS PREÇOS COM VALORES VÁLIDOS!", "error");
+      return;
+    }
+    
+    const postoRef = db.ref('postos').push();
+    
+    postoRef.set({
+      nome: nome,
+      precos: {
+        GASOLINA: gas,
+        ALCOOL: alc,
+        DIESEL: die
+      },
+      cadastradoEm: Date.now()
+    }).then(() => {
+      mostrarNotificacao("✅ POSTO SALVO COM SUCESSO!", "success");
+      document.getElementById('posto-nome').value = '';
+      document.getElementById('posto-gas').value = '';
+      document.getElementById('posto-alc').value = '';
+      document.getElementById('posto-die').value = '';
+      listPostos();
+    }).catch(error => {
+      mostrarNotificacao("❌ ERRO AO SALVAR: " + error.message, "error");
+    });
+  }
+  
+  function listPostos() {
+    db.ref('postos').once('value', snap => {
+      const tbody = document.getElementById('postos-body');
+      tbody.innerHTML = "";
+      if (!snap.exists()) {
+        tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding:40px;">⛽ NENHUM POSTO CADASTRADO</td></tr>';
+        return;
+      }
+      snap.forEach(c => {
+        const p = c.val();
+        tbody.innerHTML += `
+          <tr>
+            <td><b>${p.nome}</b></td>
+            <td><span class="badge badge-danger">R$ ${p.precos.GASOLINA.toFixed(2)}</span></td>
+            <td><span class="badge badge-success">R$ ${p.precos.ALCOOL.toFixed(2)}</span></td>
+            <td><span class="badge badge-warning">R$ ${p.precos.DIESEL.toFixed(2)}</span></td>
+            <td class="no-print">
+              <button class="btn-action btn-deletar" onclick="if(confirm('⚠️ EXCLUIR POSTO ${p.nome}?')) { db.ref('postos/${c.key}').remove().then(() => { mostrarNotificacao('✅ POSTO EXCLUÍDO!', 'success'); listPostos(); }); }">
+                🗑️
+              </button>
+            </td>
+          </tr>
+        `;
+      });
+    });
+  }
+  
+  function salvarPrecos() {
+    mostrarNotificacao("ℹ️ USE O CADASTRO DE POSTOS PARA DEFINIR PREÇOS!", "info");
   }
   
   function iniciarScanner() {
@@ -1965,14 +2220,14 @@
           <tr>
             <td><b>${v.placa}</b></td>
             <td>${v.modelo || '---'}</td>
-            <td>${v.secretaria || '---'}</td>
-            <td>${v.motorista || '---'}</td>
+            <td>${v.secretaria || 'COMPARTILHADO'}</td>
+            <td>${v.motorista || 'VÁRIOS'}</td>
             <td><span class="badge ${v.combustivel === 'GASOLINA' ? 'badge-danger' : v.combustivel === 'DIESEL' ? 'badge-warning' : 'badge-success'}">${v.combustivel || '---'}</span></td>
             <td>${v.ano || '---'}</td>
             <td class="no-print">
-              <button class="btn-action" style="background:#8b5cf6;color:white;" onclick="gerarQRCode('${v.placa}')">📱 QR CODE</button>
+              <button class="btn-action" style="background:#8b5cf6;color:white;" onclick="gerarQRCodeModal('${v.placa}')">📱 QR CODE</button>
               <button class="btn-action btn-deletar" onclick="if(confirm('⚠️ EXCLUIR VEÍCULO ${v.placa}?')) { db.ref('veiculos/${c.key}').remove().then(() => { mostrarNotificacao('✅ VEÍCULO EXCLUÍDO!', 'success'); listVeiculos(); }); }">
-                🗑️ EXCLUIR
+                🗑️
               </button>
             </td>
           </tr>
