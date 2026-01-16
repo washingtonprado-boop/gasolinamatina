@@ -1999,12 +1999,25 @@
   function renderizar() {
     if (!loginUser) return;
     
-    atualizarStatusFinanceiro();
-    atualizarEstatisticas();
+    const isFrentista = (userRole === 'frentista');
+    
+    // Frentista não vê estatísticas, gráficos ou alertas
+    if (!isFrentista) {
+      atualizarStatusFinanceiro();
+      atualizarEstatisticas();
+      atualizarGraficos();
+      atualizarAlertas();
+    } else {
+      // Frentista: ocultar seções financeiras
+      document.getElementById('status-financeiro').style.display = 'none';
+      document.getElementById('stats-container').style.display = 'none';
+      document.getElementById('alertas-container').style.display = 'none';
+      const chartsRow = document.querySelector('.charts-row');
+      if (chartsRow) chartsRow.style.display = 'none';
+    }
+    
     atualizarRelatorio();
-    atualizarGraficos();
     atualizarPendentes();
-    atualizarAlertas();
   }
   
   function atualizarAlertas() {
@@ -3912,6 +3925,8 @@
     atualizarGraficosExecutivos(dadosMes);
     atualizarPerformanceSecretarias();
     atualizarAlertasExecutivos();
+    atualizarGraficoAnual();
+    atualizarGraficoFrota();
   }
   
   function atualizarGraficosExecutivos(dadosMes) {
@@ -4065,6 +4080,93 @@
     container.innerHTML = alertas.length > 0 
       ? alertas.join('') 
       : '<div style="text-align:center; padding:40px; color:#64748b;">✅ NENHUM ALERTA NO MOMENTO</div>';
+  }
+  
+  // Gráfico Anual (últimos 12 meses)
+  function atualizarGraficoAnual() {
+    const hoje = new Date();
+    const meses = [];
+    const valores = [];
+    
+    for (let i = 11; i >= 0; i--) {
+      let mes = hoje.getMonth() - i;
+      let ano = hoje.getFullYear();
+      
+      while (mes < 0) {
+        mes += 12;
+        ano -= 1;
+      }
+      
+      const dadosMes = cache.filter(x => {
+        if (x.status !== STATUS.AUTORIZADO) return false;
+        const dataAbast = new Date(x.data);
+        return dataAbast.getMonth() === mes && dataAbast.getFullYear() === ano;
+      });
+      
+      const totalMes = dadosMes.reduce((acc, item) => acc + item.valor, 0);
+      
+      const nomeMes = new Date(ano, mes, 1).toLocaleDateString('pt-BR', { month: 'short', year: '2-digit' });
+      meses.push(nomeMes.toUpperCase());
+      valores.push(totalMes);
+    }
+    
+    if (chartAnual) chartAnual.destroy();
+    chartAnual = new Chart(document.getElementById('chartAnual'), {
+      type: 'bar',
+      data: {
+        labels: meses,
+        datasets: [{
+          label: 'GASTO MENSAL (R$)',
+          data: valores,
+          backgroundColor: '#3b82f6',
+          borderRadius: 8
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false }
+        },
+        scales: {
+          y: {
+            beginAtZero: true,
+            ticks: {
+              callback: function(value) {
+                return 'R$ ' + value.toLocaleString('pt-BR');
+              }
+            }
+          }
+        }
+      }
+    });
+  }
+  
+  // Gráfico da Frota
+  function atualizarGraficoFrota() {
+    const veiculosAtivos = [...new Set(cache.filter(x => x.status === STATUS.AUTORIZADO).map(x => x.placa))].length;
+    const totalVeiculos = veiculos.length;
+    const veiculosInativos = totalVeiculos - veiculosAtivos;
+    
+    if (chartFrota) chartFrota.destroy();
+    chartFrota = new Chart(document.getElementById('chartFrota'), {
+      type: 'doughnut',
+      data: {
+        labels: ['ATIVOS', 'INATIVOS'],
+        datasets: [{
+          data: [veiculosAtivos, veiculosInativos],
+          backgroundColor: ['#22c55e', '#94a3b8']
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { position: 'bottom' },
+          title: { display: true, text: `TOTAL: ${totalVeiculos} VEÍCULOS` }
+        }
+      }
+    });
   }
   
   // Fechar modais clicando fora
