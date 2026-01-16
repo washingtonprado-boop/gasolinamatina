@@ -6,6 +6,7 @@
 <script src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 
 <style>
   :root { 
@@ -164,6 +165,7 @@
       font-weight: bold; 
       font-size: 11px; 
       transition: all 0.3s;
+      position: relative;
   }
   .tab-btn.active { 
       background: var(--accent); 
@@ -171,6 +173,26 @@
       box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
   }
   .tab-btn:hover { opacity: 0.8; transform: translateY(-1px); }
+  .notification-badge {
+      position: absolute;
+      top: -5px;
+      right: -5px;
+      background: var(--danger);
+      color: white;
+      border-radius: 50%;
+      width: 20px;
+      height: 20px;
+      font-size: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+      animation: pulse-badge 2s infinite;
+  }
+  @keyframes pulse-badge {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.1); }
+  }
   
   .btn-logout { 
       background: var(--danger); 
@@ -231,6 +253,11 @@
       border-radius: 12px;
       box-shadow: 0 2px 8px rgba(0,0,0,0.1);
       text-align: center;
+      transition: all 0.3s;
+  }
+  .stat-card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 6px 20px rgba(0,0,0,0.15);
   }
   .stat-card h4 {
       font-size: 11px;
@@ -245,6 +272,16 @@
   .stat-card .stat-icon {
       font-size: 32px;
       margin-bottom: 10px;
+  }
+  .stat-trend {
+      font-size: 12px;
+      margin-top: 5px;
+  }
+  .stat-trend.positive {
+      color: var(--success);
+  }
+  .stat-trend.negative {
+      color: var(--danger);
   }
   
   .charts-row { 
@@ -280,6 +317,14 @@
       font-weight: bold;
       animation: pulse 2s infinite;
   }
+  .alerta-km-alto {
+      background-color: #fef3c7 !important;
+      color: #92400e !important;
+  }
+  .eficiencia-excelente {
+      background-color: #d1fae5 !important;
+      color: #065f46 !important;
+  }
   
   @keyframes pulse {
       0%, 100% { opacity: 1; }
@@ -302,6 +347,11 @@
   .btn-save:hover { 
       transform: translateY(-2px);
       box-shadow: 0 8px 16px rgba(34, 197, 94, 0.3);
+  }
+  .btn-save:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      transform: none;
   }
   
   .status-tag { 
@@ -380,6 +430,42 @@
   .badge-success { background: var(--success); color: white; }
   .badge-danger { background: var(--danger); color: white; }
   .badge-warning { background: var(--warning); color: black; }
+  
+  .alert-box {
+      background: #fef3c7;
+      border-left: 4px solid var(--warning);
+      padding: 15px;
+      border-radius: 8px;
+      margin-bottom: 15px;
+  }
+  .alert-box.danger {
+      background: #fee2e2;
+      border-left-color: var(--danger);
+  }
+  .alert-box.success {
+      background: #d1fae5;
+      border-left-color: var(--success);
+  }
+  
+  .progress-bar {
+      width: 100%;
+      height: 8px;
+      background: #e2e8f0;
+      border-radius: 4px;
+      overflow: hidden;
+      margin-top: 10px;
+  }
+  .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--success), var(--accent));
+      transition: width 0.3s;
+  }
+  .progress-fill.warning {
+      background: linear-gradient(90deg, var(--warning), #f97316);
+  }
+  .progress-fill.danger {
+      background: linear-gradient(90deg, var(--danger), #dc2626);
+  }
   
   @media print { 
       .no-print { display: none !important; } 
@@ -492,6 +578,47 @@
       margin: 10px auto;
       display: block;
   }
+  
+  .comparison-card {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+      margin-top: 15px;
+  }
+  .comparison-item {
+      text-align: center;
+      padding: 15px;
+      background: #f8fafc;
+      border-radius: 8px;
+  }
+  .comparison-item h5 {
+      font-size: 11px;
+      color: #64748b;
+      margin: 0 0 10px 0;
+  }
+  .comparison-value {
+      font-size: 24px;
+      font-weight: bold;
+      color: var(--primary);
+  }
+  
+  .efficiency-meter {
+      width: 100%;
+      height: 30px;
+      background: linear-gradient(90deg, var(--danger) 0%, var(--warning) 50%, var(--success) 100%);
+      border-radius: 15px;
+      position: relative;
+      margin: 10px 0;
+  }
+  .efficiency-pointer {
+      position: absolute;
+      top: -5px;
+      width: 4px;
+      height: 40px;
+      background: #000;
+      border-radius: 2px;
+      transition: left 0.5s;
+  }
 </style>
 
 <!-- Modal para Edição de Usuários -->
@@ -546,13 +673,22 @@
   </div>
 </div>
 
+<!-- Modal de Análise de Eficiência -->
+<div id="modal-analise" class="modal">
+  <div class="modal-content" style="max-width: 800px;">
+    <span class="modal-close" onclick="fecharModalAnalise()">&times;</span>
+    <h3>📊 ANÁLISE DE EFICIÊNCIA</h3>
+    <div id="analise-content"></div>
+  </div>
+</div>
+
 <!-- Tela de Login -->
 <div id="login-screen">
   <div class="login-container">
     <div class="login-left">
       <img src="https://i.imgur.com/AKM25W1.png" alt="Logo" class="login-logo">
       <h1>SISTEMA DE CONTROLE</h1>
-      <p>Gestão Inteligente de Combustível</p>
+      <p>Gestão Inteligente de Combustível v2.0</p>
     </div>
     <div class="login-box">
       <h2>🚗 BEM-VINDO</h2>
@@ -569,7 +705,11 @@
   <div class="top-bar no-print">
     <div class="nav-tabs">
       <button id="btn-tab-geral" class="tab-btn active" onclick="switchTab('geral')">📊 DASHBOARD</button>
-      <button id="btn-tab-pendentes" class="tab-btn" style="display:none;" onclick="switchTab('pendentes')">⏳ PENDENTES</button>
+      <button id="btn-tab-pendentes" class="tab-btn" style="display:none;" onclick="switchTab('pendentes')">
+        ⏳ PENDENTES
+        <span id="pendentes-badge" class="notification-badge" style="display:none;">0</span>
+      </button>
+      <button id="btn-tab-analytics" class="tab-btn" onclick="switchTab('analytics')">📈 ANÁLISES</button>
       <button id="btn-tab-users" class="tab-btn" style="display:none;" onclick="switchTab('usuarios')">⚙️ CONFIGURAÇÕES</button>
       <button class="tab-btn" onclick="abrirAlterarSenha()">🔑 SENHA</button>
     </div>
@@ -581,8 +721,11 @@
       <div class="loading"></div> CARREGANDO...
     </div>
     
-    <!-- Estatísticas Rápidas -->
+    <!-- Estatísticas Rápidas Melhoradas -->
     <div class="stats-grid no-print" id="stats-container"></div>
+    
+    <!-- Alertas e Notificações -->
+    <div id="alertas-container"></div>
     
     <div class="charts-row no-print">
       <div class="card">
@@ -633,7 +776,7 @@
             <option value="COMUNICAÇÃO">COMUNICAÇÃO</option>
             <option value="CULTURA, ESPORTE E LAZER">CULTURA, ESPORTE E LAZER</option>
             <option value="EDUCAÇÃO">EDUCAÇÃO</option>
-            <option value="GOVERNOO">GOVERNOO</option>
+            <option value="GOVERNO">GOVERNO</option>
             <option value="INFRAESTRUTURA E SERVIÇOS">INFRAESTRUTURA E SERVIÇOS</option>
             <option value="PLANEJAMENTO">PLANEJAMENTO</option>
             <option value="SAÚDE">SAÚDE</option>
@@ -657,7 +800,7 @@
         </div>
         <div>
           <label>KM ATUAL *</label>
-          <input type="number" id="f-km" placeholder="0" min="0">
+          <input type="number" id="f-km" placeholder="0" min="0" oninput="validarKmAtual()">
         </div>
         <div>
           <label>LITROS *</label>
@@ -668,7 +811,14 @@
           <input type="text" id="f-val" readonly style="background:#f1f5f9; font-weight:bold;">
         </div>
       </div>
-      <button class="btn-save" onclick="processar()">✔️ REGISTRAR ABASTECIMENTO</button>
+      
+      <!-- Previsão de Consumo -->
+      <div id="previsao-consumo" style="display:none; margin-top:15px; padding:15px; background:#f8fafc; border-radius:8px;">
+        <h4 style="font-size:12px; margin:0 0 10px 0; color:#64748b;">📊 PREVISÃO DE CONSUMO</h4>
+        <div id="previsao-content"></div>
+      </div>
+      
+      <button class="btn-save" id="btn-registrar" onclick="processar()">✔️ REGISTRAR ABASTECIMENTO</button>
     </div>
     
     <!-- Filtro de Relatório -->
@@ -694,7 +844,7 @@
             <option value="COMUNICAÇÃO">COMUNICAÇÃO</option>
             <option value="CULTURA, ESPORTE E LAZER">CULTURA, ESPORTE E LAZER</option>
             <option value="EDUCAÇÃO">EDUCAÇÃO</option>
-            <option value="GOVERNOO">GOVERNOO</option>
+            <option value="GOVERNO">GOVERNO</option>
             <option value="INFRAESTRUTURA E SERVIÇOS">INFRAESTRUTURA E SERVIÇOS</option>
             <option value="PLANEJAMENTO">PLANEJAMENTO</option>
             <option value="SAÚDE">SAÚDE</option>
@@ -704,8 +854,6 @@
           <label>POSTO</label>
           <select id="rel-posto">
             <option value="">TODOS</option>
-            <option value="POSTO MATINA">POSTO MATINA</option>
-            <option value="POSTO VICTOR">POSTO VICTOR</option>
           </select>
         </div>
         <div>
@@ -722,9 +870,10 @@
           <input type="text" id="rel-placa" placeholder="ABC-1234">
         </div>
       </div>
-      <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:10px;">
+      <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; margin-top:10px;">
         <button class="btn-save" onclick="gerarRelatorio()">📊 GERAR</button>
         <button class="btn-save" style="background: linear-gradient(135deg, var(--accent) 0%, #667eea 100%);" onclick="limparFiltros()">🔄 LIMPAR</button>
+        <button class="btn-save" style="background: linear-gradient(135deg, #16a34a 0%, #15803d 100%);" onclick="exportarExcel()">📥 EXPORTAR EXCEL</button>
       </div>
       <button class="btn-save" style="background: linear-gradient(135deg, #64748b 0%, #475569 100%); margin-top:5px;" onclick="window.print()">🖨️ IMPRIMIR</button>
     </div>
@@ -755,6 +904,44 @@
           <tbody id="pendentes-body"></tbody>
         </table>
       </div>
+    </div>
+  </div>
+  
+  <div id="tab-analytics" style="display:none;">
+    <div class="card">
+      <h3>📈 ANÁLISE COMPARATIVA - MÊS ATUAL VS MÊS ANTERIOR</h3>
+      <div class="comparison-card" id="comparison-container"></div>
+    </div>
+    
+    <div class="card">
+      <h3>🏆 RANKING DE EFICIÊNCIA DE VEÍCULOS</h3>
+      <div class="table-wrapper">
+        <table>
+          <thead>
+            <tr>
+              <th>POSIÇÃO</th>
+              <th>PLACA</th>
+              <th>MODELO</th>
+              <th>MÉDIA (KM/L)</th>
+              <th>TOTAL GASTO</th>
+              <th>TOTAL LITROS</th>
+              <th>ABASTECIMENTOS</th>
+              <th>EFICIÊNCIA</th>
+            </tr>
+          </thead>
+          <tbody id="ranking-body"></tbody>
+        </table>
+      </div>
+    </div>
+    
+    <div class="card">
+      <h3>📊 CONSUMO POR TIPO DE COMBUSTÍVEL</h3>
+      <div style="height:300px;"><canvas id="chartCombustivel"></canvas></div>
+    </div>
+    
+    <div class="card">
+      <h3>📉 TENDÊNCIA DE GASTOS (ÚLTIMOS 6 MESES)</h3>
+      <div style="height:300px;"><canvas id="chartTendencia"></canvas></div>
     </div>
   </div>
   
@@ -855,26 +1042,6 @@
     </div>
     
     <div class="card">
-      <h3>💲 TABELA DE PREÇOS PADRÃO</h3>
-      <p style="font-size:12px; color:#64748b; margin-bottom:15px;">Use apenas se não cadastrar postos específicos</p>
-      <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px;">
-        <div>
-          <label>GASOLINA (R$/L)</label>
-          <input type="number" id="p-gas" placeholder="0.00" step="0.01">
-        </div>
-        <div>
-          <label>ÁLCOOL (R$/L)</label>
-          <input type="number" id="p-alc" placeholder="0.00" step="0.01">
-        </div>
-        <div>
-          <label>DIESEL (R$/L)</label>
-          <input type="number" id="p-die" placeholder="0.00" step="0.01">
-        </div>
-      </div>
-      <button class="btn-save" onclick="salvarPrecos()" style="background: linear-gradient(135deg, var(--accent) 0%, #667eea 100%);">💾 ATUALIZAR PREÇOS</button>
-    </div>
-    
-    <div class="card">
       <h3>👥 GESTÃO DE USUÁRIOS</h3>
       <div class="grid-form">
         <div>
@@ -941,7 +1108,7 @@
       </div>
     </div>
     
-    <!-- LISTA DE VEÍCULOS MOVIDA PARA O FINAL -->
+    <!-- LISTA DE VEÍCULOS -->
     <div class="card">
       <h3>🚗 VEÍCULOS CADASTRADOS</h3>
       <div class="table-wrapper">
@@ -999,6 +1166,12 @@
     ALCOOL: 5
   };
   
+  const LIMITES_EXCELENTE = {
+    GASOLINA: 12,
+    DIESEL: 8,
+    ALCOOL: 9
+  };
+  
   let cache = [];
   let veiculos = [];
   let postos = [];
@@ -1010,7 +1183,10 @@
   let precos = { GASOLINA: 6, ALCOOL: 4, DIESEL: 6 };
   let chartSec = null;
   let chartVec = null;
+  let chartCombustivel = null;
+  let chartTendencia = null;
   let html5QrCode = null;
+  let dadosMesAnterior = null;
   
   db.ref('config/precos').on('value', snap => {
     if (snap.val()) {
@@ -1065,6 +1241,9 @@
           secretariaVinculada: user.secretariaVinculada || ""
         };
         entrar(u, user.role, user.limite || 0, user.secretariaVinculada || "", dadosUsuario);
+        
+        // Log de auditoria
+        registrarAuditoria('LOGIN', { usuario: u });
       } else {
         mostrarNotificacao("USUÁRIO OU SENHA INCORRETOS!", "error");
       }
@@ -1099,6 +1278,7 @@
     
     setTimeout(() => {
       renderizar();
+      calcularDadosMesAnterior();
     }, 100);
   }
   
@@ -1112,7 +1292,6 @@
       return;
     }
     
-    // Busca o posto selecionado
     const postoData = postos.find(p => p.nome === postoNome);
     
     if (!postoData || !postoData.precos) {
@@ -1125,6 +1304,117 @@
     const valorTotal = litros * precoLitro;
     
     document.getElementById('f-val').value = "R$ " + valorTotal.toFixed(2);
+    
+    // Atualizar previsão de consumo
+    atualizarPrevisaoConsumo();
+  }
+  
+  function atualizarPrevisaoConsumo() {
+    const placa = document.getElementById('f-placa').value.toUpperCase().trim();
+    const tipo = document.getElementById('f-tipo').value;
+    const litros = parseFloat(document.getElementById('f-lit').value) || 0;
+    const kmAtual = parseFloat(document.getElementById('f-km').value) || 0;
+    
+    if (!placa || litros === 0 || kmAtual === 0) {
+      document.getElementById('previsao-consumo').style.display = 'none';
+      return;
+    }
+    
+    const historico = cache
+      .filter(v => v.placa === placa && v.tipo === tipo && v.status === STATUS.AUTORIZADO)
+      .sort((a, b) => b.timestamp - a.timestamp)
+      .slice(0, 5);
+    
+    if (historico.length === 0) {
+      document.getElementById('previsao-consumo').style.display = 'none';
+      return;
+    }
+    
+    const ultimoAbast = historico[0];
+    const kmRodados = kmAtual - ultimoAbast.km;
+    const mediaEsperada = kmRodados / litros;
+    
+    const mediaHistorica = calcularMediaAvancada(placa, tipo);
+    
+    const previsaoDiv = document.getElementById('previsao-content');
+    const limiteMinimo = LIMITES_KM[tipo] || 0;
+    const limiteExcelente = LIMITES_EXCELENTE[tipo] || 15;
+    
+    let statusConsumo = "";
+    let corStatus = "";
+    
+    if (mediaEsperada >= limiteExcelente) {
+      statusConsumo = "EXCELENTE ⭐";
+      corStatus = "var(--success)";
+    } else if (mediaEsperada >= limiteMinimo) {
+      statusConsumo = "NORMAL ✅";
+      corStatus = "#3b82f6";
+    } else {
+      statusConsumo = "ABAIXO DO ESPERADO ⚠️";
+      corStatus = "var(--danger)";
+    }
+    
+    previsaoDiv.innerHTML = `
+      <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; text-align:center;">
+        <div>
+          <div style="font-size:11px; color:#64748b;">KM RODADOS</div>
+          <div style="font-size:18px; font-weight:bold;">${kmRodados.toFixed(0)} km</div>
+        </div>
+        <div>
+          <div style="font-size:11px; color:#64748b;">MÉDIA PREVISTA</div>
+          <div style="font-size:18px; font-weight:bold; color:${corStatus};">${mediaEsperada.toFixed(2)} km/l</div>
+        </div>
+        <div>
+          <div style="font-size:11px; color:#64748b;">STATUS</div>
+          <div style="font-size:14px; font-weight:bold; color:${corStatus};">${statusConsumo}</div>
+        </div>
+      </div>
+      ${mediaHistorica > 0 ? `
+      <div style="margin-top:10px; font-size:11px; color:#64748b; text-align:center;">
+        Média Histórica: <strong>${mediaHistorica.toFixed(2)} km/l</strong>
+        ${mediaEsperada < mediaHistorica * 0.7 ? '<span style="color:var(--danger);"> ⚠️ CONSUMO MUITO ACIMA DO NORMAL!</span>' : ''}
+      </div>
+      ` : ''}
+    `;
+    
+    document.getElementById('previsao-consumo').style.display = 'block';
+  }
+  
+  function validarKmAtual() {
+    const placa = document.getElementById('f-placa').value.toUpperCase().trim();
+    const kmAtual = parseFloat(document.getElementById('f-km').value) || 0;
+    
+    if (!placa || kmAtual === 0) return;
+    
+    const ultimoAbast = cache
+      .filter(x => x.placa === placa && x.status === STATUS.AUTORIZADO)
+      .sort((a, b) => b.timestamp - a.timestamp)[0];
+    
+    if (ultimoAbast && kmAtual < ultimoAbast.km) {
+      mostrarNotificacao(`⚠️ ATENÇÃO: KM ATUAL (${kmAtual}) É MENOR QUE O ÚLTIMO REGISTRADO (${ultimoAbast.km})!`, "warning");
+    }
+    
+    atualizarPrevisaoConsumo();
+  }
+  
+  function calcularMediaAvancada(placa, combustivel) {
+    const historico = cache
+      .filter(v => v.placa === placa && v.tipo === combustivel && v.status === STATUS.AUTORIZADO)
+      .sort((a, b) => b.timestamp - a.timestamp)
+      .slice(0, 5);
+    
+    if (historico.length < 2) return 0;
+    
+    let totalKm = 0, totalLitros = 0;
+    for (let i = 0; i < historico.length - 1; i++) {
+      const kmDif = historico[i].km - historico[i + 1].km;
+      if (kmDif > 0) {
+        totalKm += kmDif;
+        totalLitros += historico[i].litro;
+      }
+    }
+    
+    return totalLitros > 0 ? totalKm / totalLitros : 0;
   }
   
   function atualizarPrecosPosto() {
@@ -1205,7 +1495,11 @@
     return erros;
   }
   
-  function processar() {
+  async function processar() {
+    const btnRegistrar = document.getElementById('btn-registrar');
+    btnRegistrar.disabled = true;
+    btnRegistrar.innerHTML = '<div class="loading"></div> PROCESSANDO...';
+    
     const dados = {
       placa: document.getElementById('f-placa').value.toUpperCase().trim(),
       posto: document.getElementById('f-posto').value,
@@ -1220,12 +1514,16 @@
     const erros = validarAbastecimento(dados);
     if (erros.length > 0) {
       mostrarNotificacao(erros.join("\n"), "error");
+      btnRegistrar.disabled = false;
+      btnRegistrar.innerHTML = '✔️ REGISTRAR ABASTECIMENTO';
       return;
     }
     
     if (userRole === 'admin') {
       if (usuarioData.combustivelLiberado !== 'todos' && usuarioData.combustivelLiberado !== dados.tipo) {
         mostrarNotificacao("⛔ VOCÊ NÃO TEM PERMISSÃO PARA LIBERAR ESTE TIPO DE COMBUSTÍVEL!", "error");
+        btnRegistrar.disabled = false;
+        btnRegistrar.innerHTML = '✔️ REGISTRAR ABASTECIMENTO';
         return;
       }
     }
@@ -1234,11 +1532,72 @@
     const postoData = postos.find(p => p.nome === dados.posto);
     if (!postoData || !postoData.precos) {
       mostrarNotificacao("❌ ERRO: PREÇOS DO POSTO NÃO ENCONTRADOS!", "error");
+      btnRegistrar.disabled = false;
+      btnRegistrar.innerHTML = '✔️ REGISTRAR ABASTECIMENTO';
       return;
     }
     
     dados.valor = dados.litro * postoData.precos[dados.tipo];
     dados.precoPorLitro = postoData.precos[dados.tipo];
+    
+    // NOVO: Verificar se é abastecimento AVULSO e mostrar histórico
+    if (dados.secretaria === 'AVULSOS / GERAL') {
+      const ultimosAbastecimentos = cache
+        .filter(x => x.placa === dados.placa && x.status === STATUS.AUTORIZADO)
+        .sort((a, b) => b.timestamp - a.timestamp)
+        .slice(0, 5);
+      
+      if (ultimosAbastecimentos.length > 0) {
+        let historicoHtml = `
+          <div style="max-height:300px; overflow-y:auto;">
+            <h4 style="color:var(--warning); margin-top:0;">⚠️ ATENÇÃO: ABASTECIMENTO AVULSO</h4>
+            <p style="margin-bottom:15px;">Este veículo possui histórico de abastecimentos:</p>
+            <table style="width:100%; font-size:10px;">
+              <thead>
+                <tr style="background:#f8fafc;">
+                  <th style="padding:8px;">DATA</th>
+                  <th>SECRETARIA</th>
+                  <th>KM</th>
+                  <th>LITROS</th>
+                  <th>MÉDIA</th>
+                </tr>
+              </thead>
+              <tbody>
+        `;
+        
+        ultimosAbastecimentos.forEach((abast, index) => {
+          const mediaAbast = index < ultimosAbastecimentos.length - 1 
+            ? (abast.km - ultimosAbastecimentos[index + 1].km) / abast.litro 
+            : 0;
+          historicoHtml += `
+            <tr>
+              <td style="padding:6px;">${abast.data.split('-').reverse().join('/')}</td>
+              <td>${abast.secretaria}</td>
+              <td>${abast.km.toLocaleString('pt-BR')}</td>
+              <td>${abast.litro.toFixed(1)}L</td>
+              <td>${mediaAbast > 0 ? mediaAbast.toFixed(2) + ' km/l' : '---'}</td>
+            </tr>
+          `;
+        });
+        
+        historicoHtml += `
+              </tbody>
+            </table>
+          </div>
+          <p style="margin-top:15px; color:#64748b; font-size:11px;">
+            <strong>Deseja realmente registrar como AVULSO?</strong><br>
+            Considere vincular à secretaria correta se este veículo pertence a alguma.
+          </p>
+        `;
+        
+        const confirmar = confirm(historicoHtml.replace(/<[^>]*>/g, '\n'));
+        if (!confirmar) {
+          btnRegistrar.disabled = false;
+          btnRegistrar.innerHTML = '✔️ REGISTRAR ABASTECIMENTO';
+          return;
+        }
+      }
+    }
     
     const abastecimentoHoje = cache.find(x => 
       x.placa === dados.placa && 
@@ -1247,6 +1606,8 @@
     );
     if (abastecimentoHoje) {
       if (!confirm("⚠️ O VEÍCULO JÁ ABASTECEU HOJE. DESEJA CONTINUAR?")) {
+        btnRegistrar.disabled = false;
+        btnRegistrar.innerHTML = '✔️ REGISTRAR ABASTECIMENTO';
         return;
       }
     }
@@ -1265,6 +1626,8 @@
           `🚫 LIMITE EXCEDIDO!\n💰 SOLICITADO: R$ ${dados.valor.toFixed(2)}\n✅ SALDO DISPONÍVEL: R$ ${saldoDisponivel.toFixed(2)}`,
           "error"
         );
+        btnRegistrar.disabled = false;
+        btnRegistrar.innerHTML = '✔️ REGISTRAR ABASTECIMENTO';
         return;
       }
     }
@@ -1279,6 +1642,13 @@
       solicitadoPor: loginUser.toUpperCase(),
       timestamp: Date.now()
     }).then(() => {
+      // Log de auditoria
+      registrarAuditoria('ABASTECIMENTO_REGISTRADO', {
+        placa: dados.placa,
+        valor: dados.valor,
+        status: status
+      });
+      
       mostrarNotificacao(
         status === STATUS.AUTORIZADO
           ? "✅ ABASTECIMENTO REGISTRADO COM SUCESSO!"
@@ -1286,17 +1656,24 @@
         "success"
       );
       limparFormulario();
+      btnRegistrar.disabled = false;
+      btnRegistrar.innerHTML = '✔️ REGISTRAR ABASTECIMENTO';
     }).catch(error => {
       mostrarNotificacao("❌ ERRO AO SALVAR: " + error.message, "error");
+      btnRegistrar.disabled = false;
+      btnRegistrar.innerHTML = '✔️ REGISTRAR ABASTECIMENTO';
     });
   }
   
   function aprovar(id) {
+    if (!confirm("✅ CONFIRMA A APROVAÇÃO DESTE ABASTECIMENTO?")) return;
+    
     db.ref('abastecimentos/' + id).update({ 
       status: STATUS.AUTORIZADO,
       aprovadoPor: loginUser.toUpperCase(),
       aprovadoEm: Date.now()
     }).then(() => {
+      registrarAuditoria('ABASTECIMENTO_APROVADO', { id: id });
       mostrarNotificacao("✅ ABASTECIMENTO APROVADO!", "success");
     });
   }
@@ -1310,6 +1687,7 @@
       rejeitadoEm: Date.now(),
       motivoRejeicao: motivo || "NÃO INFORMADO"
     }).then(() => {
+      registrarAuditoria('ABASTECIMENTO_REJEITADO', { id: id, motivo: motivo });
       mostrarNotificacao("❌ SOLICITAÇÃO REJEITADA!", "success");
     });
   }
@@ -1317,7 +1695,17 @@
   function deletar(id) {
     if (!confirm("⚠️ TEM CERTEZA QUE DESEJA EXCLUIR ESTE REGISTRO?\n\n⛔ ESTA AÇÃO NÃO PODE SER DESFEITA!")) return;
     db.ref('abastecimentos/' + id).remove().then(() => {
+      registrarAuditoria('ABASTECIMENTO_DELETADO', { id: id });
       mostrarNotificacao("🗑️ REGISTRO EXCLUÍDO COM SUCESSO!", "success");
+    });
+  }
+  
+  function registrarAuditoria(acao, dados) {
+    db.ref('auditoria').push({
+      acao: acao,
+      usuario: loginUser.toUpperCase(),
+      timestamp: Date.now(),
+      dados: dados
     });
   }
   
@@ -1329,6 +1717,206 @@
     atualizarRelatorio();
     atualizarGraficos();
     atualizarPendentes();
+    atualizarAlertas();
+  }
+  
+  function atualizarAlertas() {
+    const alertasContainer = document.getElementById('alertas-container');
+    let alertasHtml = '';
+    
+    // Alertas de média baixa por veículo
+    const veiculosComMedia = {};
+    
+    cache.filter(x => x.status === STATUS.AUTORIZADO).forEach(abast => {
+      if (!veiculosComMedia[abast.placa]) {
+        veiculosComMedia[abast.placa] = {
+          placa: abast.placa,
+          tipo: abast.tipo,
+          abastecimentos: []
+        };
+      }
+      veiculosComMedia[abast.placa].abastecimentos.push(abast);
+    });
+    
+    const alertasMediaBaixa = [];
+    
+    Object.values(veiculosComMedia).forEach(veiculo => {
+      const abasts = veiculo.abastecimentos.sort((a, b) => b.timestamp - a.timestamp);
+      
+      if (abasts.length >= 2) {
+        let totalKm = 0, totalLitros = 0;
+        
+        for (let i = 0; i < Math.min(5, abasts.length - 1); i++) {
+          const kmDif = abasts[i].km - abasts[i + 1].km;
+          if (kmDif > 0) {
+            totalKm += kmDif;
+            totalLitros += abasts[i].litro;
+          }
+        }
+        
+        const mediaGeral = totalLitros > 0 ? totalKm / totalLitros : 0;
+        
+        // NOVO: Limites personalizados por tipo de combustível
+        const limiteAlerta = veiculo.tipo === 'DIESEL' ? 4 : 9;
+        
+        if (mediaGeral > 0 && mediaGeral < limiteAlerta) {
+          alertasMediaBaixa.push({
+            placa: veiculo.placa,
+            media: mediaGeral,
+            tipo: veiculo.tipo,
+            limite: limiteAlerta
+          });
+        }
+      }
+    });
+    
+    if (alertasMediaBaixa.length > 0) {
+      alertasHtml += '<div class="alert-box danger">';
+      alertasHtml += '<h4 style="margin:0 0 10px 0; font-size:14px;">🚨 ALERTAS DE EFICIÊNCIA BAIXA</h4>';
+      alertasMediaBaixa.forEach(alerta => {
+        alertasHtml += `
+          <div style="margin-bottom:8px; padding:10px; background:white; border-radius:6px; border-left:4px solid var(--danger);">
+            <strong>${alerta.placa}</strong> - Média: <span style="color:var(--danger); font-weight:bold;">${alerta.media.toFixed(2)} km/l</span>
+            <span style="font-size:11px; color:#64748b;"> (${alerta.tipo} - Limite mínimo: ${alerta.limite} km/l)</span>
+            <button class="btn-action" style="background:var(--accent); color:white; margin-left:10px; font-size:10px;" onclick="analisarVeiculo('${alerta.placa}')">
+              📊 VER ANÁLISE
+            </button>
+          </div>
+        `;
+      });
+      alertasHtml += '</div>';
+    }
+    
+    // Alerta de limite de secretaria
+    if (userRole === 'secretarios') {
+      const gastoComprometido = cache
+        .filter(x => 
+          (x.status === STATUS.AUTORIZADO || x.status === STATUS.AGUARDANDO) &&
+          x.secretaria === userSecretaria
+        )
+        .reduce((acc, item) => acc + item.valor, 0);
+      
+      const percentualGasto = (gastoComprometido / userLimit) * 100;
+      
+      if (percentualGasto >= 80) {
+        alertasHtml += `
+          <div class="alert-box ${percentualGasto >= 95 ? 'danger' : ''}">
+            <h4 style="margin:0 0 10px 0; font-size:14px;">⚠️ ATENÇÃO AO LIMITE ORÇAMENTÁRIO</h4>
+            <p style="margin:0;">
+              Você já utilizou <strong>${percentualGasto.toFixed(1)}%</strong> do limite mensal.
+              <br>Saldo restante: <strong>R$ ${(userLimit - gastoComprometido).toFixed(2)}</strong>
+            </p>
+            <div class="progress-bar" style="margin-top:10px;">
+              <div class="progress-fill ${percentualGasto >= 95 ? 'danger' : 'warning'}" style="width:${percentualGasto}%"></div>
+            </div>
+          </div>
+        `;
+      }
+    }
+    
+    alertasContainer.innerHTML = alertasHtml;
+  }
+  
+  function analisarVeiculo(placa) {
+    const historico = cache
+      .filter(x => x.placa === placa && x.status === STATUS.AUTORIZADO)
+      .sort((a, b) => b.timestamp - a.timestamp);
+    
+    if (historico.length < 2) {
+      mostrarNotificacao("❌ HISTÓRICO INSUFICIENTE PARA ANÁLISE", "error");
+      return;
+    }
+    
+    const analiseContent = document.getElementById('analise-content');
+    
+    let medias = [];
+    for (let i = 0; i < historico.length - 1; i++) {
+      const kmDif = historico[i].km - historico[i + 1].km;
+      const media = kmDif / historico[i].litro;
+      medias.push({
+        data: historico[i].data,
+        media: media,
+        km: historico[i].km,
+        litros: historico[i].litro,
+        valor: historico[i].valor
+      });
+    }
+    
+    const mediaGeral = medias.reduce((acc, m) => acc + m.media, 0) / medias.length;
+    const totalGasto = historico.reduce((acc, h) => acc + h.valor, 0);
+    const totalLitros = historico.reduce((acc, h) => acc + h.litro, 0);
+    
+    let tabelaHtml = `
+      <div style="margin-bottom:20px;">
+        <div class="stats-grid" style="grid-template-columns:1fr 1fr 1fr;">
+          <div class="stat-card">
+            <h4>MÉDIA GERAL</h4>
+            <div class="stat-value" style="color:${mediaGeral < 4 ? 'var(--danger)' : 'var(--success)'}">
+              ${mediaGeral.toFixed(2)} km/l
+            </div>
+          </div>
+          <div class="stat-card">
+            <h4>TOTAL GASTO</h4>
+            <div class="stat-value">R$ ${totalGasto.toFixed(2)}</div>
+          </div>
+          <div class="stat-card">
+            <h4>TOTAL LITROS</h4>
+            <div class="stat-value">${totalLitros.toFixed(1)} L</div>
+          </div>
+        </div>
+      </div>
+      
+      <h4 style="margin-top:20px; font-size:13px;">HISTÓRICO DE CONSUMO</h4>
+      <div style="max-height:300px; overflow-y:auto;">
+        <table style="width:100%; font-size:11px;">
+          <thead>
+            <tr style="background:#f8fafc;">
+              <th style="padding:8px;">DATA</th>
+              <th>KM</th>
+              <th>LITROS</th>
+              <th>MÉDIA</th>
+              <th>VALOR</th>
+            </tr>
+          </thead>
+          <tbody>
+    `;
+    
+    medias.forEach(m => {
+      const corMedia = m.media < 4 ? 'var(--danger)' : (m.media > 10 ? 'var(--success)' : '#64748b');
+      tabelaHtml += `
+        <tr>
+          <td style="padding:6px;">${m.data.split('-').reverse().join('/')}</td>
+          <td>${m.km.toLocaleString('pt-BR')}</td>
+          <td>${m.litros.toFixed(1)}L</td>
+          <td style="font-weight:bold; color:${corMedia};">${m.media.toFixed(2)} km/l</td>
+          <td>R$ ${m.valor.toFixed(2)}</td>
+        </tr>
+      `;
+    });
+    
+    tabelaHtml += `
+          </tbody>
+        </table>
+      </div>
+      
+      <div style="margin-top:20px; padding:15px; background:#f8fafc; border-radius:8px;">
+        <h4 style="margin:0 0 10px 0; font-size:12px;">💡 RECOMENDAÇÕES</h4>
+        <ul style="margin:0; padding-left:20px; font-size:11px; line-height:1.8;">
+          ${mediaGeral < 4 ? '<li style="color:var(--danger);">⚠️ Média muito abaixo do esperado. Verifique manutenção do veículo.</li>' : ''}
+          ${mediaGeral < 7 && mediaGeral >= 4 ? '<li style="color:var(--warning);">⚠️ Média abaixo do ideal. Considere revisão preventiva.</li>' : ''}
+          ${mediaGeral >= 10 ? '<li style="color:var(--success);">✅ Veículo com excelente eficiência!</li>' : ''}
+          <li>📋 Total de abastecimentos analisados: <strong>${historico.length}</strong></li>
+          <li>📅 Período: ${historico[historico.length - 1].data.split('-').reverse().join('/')} a ${historico[0].data.split('-').reverse().join('/')}</li>
+        </ul>
+      </div>
+    `;
+    
+    analiseContent.innerHTML = tabelaHtml;
+    document.getElementById('modal-analise').style.display = 'flex';
+  }
+  
+  function fecharModalAnalise() {
+    document.getElementById('modal-analise').style.display = 'none';
   }
   
   function atualizarEstatisticas() {
@@ -1340,16 +1928,46 @@
     const totalAbastecimentos = dadosAutorizados.length;
     const veiculosUnicos = [...new Set(dadosAutorizados.map(x => x.placa))].length;
     
+    // Comparar com mês anterior
+    let trendGasto = '';
+    let trendLitros = '';
+    
+    if (dadosMesAnterior) {
+      const diferencaGasto = totalGasto - dadosMesAnterior.totalGasto;
+      const percentualGasto = dadosMesAnterior.totalGasto > 0 
+        ? (diferencaGasto / dadosMesAnterior.totalGasto * 100) 
+        : 0;
+      
+      const diferencaLitros = totalLitros - dadosMesAnterior.totalLitros;
+      const percentualLitros = dadosMesAnterior.totalLitros > 0
+        ? (diferencaLitros / dadosMesAnterior.totalLitros * 100)
+        : 0;
+      
+      trendGasto = `
+        <div class="stat-trend ${diferencaGasto >= 0 ? 'negative' : 'positive'}">
+          ${diferencaGasto >= 0 ? '▲' : '▼'} ${Math.abs(percentualGasto).toFixed(1)}% vs mês anterior
+        </div>
+      `;
+      
+      trendLitros = `
+        <div class="stat-trend ${diferencaLitros >= 0 ? 'negative' : 'positive'}">
+          ${diferencaLitros >= 0 ? '▲' : '▼'} ${Math.abs(percentualLitros).toFixed(1)}% vs mês anterior
+        </div>
+      `;
+    }
+    
     container.innerHTML = `
       <div class="stat-card">
         <div class="stat-icon">💰</div>
         <h4>TOTAL GASTO</h4>
         <div class="stat-value">R$ ${totalGasto.toFixed(2)}</div>
+        ${trendGasto}
       </div>
       <div class="stat-card">
         <div class="stat-icon">⛽</div>
         <h4>TOTAL LITROS</h4>
         <div class="stat-value">${totalLitros.toFixed(1)} L</div>
+        ${trendLitros}
       </div>
       <div class="stat-card">
         <div class="stat-icon">📊</div>
@@ -1362,6 +1980,32 @@
         <div class="stat-value">${veiculosUnicos}</div>
       </div>
     `;
+  }
+  
+  function calcularDadosMesAnterior() {
+    const hoje = new Date();
+    const mesAtual = hoje.getMonth();
+    const anoAtual = hoje.getFullYear();
+    
+    let mesAnterior = mesAtual - 1;
+    let anoAnterior = anoAtual;
+    
+    if (mesAnterior < 0) {
+      mesAnterior = 11;
+      anoAnterior = anoAtual - 1;
+    }
+    
+    const dadosMesPassado = cache.filter(x => {
+      if (x.status !== STATUS.AUTORIZADO) return false;
+      const dataAbast = new Date(x.data);
+      return dataAbast.getMonth() === mesAnterior && dataAbast.getFullYear() === anoAnterior;
+    });
+    
+    dadosMesAnterior = {
+      totalGasto: dadosMesPassado.reduce((acc, item) => acc + item.valor, 0),
+      totalLitros: dadosMesPassado.reduce((acc, item) => acc + item.litro, 0),
+      totalAbastecimentos: dadosMesPassado.length
+    };
   }
   
   function atualizarStatusFinanceiro() {
@@ -1379,6 +2023,9 @@
         💰 LIMITE: R$ ${userLimit.toFixed(2)} | 
         📉 GASTO: R$ ${gasto.toFixed(2)} (${percentual}%) | 
         ✅ SALDO: R$ ${saldo.toFixed(2)}
+        <div class="progress-bar">
+          <div class="progress-fill ${saldo < userLimit * 0.2 ? 'danger' : (saldo < userLimit * 0.5 ? 'warning' : '')}" style="width:${percentual}%"></div>
+        </div>
       `;
       if (saldo < userLimit * 0.2) {
         statusDiv.style.background = 'linear-gradient(135deg, var(--danger) 0%, #dc2626 100%)';
@@ -1416,9 +2063,19 @@
       let linhas = "";
       itens.forEach(d => {
         const media = calcularMedia(d);
-        const limiteMinimo = LIMITES_KM[d.tipo] || 0;
-        const alerta = (media > 0 && media < limiteMinimo) ? "alerta-media" : "";
-        linhas += `<tr class="${alerta}">
+        const limiteMinimo = d.tipo === 'DIESEL' ? 4 : 9;
+        const limiteExcelente = d.tipo === 'DIESEL' ? 8 : 12;
+        
+        let classeAlerta = "";
+        if (media > 0) {
+          if (media < limiteMinimo) {
+            classeAlerta = "alerta-media";
+          } else if (media >= limiteExcelente) {
+            classeAlerta = "eficiencia-excelente";
+          }
+        }
+        
+        linhas += `<tr class="${classeAlerta}">
           <td>${d.data.split('-').reverse().join('/')}</td>
           <td><b>${d.placa}</b></td>
           <td>${d.posto || '---'}</td>
@@ -1427,8 +2084,8 @@
           <td><span class="status-tag status-${d.status.toLowerCase()}">${d.status}</span></td>
           <td>${d.km.toLocaleString('pt-BR')}</td>
           <td>${d.litro.toFixed(2)} L</td>
-          <td ${alerta ? 'style="color:#b91c1c;font-weight:bold;"' : ''}>
-            ${media > 0 ? media.toFixed(2) + ' km/l' + (alerta ? ' ⚠️' : '') : '---'}
+          <td ${classeAlerta ? `style="font-weight:bold;"` : ''}>
+            ${media > 0 ? media.toFixed(2) + ' km/l' + (classeAlerta === 'alerta-media' ? ' 🚨' : classeAlerta === 'eficiencia-excelente' ? ' ⭐' : '') : '---'}
           </td>
           <td>R$ ${d.valor.toFixed(2)}</td>
           <td class="no-print">
@@ -1477,6 +2134,15 @@
   function atualizarPendentes() {
     const pendentes = cache.filter(x => x.status === STATUS.AGUARDANDO);
     const tbody = document.getElementById('pendentes-body');
+    const badge = document.getElementById('pendentes-badge');
+    
+    if (pendentes.length > 0 && badge) {
+      badge.style.display = 'flex';
+      badge.textContent = pendentes.length;
+    } else if (badge) {
+      badge.style.display = 'none';
+    }
+    
     if (pendentes.length === 0) {
       tbody.innerHTML = '<tr><td colspan="10" style="text-align:center; padding:40px;">✅ NENHUMA SOLICITAÇÃO PENDENTE</td></tr>';
       return;
@@ -1509,6 +2175,7 @@
     });
     if (dadosGrafico.length === 0) return;
     
+    // Gráfico de Secretarias
     const secMap = {};
     dadosGrafico.forEach(d => {
       secMap[d.secretaria] = (secMap[d.secretaria] || 0) + d.valor;
@@ -1520,14 +2187,14 @@
         labels: Object.keys(secMap),
         datasets: [{
           data: Object.values(secMap),
-          backgroundColor: ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4', '#64748b']
+          backgroundColor: ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4', '#64748b', '#14b8a6', '#f97316']
         }]
       },
       options: {
         responsive: true,
         maintainAspectRatio: false,
         plugins: { 
-          legend: { position: 'bottom' },
+          legend: { position: 'bottom', labels: { font: { size: 10 } } },
           tooltip: {
             callbacks: {
               label: function(context) {
@@ -1539,6 +2206,7 @@
       }
     });
     
+    // Gráfico de Top 5 Veículos
     const vecMap = {};
     dadosGrafico.forEach(d => {
       vecMap[d.placa] = (vecMap[d.placa] || 0) + d.valor;
@@ -1582,6 +2250,332 @@
           }
         }
       }
+    });
+    
+    // Atualizar Analytics se estiver na aba
+    if (document.getElementById('tab-analytics').style.display !== 'none') {
+      atualizarAnalytics();
+    }
+  }
+  
+  function atualizarAnalytics() {
+    // Comparação Mensal
+    const hoje = new Date();
+    const mesAtual = hoje.getMonth();
+    const anoAtual = hoje.getFullYear();
+    
+    let mesAnterior = mesAtual - 1;
+    let anoAnterior = anoAtual;
+    if (mesAnterior < 0) {
+      mesAnterior = 11;
+      anoAnterior = anoAtual - 1;
+    }
+    
+    const dadosMesAtual = cache.filter(x => {
+      if (x.status !== STATUS.AUTORIZADO) return false;
+      const dataAbast = new Date(x.data);
+      return dataAbast.getMonth() === mesAtual && dataAbast.getFullYear() === anoAtual;
+    });
+    
+    const dadosMesPassado = cache.filter(x => {
+      if (x.status !== STATUS.AUTORIZADO) return false;
+      const dataAbast = new Date(x.data);
+      return dataAbast.getMonth() === mesAnterior && dataAbast.getFullYear() === anoAnterior;
+    });
+    
+    const totalAtual = dadosMesAtual.reduce((acc, item) => acc + item.valor, 0);
+    const totalAnterior = dadosMesPassado.reduce((acc, item) => acc + item.valor, 0);
+    const litrosAtual = dadosMesAtual.reduce((acc, item) => acc + item.litro, 0);
+    const litrosAnterior = dadosMesPassado.reduce((acc, item) => acc + item.litro, 0);
+    
+    const diferencaValor = totalAtual - totalAnterior;
+    const percentualValor = totalAnterior > 0 ? (diferencaValor / totalAnterior * 100) : 0;
+    
+    const comparisonContainer = document.getElementById('comparison-container');
+    comparisonContainer.innerHTML = `
+      <div class="comparison-item">
+        <h5>MÊS ANTERIOR</h5>
+        <div class="comparison-value">R$ ${totalAnterior.toFixed(2)}</div>
+        <div style="font-size:12px; color:#64748b; margin-top:5px;">${litrosAnterior.toFixed(1)}L</div>
+      </div>
+      <div class="comparison-item">
+        <h5>MÊS ATUAL</h5>
+        <div class="comparison-value">R$ ${totalAtual.toFixed(2)}</div>
+        <div style="font-size:12px; color:#64748b; margin-top:5px;">${litrosAtual.toFixed(1)}L</div>
+      </div>
+      <div class="comparison-item" style="grid-column:1/-1;">
+        <h5>VARIAÇÃO</h5>
+        <div class="comparison-value" style="color:${diferencaValor >= 0 ? 'var(--danger)' : 'var(--success)'}">
+          ${diferencaValor >= 0 ? '▲' : '▼'} R$ ${Math.abs(diferencaValor).toFixed(2)}
+        </div>
+        <div style="font-size:14px; margin-top:5px; font-weight:bold; color:${diferencaValor >= 0 ? 'var(--danger)' : 'var(--success)'}">
+          ${percentualValor >= 0 ? '+' : ''}${percentualValor.toFixed(1)}%
+        </div>
+      </div>
+    `;
+    
+    // Ranking de Eficiência
+    atualizarRankingEficiencia();
+    
+    // Gráfico de Combustível
+    atualizarGraficoCombustivel();
+    
+    // Gráfico de Tendência
+    atualizarGraficoTendencia();
+  }
+  
+  function atualizarRankingEficiencia() {
+    const veiculosComMedia = {};
+    
+    cache.filter(x => x.status === STATUS.AUTORIZADO).forEach(abast => {
+      if (!veiculosComMedia[abast.placa]) {
+        const veiculo = veiculos.find(v => v.placa === abast.placa);
+        veiculosComMedia[abast.placa] = {
+          placa: abast.placa,
+          modelo: veiculo ? veiculo.modelo : '---',
+          abastecimentos: [],
+          totalGasto: 0,
+          totalLitros: 0
+        };
+      }
+      veiculosComMedia[abast.placa].abastecimentos.push(abast);
+      veiculosComMedia[abast.placa].totalGasto += abast.valor;
+      veiculosComMedia[abast.placa].totalLitros += abast.litro;
+    });
+    
+    const ranking = [];
+    Object.values(veiculosComMedia).forEach(veiculo => {
+      const abasts = veiculo.abastecimentos.sort((a, b) => b.timestamp - a.timestamp);
+      
+      if (abasts.length >= 2) {
+        let totalKm = 0, totalLitros = 0;
+        
+        for (let i = 0; i < abasts.length - 1; i++) {
+          const kmDif = abasts[i].km - abasts[i + 1].km;
+          if (kmDif > 0) {
+            totalKm += kmDif;
+            totalLitros += abasts[i].litro;
+          }
+        }
+        
+        const mediaGeral = totalLitros > 0 ? totalKm / totalLitros : 0;
+        
+        if (mediaGeral > 0) {
+          ranking.push({
+            placa: veiculo.placa,
+            modelo: veiculo.modelo,
+            media: mediaGeral,
+            totalGasto: veiculo.totalGasto,
+            totalLitros: veiculo.totalLitros,
+            abastecimentos: abasts.length
+          });
+        }
+      }
+    });
+    
+    ranking.sort((a, b) => b.media - a.media);
+    
+    const tbody = document.getElementById('ranking-body');
+    if (ranking.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; padding:40px;">📭 DADOS INSUFICIENTES PARA RANKING</td></tr>';
+      return;
+    }
+    
+    tbody.innerHTML = ranking.map((item, index) => {
+      let eficienciaClass = '';
+      let eficienciaTexto = '';
+      
+      if (item.media >= 12) {
+        eficienciaClass = 'eficiencia-excelente';
+        eficienciaTexto = '⭐ EXCELENTE';
+      } else if (item.media >= 7) {
+        eficienciaClass = '';
+        eficienciaTexto = '✅ BOA';
+      } else if (item.media >= 4) {
+        eficienciaClass = 'alerta-km-alto';
+        eficienciaTexto = '⚠️ REGULAR';
+      } else {
+        eficienciaClass = 'alerta-media';
+        eficienciaTexto = '🚨 CRÍTICA';
+      }
+      
+      return `
+        <tr class="${eficienciaClass}">
+          <td><strong>${index + 1}º</strong></td>
+          <td><b>${item.placa}</b></td>
+          <td>${item.modelo}</td>
+          <td style="font-weight:bold; font-size:13px;">${item.media.toFixed(2)} km/l</td>
+          <td>R$ ${item.totalGasto.toFixed(2)}</td>
+          <td>${item.totalLitros.toFixed(1)}L</td>
+          <td>${item.abastecimentos}</td>
+          <td><strong>${eficienciaTexto}</strong></td>
+        </tr>
+      `;
+    }).join('');
+  }
+  
+  function atualizarGraficoCombustivel() {
+    const dadosAutorizados = cache.filter(x => x.status === STATUS.AUTORIZADO);
+    
+    const combustivelMap = {};
+    dadosAutorizados.forEach(d => {
+      combustivelMap[d.tipo] = (combustivelMap[d.tipo] || 0) + d.valor;
+    });
+    
+    if (chartCombustivel) chartCombustivel.destroy();
+    chartCombustivel = new Chart(document.getElementById('chartCombustivel'), {
+      type: 'pie',
+      data: {
+        labels: Object.keys(combustivelMap),
+        datasets: [{
+          data: Object.values(combustivelMap),
+          backgroundColor: ['#ef4444', '#22c55e', '#f59e0b']
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { position: 'bottom' },
+          tooltip: {
+            callbacks: {
+              label: function(context) {
+                const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                const percentual = (context.parsed / total * 100).toFixed(1);
+                return context.label + ': R$ ' + context.parsed.toFixed(2) + ' (' + percentual + '%)';
+              }
+            }
+          }
+        }
+      }
+    });
+  }
+  
+  function atualizarGraficoTendencia() {
+    const hoje = new Date();
+    const meses = [];
+    const valores = [];
+    
+    for (let i = 5; i >= 0; i--) {
+      let mes = hoje.getMonth() - i;
+      let ano = hoje.getFullYear();
+      
+      while (mes < 0) {
+        mes += 12;
+        ano -= 1;
+      }
+      
+      const dadosMes = cache.filter(x => {
+        if (x.status !== STATUS.AUTORIZADO) return false;
+        const dataAbast = new Date(x.data);
+        return dataAbast.getMonth() === mes && dataAbast.getFullYear() === ano;
+      });
+      
+      const totalMes = dadosMes.reduce((acc, item) => acc + item.valor, 0);
+      
+      const nomeMes = new Date(ano, mes, 1).toLocaleDateString('pt-BR', { month: 'short', year: '2-digit' });
+      meses.push(nomeMes.toUpperCase());
+      valores.push(totalMes);
+    }
+    
+    if (chartTendencia) chartTendencia.destroy();
+    chartTendencia = new Chart(document.getElementById('chartTendencia'), {
+      type: 'line',
+      data: {
+        labels: meses,
+        datasets: [{
+          label: 'GASTO MENSAL (R$)',
+          data: valores,
+          borderColor: '#3b82f6',
+          backgroundColor: 'rgba(59, 130, 246, 0.1)',
+          tension: 0.4,
+          fill: true,
+          pointRadius: 5,
+          pointHoverRadius: 7
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: true, position: 'top' },
+          tooltip: {
+            callbacks: {
+              label: function(context) {
+                return 'R$ ' + context.parsed.y.toFixed(2);
+              }
+            }
+          }
+        },
+        scales: {
+          y: {
+            beginAtZero: true,
+            ticks: {
+              callback: function(value) {
+                return 'R$ ' + value.toFixed(0);
+              }
+            }
+          }
+        }
+      }
+    });
+  }
+  
+  function exportarExcel() {
+    const dataInicial = document.getElementById('rel-data-inicial').value;
+    const dataFinal = document.getElementById('rel-data-final').value;
+    const secretaria = document.getElementById('rel-secretaria').value;
+    const posto = document.getElementById('rel-posto').value;
+    const combustivel = document.getElementById('rel-combustivel').value;
+    const placa = document.getElementById('rel-placa').value.toUpperCase().trim();
+    
+    let registros = cache.filter(x => x.status === STATUS.AUTORIZADO);
+    
+    if (dataInicial) registros = registros.filter(r => r.data >= dataInicial);
+    if (dataFinal) registros = registros.filter(r => r.data <= dataFinal);
+    if (secretaria) registros = registros.filter(r => r.secretaria === secretaria);
+    if (posto) registros = registros.filter(r => r.posto === posto);
+    if (combustivel) registros = registros.filter(r => r.tipo === combustivel);
+    if (placa) registros = registros.filter(r => r.placa.includes(placa));
+    
+    if (registros.length === 0) {
+      mostrarNotificacao("❌ NENHUM REGISTRO PARA EXPORTAR!", "error");
+      return;
+    }
+    
+    // Preparar dados para Excel
+    const dadosExcel = registros.map(r => {
+      const media = calcularMedia(r);
+      return {
+        'DATA': r.data.split('-').reverse().join('/'),
+        'PLACA': r.placa,
+        'POSTO': r.posto || '---',
+        'SECRETARIA': r.secretaria,
+        'MOTORISTA': r.motorista,
+        'COMBUSTÍVEL': r.tipo,
+        'KM': r.km,
+        'LITROS': r.litro.toFixed(2),
+        'MÉDIA (KM/L)': media > 0 ? media.toFixed(2) : '---',
+        'VALOR (R$)': r.valor.toFixed(2),
+        'STATUS': r.status
+      };
+    });
+    
+    // Criar planilha
+    const ws = XLSX.utils.json_to_sheet(dadosExcel);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Relatório");
+    
+    // Gerar arquivo
+    const nomeArquivo = `Relatorio_Combustivel_${new Date().toISOString().split('T')[0]}.xlsx`;
+    XLSX.writeFile(wb, nomeArquivo);
+    
+    mostrarNotificacao("✅ RELATÓRIO EXPORTADO COM SUCESSO!", "success");
+    
+    // Log de auditoria
+    registrarAuditoria('EXPORTACAO_EXCEL', {
+      registros: registros.length,
+      filtros: { dataInicial, dataFinal, secretaria, posto, combustivel, placa }
     });
   }
   
@@ -1632,6 +2626,7 @@
       limite: limite,
       secretariaVinculada: secretaria
     }).then(() => {
+      registrarAuditoria('USUARIO_CRIADO', { usuario: usuario, role: role });
       mostrarNotificacao("✅ USUÁRIO SALVO COM SUCESSO!", "success");
       document.getElementById('new-user').value = '';
       document.getElementById('new-pass').value = '';
@@ -1656,7 +2651,7 @@
             <td><b>R$ ${(u.limite || 0).toFixed(2)}</b></td>
             <td class="no-print">
               <button class="btn-action" style="background:var(--accent);color:white;" onclick="editarUsuario('${c.key}')">✏️ EDITAR</button>
-              <button class="btn-action btn-deletar" onclick="if(confirm('⚠️ EXCLUIR USUÁRIO ${c.key.toUpperCase()}?\\n\\n⛔ ESTA AÇÃO NÃO PODE SER DESFEITA!')) { db.ref('usuarios/${c.key}').remove().then(() => { mostrarNotificacao('✅ USUÁRIO EXCLUÍDO!', 'success'); listUsuarios(); }); }">
+              <button class="btn-action btn-deletar" onclick="if(confirm('⚠️ EXCLUIR USUÁRIO ${c.key.toUpperCase()}?\\n\\n⛔ ESTA AÇÃO NÃO PODE SER DESFEITA!')) { db.ref('usuarios/${c.key}').remove().then(() => { registrarAuditoria('USUARIO_DELETADO', {usuario: '${c.key}'}); mostrarNotificacao('✅ USUÁRIO EXCLUÍDO!', 'success'); listUsuarios(); }); }">
                 🗑️ EXCLUIR
               </button>
             </td>
@@ -1711,6 +2706,7 @@
     }
     
     db.ref('usuarios/' + id).update(dadosAtualizados).then(() => {
+      registrarAuditoria('USUARIO_EDITADO', { usuario: id });
       mostrarNotificacao("✅ USUÁRIO ATUALIZADO COM SUCESSO!", "success");
       fecharModal();
       listUsuarios();
@@ -1731,6 +2727,7 @@
       });
     } else {
       db.ref('usuarios/' + loginUser).update({ senha: nova }).then(() => {
+        registrarAuditoria('SENHA_ALTERADA', {});
         mostrarNotificacao("✅ SENHA ALTERADA COM SUCESSO!", "success");
       }).catch(err => {
         mostrarNotificacao("❌ ERRO: " + err.message, "error");
@@ -1738,32 +2735,13 @@
     }
   }
   
-  function salvarPrecos() {
-    const gas = parseFloat(document.getElementById('p-gas').value);
-    const alc = parseFloat(document.getElementById('p-alc').value);
-    const die = parseFloat(document.getElementById('p-die').value);
-    if (!gas || !alc || !die) {
-      mostrarNotificacao("❌ PREENCHA TODOS OS PREÇOS!", "error");
-      return;
-    }
-    if (gas <= 0 || alc <= 0 || die <= 0) {
-      mostrarNotificacao("❌ PREÇOS DEVEM SER MAIORES QUE ZERO!", "error");
-      return;
-    }
-    db.ref('config/precos').set({
-      GASOLINA: gas,
-      ALCOOL: alc,
-      DIESEL: die
-    }).then(() => {
-      mostrarNotificacao("💲 PREÇOS ATUALIZADOS COM SUCESSO!", "success");
-    });
-  }
-  
   function limparFormulario() {
     ['f-placa', 'f-mot', 'f-km', 'f-lit', 'f-val'].forEach(id => {
       document.getElementById(id).value = "";
     });
+    document.getElementById('f-posto').value = "";
     document.getElementById('f-data').valueAsDate = new Date();
+    document.getElementById('previsao-consumo').style.display = 'none';
   }
   
   function limparFiltros() {
@@ -1780,18 +2758,18 @@
   function sugerir(valor) {
     const placa = valor.toUpperCase().trim();
     
-    // Busca no cadastro de veículos
     const veiculo = veiculos.find(v => v.placa === placa);
     if (veiculo) {
       document.getElementById('f-mot').value = veiculo.motorista || '';
-      document.getElementById('f-sec').value = veiculo.secretaria || '';
+      if (veiculo.secretaria && veiculo.secretaria !== '') {
+        document.getElementById('f-sec').value = veiculo.secretaria;
+      }
       document.getElementById('f-tipo').value = veiculo.combustivel === 'FLEX' ? 'GASOLINA' : veiculo.combustivel;
       calc();
       return;
     }
     
-    // Busca no histórico de abastecimentos
-    const ultimoAbast = cache.filter(x => x.placa === placa)
+    const ultimoAbast = cache.filter(x => x.placa === placa && x.status === STATUS.AUTORIZADO)
       .sort((a, b) => b.timestamp - a.timestamp)[0];
     if (ultimoAbast) {
       document.getElementById('f-mot').value = ultimoAbast.motorista;
@@ -1805,7 +2783,9 @@
     document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
     document.getElementById('tab-geral').style.display = 'none';
     document.getElementById('tab-pendentes').style.display = 'none';
+    document.getElementById('tab-analytics').style.display = 'none';
     document.getElementById('tab-users').style.display = 'none';
+    
     if (tab === 'geral') {
       document.getElementById('tab-geral').style.display = 'block';
       document.getElementById('btn-tab-geral').classList.add('active');
@@ -1813,6 +2793,10 @@
       document.getElementById('tab-pendentes').style.display = 'block';
       document.getElementById('btn-tab-pendentes').classList.add('active');
       atualizarPendentes();
+    } else if (tab === 'analytics') {
+      document.getElementById('tab-analytics').style.display = 'block';
+      document.getElementById('btn-tab-analytics').classList.add('active');
+      atualizarAnalytics();
     } else if (tab === 'usuarios') {
       document.getElementById('tab-users').style.display = 'block';
       document.getElementById('btn-tab-users').classList.add('active');
@@ -1871,11 +2855,6 @@
     const totalGeral = registros.reduce((acc, r) => acc + r.valor, 0);
     const totalLitros = registros.reduce((acc, r) => acc + r.litro, 0);
     
-    const gastosPorTipo = {};
-    registros.forEach(r => {
-      gastosPorTipo[r.tipo] = (gastosPorTipo[r.tipo] || 0) + r.valor;
-    });
-    
     let html = `
       <div class="card">
         <h3>📊 RESUMO DO RELATÓRIO FILTRADO</h3>
@@ -1916,13 +2895,18 @@
                 <th>COMBUSTÍVEL</th>
                 <th>KM</th>
                 <th>LITROS</th>
+                <th>MÉDIA</th>
                 <th>VALOR</th>
               </tr>
             </thead>
             <tbody>`;
     
     registros.sort((a, b) => b.timestamp - a.timestamp).forEach(r => {
-      html += `<tr>
+      const media = calcularMedia(r);
+      const limiteMinimo = r.tipo === 'DIESEL' ? 4 : 9;
+      const classeAlerta = media > 0 && media < limiteMinimo ? 'alerta-media' : '';
+      
+      html += `<tr class="${classeAlerta}">
         <td>${r.data.split('-').reverse().join('/')}</td>
         <td><b>${r.placa}</b></td>
         <td>${r.posto || '---'}</td>
@@ -1931,6 +2915,7 @@
         <td><span class="badge ${r.tipo === 'GASOLINA' ? 'badge-danger' : r.tipo === 'DIESEL' ? 'badge-warning' : 'badge-success'}">${r.tipo}</span></td>
         <td>${r.km.toLocaleString('pt-BR')}</td>
         <td>${r.litro.toFixed(2)} L</td>
+        <td ${classeAlerta ? 'style="font-weight:bold;"' : ''}>${media > 0 ? media.toFixed(2) + ' km/l' + (classeAlerta ? ' 🚨' : '') : '---'}</td>
         <td><b>R$ ${r.valor.toFixed(2)}</b></td>
       </tr>`;
     });
@@ -1941,6 +2926,7 @@
   
   function confirmarSair() {
     if (confirm("🚪 DESEJA REALMENTE SAIR DO SISTEMA?")) {
+      registrarAuditoria('LOGOUT', {});
       location.reload();
     }
   }
@@ -1961,7 +2947,8 @@
       stopOnFocus: true,
       style: {
         borderRadius: "10px",
-        fontWeight: "bold"
+        fontWeight: "bold",
+        fontSize: "12px"
       }
     }).showToast();
   }
@@ -1989,7 +2976,6 @@
       return;
     }
     
-    // Gera ID único para cada veículo usando push()
     const veiculoRef = db.ref('veiculos').push();
     
     veiculoRef.set({
@@ -2001,9 +2987,9 @@
       ano: ano,
       cadastradoEm: Date.now()
     }).then(() => {
+      registrarAuditoria('VEICULO_CADASTRADO', { placa: placa });
       mostrarNotificacao("✅ VEÍCULO SALVO COM SUCESSO!", "success");
       
-      // Gera QR Code
       gerarQRCode(placa);
       
       document.getElementById('vei-placa').value = '';
@@ -2125,6 +3111,7 @@
       },
       cadastradoEm: Date.now()
     }).then(() => {
+      registrarAuditoria('POSTO_CADASTRADO', { nome: nome });
       mostrarNotificacao("✅ POSTO SALVO COM SUCESSO!", "success");
       document.getElementById('posto-nome').value = '';
       document.getElementById('posto-gas').value = '';
@@ -2153,7 +3140,7 @@
             <td><span class="badge badge-success">R$ ${p.precos.ALCOOL.toFixed(2)}</span></td>
             <td><span class="badge badge-warning">R$ ${p.precos.DIESEL.toFixed(2)}</span></td>
             <td class="no-print">
-              <button class="btn-action btn-deletar" onclick="if(confirm('⚠️ EXCLUIR POSTO ${p.nome}?')) { db.ref('postos/${c.key}').remove().then(() => { mostrarNotificacao('✅ POSTO EXCLUÍDO!', 'success'); listPostos(); }); }">
+              <button class="btn-action btn-deletar" onclick="if(confirm('⚠️ EXCLUIR POSTO ${p.nome}?')) { db.ref('postos/${c.key}').remove().then(() => { registrarAuditoria('POSTO_DELETADO', {nome: '${p.nome}'}); mostrarNotificacao('✅ POSTO EXCLUÍDO!', 'success'); listPostos(); }); }">
                 🗑️
               </button>
             </td>
@@ -2161,10 +3148,6 @@
         `;
       });
     });
-  }
-  
-  function salvarPrecos() {
-    mostrarNotificacao("ℹ️ USE O CADASTRO DE POSTOS PARA DEFINIR PREÇOS!", "info");
   }
   
   function iniciarScanner() {
@@ -2226,7 +3209,7 @@
             <td>${v.ano || '---'}</td>
             <td class="no-print">
               <button class="btn-action" style="background:#8b5cf6;color:white;" onclick="gerarQRCodeModal('${v.placa}')">📱 QR CODE</button>
-              <button class="btn-action btn-deletar" onclick="if(confirm('⚠️ EXCLUIR VEÍCULO ${v.placa}?')) { db.ref('veiculos/${c.key}').remove().then(() => { mostrarNotificacao('✅ VEÍCULO EXCLUÍDO!', 'success'); listVeiculos(); }); }">
+              <button class="btn-action btn-deletar" onclick="if(confirm('⚠️ EXCLUIR VEÍCULO ${v.placa}?')) { db.ref('veiculos/${c.key}').remove().then(() => { registrarAuditoria('VEICULO_DELETADO', {placa: '${v.placa}'}); mostrarNotificacao('✅ VEÍCULO EXCLUÍDO!', 'success'); listVeiculos(); }); }">
                 🗑️
               </button>
             </td>
@@ -2236,7 +3219,24 @@
     });
   }
   
+  // Inicialização
   document.getElementById('f-data').valueAsDate = new Date();
   toggleUserFields();
+  
+  // Fechar modais clicando fora
+  window.onclick = function(event) {
+    const modalEdit = document.getElementById('modal-edit');
+    const modalQr = document.getElementById('modal-qr');
+    const modalAnalise = document.getElementById('modal-analise');
+    
+    if (event.target === modalEdit) {
+      fecharModal();
+    }
+    if (event.target === modalQr) {
+      fecharModalQR();
+    }
+    if (event.target === modalAnalise) {
+      fecharModalAnalise();
+    }
+  };
 </script>
-
