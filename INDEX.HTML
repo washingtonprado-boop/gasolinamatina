@@ -887,13 +887,41 @@
   </div>
 </div>
 
+<!-- Modal de Permissões de Perfil -->
+<div id="modal-permissoes" class="modal">
+  <div class="modal-content" style="max-width: 700px;">
+    <span class="modal-close" onclick="fecharModalPermissoes()">&times;</span>
+    <h3>🔐 CONFIGURAR PERMISSÕES DO PERFIL</h3>
+    <p style="font-size:12px; color:#64748b; margin-bottom:20px;">
+      Selecione o que cada perfil pode visualizar e fazer no sistema
+    </p>
+    
+    <div style="margin-bottom:20px;">
+      <label>SELECIONE O PERFIL PARA CONFIGURAR</label>
+      <select id="perfil-config" onchange="carregarPermissoesPerfil()" style="width:100%;">
+        <option value="admin">ADMIN (TOTAL)</option>
+        <option value="secretarios">SECRETÁRIO (RESTRITO)</option>
+        <option value="frentista">FRENTISTA (SOMENTE LEITURA)</option>
+      </select>
+    </div>
+    
+    <div id="permissoes-lista" style="max-height:400px; overflow-y:auto;">
+      <!-- As permissões serão carregadas aqui -->
+    </div>
+    
+    <button class="btn-save" style="background: linear-gradient(135deg, var(--accent) 0%, #667eea 100%);" onclick="salvarPermissoes()">
+      💾 SALVAR PERMISSÕES
+    </button>
+  </div>
+</div>
+
 <!-- Tela de Login -->
 <div id="login-screen">
   <div class="login-container">
     <div class="login-left">
       <img src="https://i.imgur.com/AKM25W1.png" alt="Logo" class="login-logo">
       <h1>SISTEMA DE CONTROLE</h1>
-      <p>Gestão Inteligente de Combustível BY WF</p>
+      <p>Gestão Inteligente de Combustível v2.0</p>
     </div>
     <div class="login-box">
       <h2>🚗 BEM-VINDO</h2>
@@ -2385,18 +2413,16 @@
   function atualizarStatusFinanceiro() {
     const statusDiv = document.getElementById('status-financeiro');
     
-    // Frentista: mostrar apenas status de visualização
+    // Frentista: mostrar apenas status de visualização SEM VALORES
     if (userRole === 'frentista') {
-      const totalGasto = cache.filter(x => x.status === STATUS.AUTORIZADO)
-        .reduce((acc, item) => acc + item.valor, 0);
       const totalPendente = cache.filter(x => x.status === STATUS.AGUARDANDO).length;
       const totalAutorizado = cache.filter(x => x.status === STATUS.AUTORIZADO).length;
+      const totalRejeitado = cache.filter(x => x.status === STATUS.REJEITADO).length;
       
       statusDiv.innerHTML = `
         👤 OPERADOR: ${loginUser.toUpperCase()} 
         <span class="badge badge-danger">FRENTISTA</span><br>
-        📊 VISUALIZAÇÃO: ${totalAutorizado} APROVADOS | ⏳ ${totalPendente} PENDENTES | 
-        💰 TOTAL: R$ ${totalGasto.toFixed(2)}
+        📊 VISUALIZAÇÃO: ${totalAutorizado} APROVADOS | ⏳ ${totalPendente} PENDENTES | ❌ ${totalRejeitado} REJEITADOS
       `;
       statusDiv.style.background = 'linear-gradient(135deg, #64748b 0%, #475569 100%)';
       return;
@@ -2448,6 +2474,9 @@
     }
     const container = document.getElementById('relatorio-container');
     container.innerHTML = "";
+    
+    const isFrentista = (userRole === 'frentista');
+    
     listaSecs.forEach(sec => {
       const itens = cache.filter(x => x.secretaria === sec && x.status !== STATUS.REJEITADO)
         .sort((a, b) => b.timestamp - a.timestamp);
@@ -2476,10 +2505,12 @@
           <td><span class="status-tag status-${d.status.toLowerCase()}">${d.status}</span></td>
           <td>${d.km.toLocaleString('pt-BR')}</td>
           <td>${d.litro.toFixed(2)} L</td>
+          ${!isFrentista ? `
           <td ${classeAlerta ? `style="font-weight:bold;"` : ''}>
             ${media > 0 ? media.toFixed(2) + ' km/l' + (classeAlerta === 'alerta-media' ? ' 🚨' : classeAlerta === 'eficiencia-excelente' ? ' ⭐' : '') : '---'}
           </td>
           <td>R$ ${d.valor.toFixed(2)}</td>
+          ` : ''}
           <td class="no-print">
             ${(d.status === STATUS.AGUARDANDO && (loginUser === 'master' || userRole === 'admin'))
               ? `<button class="btn-action btn-aprovar" onclick="aprovar('${d.id}')">✅</button>
@@ -2491,11 +2522,18 @@
           </td>
         </tr>`;
       });
+      
       const totalSec = itens.reduce((acc, item) => acc + item.valor, 0);
       const totalLitros = itens.reduce((acc, item) => acc + item.litro, 0);
+      
+      // Frentista não vê valores financeiros
+      const headerInfo = isFrentista 
+        ? `${sec} | ⛽ ${totalLitros.toFixed(2)} L | 📊 ${itens.length} abastecimentos`
+        : `${sec} | 💰 R$ ${totalSec.toFixed(2)} | ⛽ ${totalLitros.toFixed(2)} L | 📊 ${itens.length} abastecimentos`;
+      
       container.innerHTML += `
         <div class="section-header">
-          ${sec} | 💰 R$ ${totalSec.toFixed(2)} | ⛽ ${totalLitros.toFixed(2)} L | 📊 ${itens.length} abastecimentos
+          ${headerInfo}
         </div>
         <div class="card">
           <div class="table-wrapper">
@@ -2510,8 +2548,7 @@
                   <th>STATUS</th>
                   <th>KM</th>
                   <th>LITROS</th>
-                  <th>MÉDIA</th>
-                  <th>VALOR</th>
+                  ${!isFrentista ? '<th>MÉDIA</th><th>VALOR</th>' : ''}
                   <th class="no-print">AÇÕES</th>
                 </tr>
               </thead>
@@ -3267,6 +3304,7 @@
   
   function exibirRelatorioFiltrado(registros) {
     const container = document.getElementById('relatorio-container');
+    const isFrentista = (userRole === 'frentista');
     
     if (registros.length === 0) {
       container.innerHTML = `
@@ -3296,11 +3334,13 @@
             <h4>TOTAL EM LITROS</h4>
             <div class="stat-value">${totalLitros.toFixed(2)} L</div>
           </div>
+          ${!isFrentista ? `
           <div class="stat-card">
             <div class="stat-icon">💰</div>
             <h4>TOTAL EM VALOR</h4>
             <div class="stat-value">R$ ${totalGeral.toFixed(2)}</div>
           </div>
+          ` : ''}
           <div class="stat-card">
             <div class="stat-icon">🚗</div>
             <h4>VEÍCULOS</h4>
@@ -3322,8 +3362,7 @@
                 <th>COMBUSTÍVEL</th>
                 <th>KM</th>
                 <th>LITROS</th>
-                <th>MÉDIA</th>
-                <th>VALOR</th>
+                ${!isFrentista ? '<th>MÉDIA</th><th>VALOR</th>' : ''}
               </tr>
             </thead>
             <tbody>`;
@@ -3342,8 +3381,10 @@
         <td><span class="badge ${r.tipo === 'GASOLINA' ? 'badge-danger' : r.tipo === 'DIESEL' ? 'badge-warning' : 'badge-success'}">${r.tipo}</span></td>
         <td>${r.km.toLocaleString('pt-BR')}</td>
         <td>${r.litro.toFixed(2)} L</td>
+        ${!isFrentista ? `
         <td ${classeAlerta ? 'style="font-weight:bold;"' : ''}>${media > 0 ? media.toFixed(2) + ' km/l' + (classeAlerta ? ' 🚨' : '') : '---'}</td>
         <td><b>R$ ${r.valor.toFixed(2)}</b></td>
+        ` : ''}
       </tr>`;
     });
     
