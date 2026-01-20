@@ -831,6 +831,7 @@
         <select id="edit-role" onchange="toggleEditFields()">
           <option value="admin">ADMIN (TOTAL)</option>
           <option value="secretarios">SECRETÁRIO (RESTRITO)</option>
+          <option value="frentista">FRENTISTA (SOMENTE LEITURA)</option>
         </select>
       </div>
       <div id="edit-field-limit">
@@ -902,6 +903,7 @@
         <option value="admin">ADMIN (TOTAL)</option>
         <option value="secretarios">SECRETÁRIO (RESTRITO)</option>
         <option value="frentista">FRENTISTA (SOMENTE LEITURA)</option>
+        <option value="custom">PERSONALIZADO</option>
       </select>
     </div>
     
@@ -1497,6 +1499,39 @@
     FRENTISTA: 'frentista'
   };
   
+  const PERMISSOES_DISPONIVEIS = {
+    'ver_dashboard': { nome: 'Ver Dashboard', descricao: 'Visualizar painel principal', categoria: 'visualizacao' },
+    'ver_relatorio_geral': { nome: 'Ver Relatórios Gerais', descricao: 'Acessar todos os relatórios', categoria: 'visualizacao' },
+    'ver_relatorio_secretaria': { nome: 'Ver Relatório Secretaria', descricao: 'Ver apenas sua secretaria', categoria: 'visualizacao' },
+    'registrar_abastecimento': { nome: 'Registrar Abastecimento', descricao: 'Criar novos registros', categoria: 'operacoes' },
+    'autorizar_abastecimento': { nome: 'Autorizar Abastecimento', descricao: 'Aprovar/rejeitar solicitações', categoria: 'operacoes' },
+    'deletar_abastecimento': { nome: 'Deletar Abastecimento', descricao: 'Excluir registros', categoria: 'operacoes' },
+    'gerenciar_veiculos': { nome: 'Gerenciar Veículos', descricao: 'Cadastrar veículos', categoria: 'gestao' },
+    'gerenciar_postos': { nome: 'Gerenciar Postos', descricao: 'Cadastrar postos', categoria: 'gestao' },
+    'gerenciar_usuarios': { nome: 'Gerenciar Usuários', descricao: 'CRUD de usuários', categoria: 'gestao' },
+    'exportar_excel': { nome: 'Exportar Excel', descricao: 'Baixar relatórios', categoria: 'exportacao' }
+  };
+  
+  const PERMISSOES_PADRAO = {
+    master: Object.keys(PERMISSOES_DISPONIVEIS),
+    admin: ['ver_dashboard', 'ver_relatorio_geral', 'registrar_abastecimento', 'autorizar_abastecimento', 'deletar_abastecimento', 'gerenciar_veiculos', 'gerenciar_postos', 'exportar_excel'],
+    secretarios: ['ver_dashboard', 'ver_relatorio_secretaria', 'registrar_abastecimento', 'exportar_excel'],
+    frentista: ['ver_relatorio_geral']
+  };
+  
+  // Função para verificar permissões
+  function temPermissao(permissao) {
+    if (loginUser === 'master') return true;
+    return userPermissions.includes(permissao);
+  }
+  
+  // Função para verificar se pode ver relatório de uma secretaria
+  function podeVerRelatorio(secretaria) {
+    if (temPermissao('ver_relatorio_geral')) return true;
+    if (temPermissao('ver_relatorio_secretaria') && secretaria === userSecretaria) return true;
+    return false;
+  }
+  
   let cache = [];
   let veiculos = [];
   let postos = [];
@@ -1518,6 +1553,8 @@
   let dadosMesAnterior = null;
   let notificacoes = [];
   let deferredPrompt = null;
+  let userPermissions = [];
+  let usuarioEditandoPermissoes = null;
   
   db.ref('config/precos').on('value', snap => {
     if (snap.val()) {
@@ -1557,23 +1594,24 @@
       return entrar("master", "admin", 0, "", { 
         combustivelLiberado: "todos",
         senha: "1234",
-        role: "admin"
+        role: "admin",
+        permissoes: Object.keys(PERMISSOES_DISPONIVEIS) // Master tem todas as permissões
       });
     }
     
     db.ref('usuarios/' + u).once('value', snap => {
       const user = snap.val();
       if (user && user.senha === s) {
+        const permissoes = user.permissoes || PERMISSOES_PADRAO[user.role] || [];
         const dadosUsuario = {
           combustivelLiberado: user.combustivelLiberado || "todos",
           senha: user.senha,
           role: user.role,
           limite: user.limite || 0,
-          secretariaVinculada: user.secretariaVinculada || ""
+          secretariaVinculada: user.secretariaVinculada || "",
+          permissoes: permissoes
         };
         entrar(u, user.role, user.limite || 0, user.secretariaVinculada || "", dadosUsuario);
-        
-        // Log de auditoria
         registrarAuditoria('LOGIN', { usuario: u });
       } else {
         mostrarNotificacao("USUÁRIO OU SENHA INCORRETOS!", "error");
@@ -1590,33 +1628,30 @@
     userLimit = limit;
     userSecretaria = sec;
     usuarioData = dadosExtras || {};
+    userPermissions = dadosExtras.permissoes || PERMISSOES_PADRAO[role] || [];
     
     document.getElementById('login-screen').style.display = 'none';
     document.getElementById('app').classList.remove('blurred');
     
-    const isMaster = (u === "master");
-    const isAdmin = (role === "admin");
-    const isFrentista = (role === "frentista");
+    // Controle de visibilidade das abas baseado em PERMISSÕES
+    document.getElementById('btn-tab-users').style.display = 
+      (loginUser === 'master' || temPermissao('gerenciar_usuarios')) ? 'block' : 'none';
     
-    // Controle de visibilidade das abas
-    document.getElementById('btn-tab-users').style.display = isMaster ? 'block' : 'none';
-    document.getElementById('btn-tab-pendentes').style.display = (isMaster || isAdmin) ? 'block' : 'none';
-    document.getElementById('btn-tab-executivo').style.display = (isMaster || isAdmin) ? 'block' : 'none';
-    document.getElementById('btn-tab-analytics').style.display = !isFrentista ? 'block' : 'none';
+    document.getElementById('btn-tab-pendentes').style.display = 
+      (temPermissao('autorizar_abastecimento')) ? 'block' : 'none';
     
-    // Frentista: esconder seção de novo abastecimento e filtros
-    if (isFrentista) {
+    document.getElementById('btn-tab-executivo').style.display = 
+      (temPermissao('ver_dashboard')) ? 'block' : 'none';
+    
+    document.getElementById('btn-tab-analytics').style.display = 
+      (temPermissao('ver_dashboard')) ? 'block' : 'none';
+    
+    // Esconder seção de novo abastecimento se não tiver permissão
+    if (!temPermissao('registrar_abastecimento')) {
       const novoAbastCard = document.querySelector('.card.no-print h3');
       if (novoAbastCard && novoAbastCard.textContent.includes('NOVO ABASTECIMENTO')) {
         novoAbastCard.closest('.card').style.display = 'none';
       }
-      const filtrosCard = document.querySelectorAll('.card.no-print');
-      filtrosCard.forEach(card => {
-        const h3 = card.querySelector('h3');
-        if (h3 && h3.textContent.includes('FILTROS')) {
-          card.style.display = 'none';
-        }
-      });
     }
     
     if (role === 'secretarios' && sec !== "") {
@@ -1852,135 +1887,114 @@
   }
   
   async function processar() {
+    if (!temPermissao('registrar_abastecimento')) {
+      mostrarNotificacao("❌ SEM PERMISSÃO PARA REGISTRAR ABASTECIMENTO!", "error");
+      return;
+    }
+  
     const btnRegistrar = document.getElementById('btn-registrar');
+    const textoOriginal = btnRegistrar.innerHTML;
+  
     btnRegistrar.disabled = true;
     btnRegistrar.innerHTML = '<div class="loading"></div> PROCESSANDO...';
-    
-    const dados = {
-      placa: document.getElementById('f-placa').value.toUpperCase().trim(),
-      posto: document.getElementById('f-posto').value,
-      motorista: document.getElementById('f-mot').value.toUpperCase().trim(),
-      data: document.getElementById('f-data').value,
-      tipo: document.getElementById('f-tipo').value,
-      secretaria: document.getElementById('f-sec').value,
-      litro: parseFloat(document.getElementById('f-lit').value) || 0,
-      km: parseFloat(document.getElementById('f-km').value) || 0
-    };
-    
-    const erros = validarAbastecimento(dados);
-    if (erros.length > 0) {
-      mostrarNotificacao(erros.join("\n"), "error");
-      btnRegistrar.disabled = false;
-      btnRegistrar.innerHTML = '✔️ REGISTRAR ABASTECIMENTO';
-      return;
-    }
-    
-    if (userRole === 'admin') {
-      if (usuarioData.combustivelLiberado !== 'todos' && usuarioData.combustivelLiberado !== dados.tipo) {
-        mostrarNotificacao("⛔ VOCÊ NÃO TEM PERMISSÃO PARA LIBERAR ESTE TIPO DE COMBUSTÍVEL!", "error");
-        btnRegistrar.disabled = false;
-        btnRegistrar.innerHTML = '✔️ REGISTRAR ABASTECIMENTO';
+  
+    try {
+      const dados = {
+        placa: document.getElementById('f-placa').value.toUpperCase().trim(),
+        posto: document.getElementById('f-posto').value,
+        motorista: document.getElementById('f-mot').value.toUpperCase().trim(),
+        data: document.getElementById('f-data').value,
+        tipo: document.getElementById('f-tipo').value,
+        secretaria: document.getElementById('f-sec').value,
+        litro: parseFloat(document.getElementById('f-lit').value) || 0,
+        km: parseFloat(document.getElementById('f-km').value) || 0
+      };
+  
+      // 🔍 Validação
+      const erros = validarAbastecimento(dados);
+      if (erros.length > 0) {
+        mostrarNotificacao(erros.join("\n"), "error");
         return;
       }
-    }
-    
-    // Busca preço do posto
-    const postoData = postos.find(p => p.nome === dados.posto);
-    if (!postoData || !postoData.precos) {
-      mostrarNotificacao("❌ ERRO: PREÇOS DO POSTO NÃO ENCONTRADOS!", "error");
-      btnRegistrar.disabled = false;
-      btnRegistrar.innerHTML = '✔️ REGISTRAR ABASTECIMENTO';
-      return;
-    }
-    
-    dados.valor = dados.litro * postoData.precos[dados.tipo];
-    dados.precoPorLitro = postoData.precos[dados.tipo];
-    
-    // NOVO: Verificar se é abastecimento AVULSO e mostrar histórico
-    if (dados.secretaria === 'AVULSOS / GERAL') {
-      const ultimosAbastecimentos = cache
-        .filter(x => x.placa === dados.placa && x.status === STATUS.AUTORIZADO)
-        .sort((a, b) => b.timestamp - a.timestamp)
-        .slice(0, 5);
-      
-      if (ultimosAbastecimentos.length > 0) {
-        // Criar modal melhorado para mobile
-        const confirmar = await mostrarModalHistorico(dados.placa, ultimosAbastecimentos);
-        if (!confirmar) {
-          btnRegistrar.disabled = false;
-          btnRegistrar.innerHTML = '✔️ REGISTRAR ABASTECIMENTO';
-          return;
-        }
-      }
-    }
-    
-    const abastecimentoHoje = cache.find(x => 
-      x.placa === dados.placa && 
-      x.data === dados.data && 
-      x.status !== STATUS.REJEITADO
-    );
-    if (abastecimentoHoje) {
-      if (!confirm("⚠️ O VEÍCULO JÁ ABASTECEU HOJE. DESEJA CONTINUAR?")) {
-        btnRegistrar.disabled = false;
-        btnRegistrar.innerHTML = '✔️ REGISTRAR ABASTECIMENTO';
-        return;
-      }
-    }
-    
-    if (userRole === 'secretarios') {
-      const gastoComprometido = cache
-        .filter(x => 
-          (x.status === STATUS.AUTORIZADO || x.status === STATUS.AGUARDANDO) &&
-          x.secretaria === userSecretaria
-        )
-        .reduce((acc, item) => acc + item.valor, 0);
-      
-      const saldoDisponivel = userLimit - gastoComprometido;
-      if (dados.valor > saldoDisponivel) {
+  
+      // 🔐 Permissão por combustível
+      if (usuarioData.combustivelLiberado !== 'todos' && 
+          usuarioData.combustivelLiberado !== dados.tipo) {
         mostrarNotificacao(
-          `🚫 LIMITE EXCEDIDO!\n💰 SOLICITADO: R$ ${dados.valor.toFixed(2)}\n✅ SALDO DISPONÍVEL: R$ ${saldoDisponivel.toFixed(2)}`,
+          "⛔ VOCÊ NÃO TEM PERMISSÃO PARA ESTE TIPO DE COMBUSTÍVEL!",
           "error"
         );
-        btnRegistrar.disabled = false;
-        btnRegistrar.innerHTML = '✔️ REGISTRAR ABASTECIMENTO';
         return;
       }
-    }
-    
-    const status = (loginUser === 'master' || userRole === 'admin')
-      ? STATUS.AUTORIZADO
-      : STATUS.AGUARDANDO;
-    
-    db.ref('abastecimentos').push({
-      ...dados,
-      status: status,
-      solicitadoPor: loginUser.toUpperCase(),
-      timestamp: Date.now()
-    }).then(() => {
-      // Log de auditoria
-      registrarAuditoria('ABASTECIMENTO_REGISTRADO', {
-        placa: dados.placa,
-        valor: dados.valor,
-        status: status
-      });
+  
+      // ⛽ Buscar preço do posto
+      const postoData = postos.find(p => p.nome === dados.posto);
+      if (!postoData || !postoData.precos || postoData.precos[dados.tipo] == null) {
+        mostrarNotificacao(
+          "❌ ERRO: PREÇO DO COMBUSTÍVEL NÃO CONFIGURADO NO POSTO!",
+          "error"
+        );
+        return;
+      }
+  
+      dados.precoPorLitro = postoData.precos[dados.tipo];
+      dados.valor = dados.litro * dados.precoPorLitro;
+  
+      // 🧾 AVULSOS / GERAL — histórico
+      if (dados.secretaria === 'AVULSOS / GERAL') {
+        const ultimosAbastecimentos = cache
+          .filter(x => x.placa === dados.placa && x.status === STATUS.AUTORIZADO)
+          .sort((a, b) => b.timestamp - a.timestamp)
+          .slice(0, 5);
+  
+        if (ultimosAbastecimentos.length > 0) {
+          const confirmar = await mostrarModalHistorico(dados.placa, ultimosAbastecimentos);
+          if (!confirmar) return;
+        }
+      }
+  
+      // 💾 SALVAR ABASTECIMENTO
+      const status = (temPermissao('autorizar_abastecimento')) 
+        ? STATUS.AUTORIZADO 
+        : STATUS.AGUARDANDO;
       
+      await db.ref('abastecimentos').push({
+        ...dados,
+        status: status,
+        solicitadoPor: loginUser.toUpperCase(),
+        timestamp: Date.now()
+      });
+  
       mostrarNotificacao(
         status === STATUS.AUTORIZADO
           ? "✅ ABASTECIMENTO REGISTRADO COM SUCESSO!"
           : "📤 SOLICITAÇÃO ENVIADA PARA APROVAÇÃO!",
         "success"
       );
+      
+      registrarAuditoria('ABASTECIMENTO_REGISTRADO', {
+        placa: dados.placa,
+        valor: dados.valor,
+        status: status
+      });
+      
       limparFormulario();
+      
+    } catch (erro) {
+      console.error(erro);
+      mostrarNotificacao("❌ Erro ao registrar abastecimento!", "error");
+    } finally {
       btnRegistrar.disabled = false;
-      btnRegistrar.innerHTML = '✔️ REGISTRAR ABASTECIMENTO';
-    }).catch(error => {
-      mostrarNotificacao("❌ ERRO AO SALVAR: " + error.message, "error");
-      btnRegistrar.disabled = false;
-      btnRegistrar.innerHTML = '✔️ REGISTRAR ABASTECIMENTO';
-    });
+      btnRegistrar.innerHTML = textoOriginal;
+    }
   }
   
   function aprovar(id) {
+    if (!temPermissao('autorizar_abastecimento')) {
+      mostrarNotificacao("❌ SEM PERMISSÃO PARA APROVAR!", "error");
+      return;
+    }
+    
     if (!confirm("✅ CONFIRMA A APROVAÇÃO DESTE ABASTECIMENTO?")) return;
     
     db.ref('abastecimentos/' + id).update({ 
@@ -1994,6 +2008,11 @@
   }
   
   function rejeitar(id) {
+    if (!temPermissao('autorizar_abastecimento')) {
+      mostrarNotificacao("❌ SEM PERMISSÃO PARA REJEITAR!", "error");
+      return;
+    }
+    
     if (!confirm("⚠️ TEM CERTEZA QUE DESEJA REJEITAR ESTA SOLICITAÇÃO?")) return;
     const motivo = prompt("📝 MOTIVO DA REJEIÇÃO (OPCIONAL):");
     db.ref('abastecimentos/' + id).update({
@@ -2008,6 +2027,11 @@
   }
   
   function deletar(id) {
+    if (!temPermissao('deletar_abastecimento')) {
+      mostrarNotificacao("❌ SEM PERMISSÃO PARA EXCLUIR!", "error");
+      return;
+    }
+    
     if (!confirm("⚠️ TEM CERTEZA QUE DESEJA EXCLUIR ESTE REGISTRO?\n\n⛔ ESTA AÇÃO NÃO PODE SER DESFEITA!")) return;
     db.ref('abastecimentos/' + id).remove().then(() => {
       registrarAuditoria('ABASTECIMENTO_DELETADO', { id: id });
@@ -2027,30 +2051,39 @@
   function renderizar() {
     if (!loginUser) return;
     
-    const isFrentista = (userRole === 'frentista');
-    
-    // Frentista não vê estatísticas, gráficos ou alertas
-    if (!isFrentista) {
+    // Verificar se usuário pode ver dashboard
+    if (temPermissao('ver_dashboard') || temPermissao('ver_relatorio_geral') || temPermissao('ver_relatorio_secretaria')) {
       atualizarStatusFinanceiro();
-      atualizarEstatisticas();
-      atualizarGraficos();
-      atualizarAlertas();
-    } else {
-      // Frentista: ocultar seções financeiras
-      document.getElementById('status-financeiro').style.display = 'none';
-      document.getElementById('stats-container').style.display = 'none';
-      document.getElementById('alertas-container').style.display = 'none';
-      const chartsRow = document.querySelector('.charts-row');
-      if (chartsRow) chartsRow.style.display = 'none';
+      
+      // Só mostrar estatísticas se tiver permissão
+      if (temPermissao('ver_dashboard')) {
+        atualizarEstatisticas();
+        atualizarGraficos();
+        atualizarAlertas();
+      } else {
+        document.getElementById('stats-container').style.display = 'none';
+        document.getElementById('alertas-container').style.display = 'none';
+        const chartsRow = document.querySelector('.charts-row');
+        if (chartsRow) chartsRow.style.display = 'none';
+      }
     }
     
     atualizarRelatorio();
-    atualizarPendentes();
+    
+    if (temPermissao('autorizar_abastecimento')) {
+      atualizarPendentes();
+    }
   }
   
   function atualizarAlertas() {
     const alertasContainer = document.getElementById('alertas-container');
     let alertasHtml = '';
+    
+    // Só mostrar alertas se tiver permissão para ver dashboard
+    if (!temPermissao('ver_dashboard')) {
+      alertasContainer.innerHTML = '';
+      return;
+    }
     
     // Alertas de média baixa por veículo
     const veiculosComMedia = {};
@@ -2084,7 +2117,7 @@
         
         const mediaGeral = totalLitros > 0 ? totalKm / totalLitros : 0;
         
-        // NOVO: Limites personalizados por tipo de combustível
+        // Limites personalizados por tipo de combustível
         const limiteAlerta = veiculo.tipo === 'DIESEL' ? 4 : 9;
         
         if (mediaGeral > 0 && mediaGeral < limiteAlerta) {
@@ -2146,6 +2179,11 @@
   }
   
   function analisarVeiculo(placa) {
+    if (!temPermissao('ver_dashboard')) {
+      mostrarNotificacao("❌ SEM PERMISSÃO PARA VER ANÁLISES!", "error");
+      return;
+    }
+    
     const historico = cache
       .filter(x => x.placa === placa && x.status === STATUS.AUTORIZADO)
       .sort((a, b) => b.timestamp - a.timestamp);
@@ -2469,15 +2507,20 @@
   
   function atualizarRelatorio() {
     let listaSecs = [...new Set(cache.map(x => x.secretaria))].sort();
-    if (userRole === 'secretarios') {
-      listaSecs = [userSecretaria];
+    
+    // Filtrar secretarias baseado nas permissões
+    if (temPermissao('ver_relatorio_secretaria') && !temPermissao('ver_relatorio_geral')) {
+      listaSecs = listaSecs.filter(sec => sec === userSecretaria);
     }
+    
     const container = document.getElementById('relatorio-container');
     container.innerHTML = "";
     
     const isFrentista = (userRole === 'frentista');
     
     listaSecs.forEach(sec => {
+      if (!podeVerRelatorio(sec)) return;
+      
       const itens = cache.filter(x => x.secretaria === sec && x.status !== STATUS.REJEITADO)
         .sort((a, b) => b.timestamp - a.timestamp);
       if (itens.length === 0) return;
@@ -2512,11 +2555,11 @@
           <td>R$ ${d.valor.toFixed(2)}</td>
           ` : ''}
           <td class="no-print">
-            ${(d.status === STATUS.AGUARDANDO && (loginUser === 'master' || userRole === 'admin'))
+            ${(d.status === STATUS.AGUARDANDO && temPermissao('autorizar_abastecimento'))
               ? `<button class="btn-action btn-aprovar" onclick="aprovar('${d.id}')">✅</button>
                  <button class="btn-action btn-rejeitar" onclick="rejeitar('${d.id}')">❌</button>` 
               : ''}
-            ${(loginUser === 'master' || userRole === 'admin')
+            ${(temPermissao('deletar_abastecimento'))
               ? `<button class="btn-action btn-deletar" onclick="deletar('${d.id}')">🗑️</button>` 
               : ''}
           </td>
@@ -2951,6 +2994,11 @@
   }
   
   function exportarExcel() {
+    if (!temPermissao('exportar_excel')) {
+      mostrarNotificacao("❌ SEM PERMISSÃO PARA EXPORTAR!", "error");
+      return;
+    }
+    
     const dataInicial = document.getElementById('rel-data-inicial').value;
     const dataFinal = document.getElementById('rel-data-final').value;
     const secretaria = document.getElementById('rel-secretaria').value;
@@ -3039,6 +3087,11 @@
   }
   
   function addUsuario() {
+    if (!temPermissao('gerenciar_usuarios') && loginUser !== 'master') {
+      mostrarNotificacao("❌ SEM PERMISSÃO PARA CRIAR USUÁRIOS!", "error");
+      return;
+    }
+    
     const usuario = document.getElementById('new-user').value.toLowerCase().trim();
     const senha = document.getElementById('new-pass').value.trim();
     const role = document.getElementById('new-role').value;
@@ -3071,7 +3124,8 @@
       role: role,
       combustivelLiberado: combustivel,
       limite: limite,
-      secretariaVinculada: secretaria
+      secretariaVinculada: secretaria,
+      permissoes: PERMISSOES_PADRAO[role] || []
     }).then(() => {
       registrarAuditoria('USUARIO_CRIADO', { usuario: usuario, role: role });
       mostrarNotificacao("✅ USUÁRIO SALVO COM SUCESSO!", "success");
@@ -3109,10 +3163,17 @@
             <td>${u.secretariaVinculada || 'TODAS'}</td>
             <td><b>R$ ${(u.limite || 0).toFixed(2)}</b></td>
             <td class="no-print">
-              <button class="btn-action" style="background:var(--accent);color:white;" onclick="editarUsuario('${c.key}')">✏️ EDITAR</button>
-              <button class="btn-action btn-deletar" onclick="if(confirm('⚠️ EXCLUIR USUÁRIO ${c.key.toUpperCase()}?\\n\\n⛔ ESTA AÇÃO NÃO PODE SER DESFEITA!')) { db.ref('usuarios/${c.key}').remove().then(() => { registrarAuditoria('USUARIO_DELETADO', {usuario: '${c.key}'}); mostrarNotificacao('✅ USUÁRIO EXCLUÍDO!', 'success'); listUsuarios(); }); }">
-                🗑️ EXCLUIR
-              </button>
+              ${temPermissao('gerenciar_usuarios') || loginUser === 'master' ? `
+                <button class="btn-action" style="background:#8b5cf6;color:white;" onclick="abrirPermissoes('${c.key}')">
+                  🔐 PERMISSÕES
+                </button>
+                <button class="btn-action" style="background:var(--accent);color:white;" onclick="editarUsuario('${c.key}')">
+                  ✏️ EDITAR
+                </button>
+                <button class="btn-action btn-deletar" onclick="if(confirm('⚠️ EXCLUIR USUÁRIO ${c.key.toUpperCase()}?\\n\\n⛔ ESTA AÇÃO NÃO PODE SER DESFEITA!')) { db.ref('usuarios/${c.key}').remove().then(() => { registrarAuditoria('USUARIO_DELETADO', {usuario: '${c.key}'}); mostrarNotificacao('✅ USUÁRIO EXCLUÍDO!', 'success'); listUsuarios(); }); }">
+                  🗑️ EXCLUIR
+                </button>
+              ` : ''}
             </td>
           </tr>
         `;
@@ -3121,6 +3182,11 @@
   }
   
   function editarUsuario(id) {
+    if (!temPermissao('gerenciar_usuarios') && loginUser !== 'master') {
+      mostrarNotificacao("❌ SEM PERMISSÃO PARA EDITAR USUÁRIOS!", "error");
+      return;
+    }
+    
     db.ref('usuarios/' + id).once('value', snap => {
       const u = snap.val();
       document.getElementById('edit-user').value = id.toUpperCase();
@@ -3139,6 +3205,11 @@
   }
   
   function salvarEdicao() {
+    if (!temPermissao('gerenciar_usuarios') && loginUser !== 'master') {
+      mostrarNotificacao("❌ SEM PERMISSÃO PARA EDITAR USUÁRIOS!", "error");
+      return;
+    }
+    
     const id = document.getElementById('edit-user').value.toLowerCase();
     const novaPass = document.getElementById('edit-pass').value;
     const combus = document.getElementById('edit-combustivel').value;
@@ -3169,6 +3240,137 @@
       mostrarNotificacao("✅ USUÁRIO ATUALIZADO COM SUCESSO!", "success");
       fecharModal();
       listUsuarios();
+    });
+  }
+  
+  function abrirPermissoes(usuario) {
+    if (!temPermissao('gerenciar_usuarios') && loginUser !== 'master') {
+      mostrarNotificacao("❌ SEM PERMISSÃO PARA EDITAR PERMISSÕES!", "error");
+      return;
+    }
+    
+    usuarioEditandoPermissoes = usuario;
+    
+    // Carregar permissões atuais do usuário
+    db.ref('usuarios/' + usuario).once('value', snap => {
+      const userData = snap.val();
+      const permissoesAtuais = userData.permissoes || PERMISSOES_PADRAO[userData.role] || [];
+      
+      const container = document.getElementById('permissoes-lista');
+      container.innerHTML = '';
+      
+      // Agrupar permissões por categoria
+      const categorias = {};
+      Object.keys(PERMISSOES_DISPONIVEIS).forEach(key => {
+        const permissao = PERMISSOES_DISPONIVEIS[key];
+        if (!categorias[permissao.categoria]) {
+          categorias[permissao.categoria] = [];
+        }
+        categorias[permissao.categoria].push({ key, ...permissao });
+      });
+      
+      Object.keys(categorias).forEach(categoria => {
+        container.innerHTML += `
+          <div style="margin-bottom:20px;">
+            <h4 style="margin:0 0 10px 0; font-size:14px; color:var(--primary);">${categoria.toUpperCase()}</h4>
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+        `;
+        
+        categorias[categoria].forEach(perm => {
+          const checked = permissoesAtuais.includes(perm.key) ? 'checked' : '';
+          container.innerHTML += `
+            <div style="display:flex; align-items:center; gap:10px; padding:10px; background:#f8fafc; border-radius:8px;">
+              <input type="checkbox" id="perm_${perm.key}" ${checked}>
+              <label for="perm_${perm.key}" style="text-transform:none; font-weight:normal; font-size:12px;">
+                <strong>${perm.nome}</strong><br>
+                <span style="color:#64748b; font-size:11px;">${perm.descricao}</span>
+              </label>
+            </div>
+          `;
+        });
+        
+        container.innerHTML += `</div></div>`;
+      });
+      
+      document.getElementById('modal-permissoes').style.display = 'flex';
+    });
+  }
+  
+  function salvarPermissoes() {
+    if (!usuarioEditandoPermissoes) return;
+    
+    const checkboxes = document.querySelectorAll('#permissoes-lista input[type="checkbox"]');
+    const permissoesSelecionadas = [];
+    
+    checkboxes.forEach(cb => {
+      if (cb.checked) {
+        const id = cb.id.replace('perm_', '');
+        permissoesSelecionadas.push(id);
+      }
+    });
+    
+    db.ref('usuarios/' + usuarioEditandoPermissoes).update({
+      permissoes: permissoesSelecionadas
+    }).then(() => {
+      mostrarNotificacao("✅ PERMISSÕES ATUALIZADAS!", "success");
+      fecharModalPermissoes();
+      listUsuarios();
+    });
+  }
+  
+  function fecharModalPermissoes() {
+    document.getElementById('modal-permissoes').style.display = 'none';
+    usuarioEditandoPermissoes = null;
+  }
+  
+  function carregarPermissoesPerfil() {
+    const perfil = document.getElementById('perfil-config').value;
+    
+    if (perfil === 'custom') {
+      document.getElementById('permissoes-lista').innerHTML = `
+        <div style="padding:40px 20px; text-align:center; color:#64748b;">
+          Selecione um usuário específico para editar permissões personalizadas.
+        </div>
+      `;
+      return;
+    }
+    
+    const permissoesPadrao = PERMISSOES_PADRAO[perfil] || [];
+    
+    const container = document.getElementById('permissoes-lista');
+    container.innerHTML = '';
+    
+    // Agrupar permissões por categoria
+    const categorias = {};
+    Object.keys(PERMISSOES_DISPONIVEIS).forEach(key => {
+      const permissao = PERMISSOES_DISPONIVEIS[key];
+      if (!categorias[permissao.categoria]) {
+        categorias[permissao.categoria] = [];
+      }
+      categorias[permissao.categoria].push({ key, ...permissao });
+    });
+    
+    Object.keys(categorias).forEach(categoria => {
+      container.innerHTML += `
+        <div style="margin-bottom:20px;">
+          <h4 style="margin:0 0 10px 0; font-size:14px; color:var(--primary);">${categoria.toUpperCase()}</h4>
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+      `;
+      
+      categorias[categoria].forEach(perm => {
+        const checked = permissoesPadrao.includes(perm.key) ? 'checked' : '';
+        container.innerHTML += `
+          <div style="display:flex; align-items:center; gap:10px; padding:10px; background:#f8fafc; border-radius:8px;">
+            <input type="checkbox" id="perm_${perm.key}" ${checked} disabled>
+            <label for="perm_${perm.key}" style="text-transform:none; font-weight:normal; font-size:12px;">
+              <strong>${perm.nome}</strong><br>
+              <span style="color:#64748b; font-size:11px;">${perm.descricao}</span>
+            </label>
+          </div>
+        `;
+      });
+      
+      container.innerHTML += `</div></div>`;
     });
   }
   
@@ -3432,6 +3634,11 @@
   });
   
   function salvarVeiculo() {
+    if (!temPermissao('gerenciar_veiculos')) {
+      mostrarNotificacao("❌ SEM PERMISSÃO PARA CADASTRAR VEÍCULOS!", "error");
+      return;
+    }
+    
     const placa = document.getElementById('vei-placa').value.toUpperCase().trim();
     const modelo = document.getElementById('vei-modelo').value.toUpperCase().trim();
     const secretaria = document.getElementById('vei-sec').value;
@@ -3553,6 +3760,11 @@
   }
   
   function salvarPosto() {
+    if (!temPermissao('gerenciar_postos')) {
+      mostrarNotificacao("❌ SEM PERMISSÃO PARA CADASTRAR POSTOS!", "error");
+      return;
+    }
+    
     const nome = document.getElementById('posto-nome').value.toUpperCase().trim();
     const gas = parseFloat(document.getElementById('posto-gas').value);
     const alc = parseFloat(document.getElementById('posto-alc').value);
@@ -3608,9 +3820,11 @@
             <td><span class="badge badge-success">R$ ${p.precos.ALCOOL.toFixed(2)}</span></td>
             <td><span class="badge badge-warning">R$ ${p.precos.DIESEL.toFixed(2)}</span></td>
             <td class="no-print">
-              <button class="btn-action btn-deletar" onclick="if(confirm('⚠️ EXCLUIR POSTO ${p.nome}?')) { db.ref('postos/${c.key}').remove().then(() => { registrarAuditoria('POSTO_DELETADO', {nome: '${p.nome}'}); mostrarNotificacao('✅ POSTO EXCLUÍDO!', 'success'); listPostos(); }); }">
-                🗑️
-              </button>
+              ${temPermissao('gerenciar_postos') ? `
+                <button class="btn-action btn-deletar" onclick="if(confirm('⚠️ EXCLUIR POSTO ${p.nome}?')) { db.ref('postos/${c.key}').remove().then(() => { registrarAuditoria('POSTO_DELETADO', {nome: '${p.nome}'}); mostrarNotificacao('✅ POSTO EXCLUÍDO!', 'success'); listPostos(); }); }">
+                  🗑️
+                </button>
+              ` : ''}
             </td>
           </tr>
         `;
@@ -3677,9 +3891,11 @@
             <td>${v.ano || '---'}</td>
             <td class="no-print">
               <button class="btn-action" style="background:#8b5cf6;color:white;" onclick="gerarQRCodeModal('${v.placa}')">📱 QR CODE</button>
-              <button class="btn-action btn-deletar" onclick="if(confirm('⚠️ EXCLUIR VEÍCULO ${v.placa}?')) { db.ref('veiculos/${c.key}').remove().then(() => { registrarAuditoria('VEICULO_DELETADO', {placa: '${v.placa}'}); mostrarNotificacao('✅ VEÍCULO EXCLUÍDO!', 'success'); listVeiculos(); }); }">
-                🗑️
-              </button>
+              ${temPermissao('gerenciar_veiculos') ? `
+                <button class="btn-action btn-deletar" onclick="if(confirm('⚠️ EXCLUIR VEÍCULO ${v.placa}?')) { db.ref('veiculos/${c.key}').remove().then(() => { registrarAuditoria('VEICULO_DELETADO', {placa: '${v.placa}'}); mostrarNotificacao('✅ VEÍCULO EXCLUÍDO!', 'success'); listVeiculos(); }); }">
+                  🗑️
+                </button>
+              ` : ''}
             </td>
           </tr>
         `;
@@ -3784,7 +4000,7 @@
       const abast = snap.val();
       
       // Notificar admins de novas solicitações
-      if (abast.status === STATUS.AGUARDANDO && (userRole === 'admin' || loginUser === 'master')) {
+      if (abast.status === STATUS.AGUARDANDO && temPermissao('autorizar_abastecimento')) {
         criarNotificacao({
           titulo: '⏳ Nova Solicitação',
           texto: `${abast.solicitadoPor} solicitou abastecimento - ${abast.placa}`,
@@ -4088,7 +4304,6 @@
     const container = document.getElementById('alertas-executivo');
     let alertas = [];
     
-    // Verificar secretarias com projeção acima do orçamento
     // Verificar veículos com eficiência crítica
     const veiculosCriticos = cache.filter(x => {
       const media = calcularMediaAvancada(x.placa, x.tipo);
@@ -4216,6 +4431,7 @@
     const modalQr = document.getElementById('modal-qr');
     const modalAnalise = document.getElementById('modal-analise');
     const modalHistorico = document.getElementById('modal-historico-avulso');
+    const modalPermissoes = document.getElementById('modal-permissoes');
     
     if (event.target === modalEdit) {
       fecharModal();
@@ -4228,6 +4444,9 @@
     }
     if (event.target === modalHistorico) {
       fecharModalHistoricoAvulso(false);
+    }
+    if (event.target === modalPermissoes) {
+      fecharModalPermissoes();
     }
   };
 </script>
