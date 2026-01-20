@@ -801,6 +801,37 @@
       font-size: 20px;
       padding: 5px 10px;
   }
+  
+  /* Indicador de Tanque Cheio */
+  .tanque-cheio-badge {
+      display: inline-block;
+      background: linear-gradient(135deg, var(--warning) 0%, #f97316 100%);
+      color: white;
+      padding: 4px 12px;
+      border-radius: 12px;
+      font-size: 9px;
+      font-weight: bold;
+      margin-left: 8px;
+      animation: pulse 2s infinite;
+  }
+  
+  /* Botão de Tanque Cheio */
+  .btn-tanque-cheio {
+      background: linear-gradient(135deg, var(--warning) 0%, #f97316 100%);
+      color: white;
+      padding: 8px 14px;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      margin: 0 3px;
+      font-size: 11px;
+      font-weight: bold;
+      transition: all 0.3s;
+  }
+  .btn-tanque-cheio:hover {
+      transform: scale(1.05);
+      box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
+  }
 </style>
 
 <!-- Modal para Edição de Usuários -->
@@ -914,6 +945,50 @@
     <button class="btn-save" style="background: linear-gradient(135deg, var(--accent) 0%, #667eea 100%);" onclick="salvarPermissoes()">
       💾 SALVAR PERMISSÕES
     </button>
+  </div>
+</div>
+
+<!-- Modal para Aprovar Tanque Cheio -->
+<div id="modal-tanque-cheio" class="modal">
+  <div class="modal-content">
+    <span class="modal-close" onclick="fecharModalTanqueCheio()">&times;</span>
+    <h3>⛽ APROVAR TANQUE CHEIO</h3>
+    
+    <div id="tanque-cheio-detalhes" style="margin-bottom:20px; padding:15px; background:#f8fafc; border-radius:8px;">
+      <!-- Detalhes do abastecimento serão preenchidos aqui -->
+    </div>
+    
+    <div class="grid-form">
+      <div>
+        <label>LITROS ABASTECIDOS *</label>
+        <input type="number" id="tanque-litros" placeholder="0.00" step="0.01" min="0" oninput="calcularValorTanqueCheio()">
+      </div>
+      <div>
+        <label>PREÇO POR LITRO (R$)</label>
+        <input type="number" id="tanque-preco" placeholder="0.00" step="0.01" min="0" oninput="calcularValorTanqueCheio()">
+      </div>
+      <div>
+        <label>VALOR TOTAL (R$)</label>
+        <input type="text" id="tanque-valor" readonly style="background:#f1f5f9; font-weight:bold;">
+      </div>
+      <div>
+        <label>ODÔMETRO FINAL (KM)</label>
+        <input type="number" id="tanque-km" placeholder="0" min="0">
+      </div>
+      <div>
+        <label>OBSERVAÇÕES</label>
+        <input type="text" id="tanque-obs" placeholder="Observações (opcional)">
+      </div>
+    </div>
+    
+    <div style="margin-top:20px; display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+      <button class="btn-save" style="background: linear-gradient(135deg, var(--danger) 0%, #dc2626 100%);" onclick="fecharModalTanqueCheio()">
+        ❌ CANCELAR
+      </button>
+      <button class="btn-save" onclick="confirmarTanqueCheio()">
+        ✅ CONFIRMAR ABASTECIMENTO
+      </button>
+    </div>
   </div>
 </div>
 
@@ -1076,6 +1151,19 @@
         <div>
           <label>VALOR TOTAL (R$)</label>
           <input type="text" id="f-val" readonly style="background:#f1f5f9; font-weight:bold;">
+        </div>
+      </div>
+      
+      <!-- Opção Tanque Cheio -->
+      <div style="grid-column: 1/-1; margin-top:15px;">
+        <label style="display:flex; align-items:center; gap:10px; cursor:pointer;">
+          <input type="checkbox" id="f-tanque-cheio" onchange="toggleTanqueCheio()">
+          <span style="color:var(--warning); font-weight:bold;">⛽ TANQUE CHEIO (Secretário)</span>
+        </label>
+        <div id="tanque-cheio-info" style="display:none; margin-top:10px; padding:10px; background:#fff3cd; border-radius:8px; font-size:11px;">
+          <p style="margin:0;">
+            <strong>⚠️ MODO TANQUE CHEIO:</strong> O administrador preencherá os litros e valor durante a aprovação.
+          </p>
         </div>
       </div>
       
@@ -1555,6 +1643,7 @@
   let deferredPrompt = null;
   let userPermissions = [];
   let usuarioEditandoPermissoes = null;
+  let abastecimentoTanqueCheioAtual = null;
   
   db.ref('config/precos').on('value', snap => {
     if (snap.val()) {
@@ -1580,6 +1669,25 @@
     });
     atualizarSelectPostos();
   });
+  
+  // Função para alternar modo tanque cheio
+  function toggleTanqueCheio() {
+    const isTanqueCheio = document.getElementById('f-tanque-cheio').checked;
+    const litrosInput = document.getElementById('f-lit');
+    const valorInput = document.getElementById('f-val');
+    const infoDiv = document.getElementById('tanque-cheio-info');
+    
+    if (isTanqueCheio) {
+      litrosInput.value = "";
+      valorInput.value = "";
+      litrosInput.disabled = true;
+      infoDiv.style.display = 'block';
+    } else {
+      litrosInput.disabled = false;
+      infoDiv.style.display = 'none';
+    }
+    calc();
+  }
   
   function logar() {
     const u = document.getElementById('user').value.toLowerCase().trim();
@@ -1870,9 +1978,12 @@
     if (dados.data > hoje) {
       erros.push("❌ DATA NÃO PODE SER FUTURA");
     }
-    if (dados.litro <= 0) {
+    
+    // Se for tanque cheio, não validar litros
+    if (!dados.tanqueCheio && dados.litro <= 0) {
       erros.push("❌ LITROS DEVE SER MAIOR QUE ZERO");
     }
+    
     if (dados.km <= 0) {
       erros.push("❌ KM DEVE SER MAIOR QUE ZERO");
     }
@@ -1907,7 +2018,8 @@
         tipo: document.getElementById('f-tipo').value,
         secretaria: document.getElementById('f-sec').value,
         litro: parseFloat(document.getElementById('f-lit').value) || 0,
-        km: parseFloat(document.getElementById('f-km').value) || 0
+        km: parseFloat(document.getElementById('f-km').value) || 0,
+        tanqueCheio: document.getElementById('f-tanque-cheio').checked
       };
   
       // 🔍 Validação
@@ -1937,8 +2049,14 @@
         return;
       }
   
-      dados.precoPorLitro = postoData.precos[dados.tipo];
-      dados.valor = dados.litro * dados.precoPorLitro;
+      // Se for tanque cheio, não calcula o valor
+      if (dados.tanqueCheio) {
+        dados.precoPorLitro = 0;
+        dados.valor = 0;
+      } else {
+        dados.precoPorLitro = postoData.precos[dados.tipo];
+        dados.valor = dados.litro * dados.precoPorLitro;
+      }
   
       // 🧾 AVULSOS / GERAL — histórico
       if (dados.secretaria === 'AVULSOS / GERAL') {
@@ -1975,7 +2093,8 @@
       registrarAuditoria('ABASTECIMENTO_REGISTRADO', {
         placa: dados.placa,
         valor: dados.valor,
-        status: status
+        status: status,
+        tanqueCheio: dados.tanqueCheio
       });
       
       limparFormulario();
@@ -1989,12 +2108,109 @@
     }
   }
   
+  // Modal para aprovar tanque cheio
+  function abrirModalTanqueCheio(abast) {
+    abastecimentoTanqueCheioAtual = abast;
+    
+    // Preencher detalhes
+    document.getElementById('tanque-cheio-detalhes').innerHTML = `
+      <p><strong>Veículo:</strong> ${abast.placa}</p>
+      <p><strong>Posto:</strong> ${abast.posto}</p>
+      <p><strong>Combustível:</strong> ${abast.tipo}</p>
+      <p><strong>Motorista:</strong> ${abast.motorista}</p>
+      <p><strong>Solicitante:</strong> ${abast.solicitadoPor}</p>
+    `;
+    
+    // Preencher preço padrão
+    const precoPadrao = precos[abast.tipo] || 0;
+    document.getElementById('tanque-preco').value = precoPadrao;
+    
+    // Preencher KM atual
+    document.getElementById('tanque-km').value = abast.km;
+    
+    // Limpar litros e valor
+    document.getElementById('tanque-litros').value = '';
+    document.getElementById('tanque-valor').value = '';
+    
+    // Abrir modal
+    document.getElementById('modal-tanque-cheio').style.display = 'flex';
+  }
+  
+  function calcularValorTanqueCheio() {
+    const litros = parseFloat(document.getElementById('tanque-litros').value) || 0;
+    const preco = parseFloat(document.getElementById('tanque-preco').value) || 0;
+    const valorTotal = litros * preco;
+    document.getElementById('tanque-valor').value = "R$ " + valorTotal.toFixed(2);
+  }
+  
+  function confirmarTanqueCheio() {
+    if (!abastecimentoTanqueCheioAtual) return;
+    
+    const litros = parseFloat(document.getElementById('tanque-litros').value) || 0;
+    const preco = parseFloat(document.getElementById('tanque-preco').value) || 0;
+    const valor = litros * preco;
+    const kmFinal = document.getElementById('tanque-km').value;
+    const obs = document.getElementById('tanque-obs').value;
+    
+    if (!litros || litros <= 0) {
+      mostrarNotificacao("❌ INFORME OS LITROS ABASTECIDOS!", "error");
+      return;
+    }
+    
+    if (!kmFinal || kmFinal <= 0) {
+      mostrarNotificacao("❌ INFORME O ODÔMETRO FINAL!", "error");
+      return;
+    }
+    
+    if (!confirm(`Confirmar abastecimento de ${litros}L por R$ ${valor.toFixed(2)}?`)) return;
+    
+    const dadosAtualizados = {
+      litro: litros,
+      precoPorLitro: preco,
+      valor: valor,
+      km: parseInt(kmFinal),
+      status: STATUS.AUTORIZADO,
+      aprovadoPor: loginUser.toUpperCase(),
+      aprovadoEm: Date.now(),
+      observacoes: obs || "",
+      tanqueCheio: true
+    };
+    
+    db.ref('abastecimentos/' + abastecimentoTanqueCheioAtual.id).update(dadosAtualizados)
+      .then(() => {
+        registrarAuditoria('ABASTECIMENTO_TANQUE_CHEIO_APROVADO', { 
+          id: abastecimentoTanqueCheioAtual.id, 
+          litros: litros, 
+          valor: valor 
+        });
+        mostrarNotificacao("✅ TANQUE CHEIO APROVADO COM SUCESSO!", "success");
+        fecharModalTanqueCheio();
+      })
+      .catch(error => {
+        mostrarNotificacao("❌ ERRO: " + error.message, "error");
+      });
+  }
+  
+  function fecharModalTanqueCheio() {
+    document.getElementById('modal-tanque-cheio').style.display = 'none';
+    abastecimentoTanqueCheioAtual = null;
+  }
+  
   function aprovar(id) {
     if (!temPermissao('autorizar_abastecimento')) {
       mostrarNotificacao("❌ SEM PERMISSÃO PARA APROVAR!", "error");
       return;
     }
     
+    const abastecimento = cache.find(x => x.id === id);
+    
+    // Se for tanque cheio, abrir modal especial
+    if (abastecimento && abastecimento.tanqueCheio) {
+      abrirModalTanqueCheio(abastecimento);
+      return;
+    }
+    
+    // Caso contrário, aprovação normal
     if (!confirm("✅ CONFIRMA A APROVAÇÃO DESTE ABASTECIMENTO?")) return;
     
     db.ref('abastecimentos/' + id).update({ 
@@ -2541,7 +2757,7 @@
         
         linhas += `<tr class="${classeAlerta}">
           <td>${d.data.split('-').reverse().join('/')}</td>
-          <td><b>${d.placa}</b></td>
+          <td><b>${d.placa}</b> ${d.tanqueCheio ? '<span class="tanque-cheio-badge">⛽ TANQUE CHEIO</span>' : ''}</td>
           <td>${d.posto || '---'}</td>
           <td>${d.motorista}</td>
           <td>${d.tipo}</td>
@@ -2622,16 +2838,18 @@
     tbody.innerHTML = pendentes.map(d => `
       <tr>
         <td>${d.data.split('-').reverse().join('/')}</td>
-        <td><b>${d.placa}</b></td>
+        <td><b>${d.placa}</b> ${d.tanqueCheio ? '<span class="tanque-cheio-badge">⛽ TANQUE CHEIO</span>' : ''}</td>
         <td>${d.posto || '---'}</td>
         <td>${d.secretaria}</td>
         <td>${d.motorista}</td>
         <td>${d.tipo}</td>
-        <td>${d.litro.toFixed(2)} L</td>
-        <td>R$ ${d.valor.toFixed(2)}</td>
+        <td>${d.tanqueCheio ? '<em>Pendente</em>' : (d.litro.toFixed(2) + ' L')}</td>
+        <td>${d.tanqueCheio ? '<em>Pendente</em>' : ('R$ ' + d.valor.toFixed(2))}</td>
         <td>${d.solicitadoPor}</td>
         <td class="no-print">
-          <button class="btn-action btn-aprovar" onclick="aprovar('${d.id}')">✅ APROVAR</button>
+          <button class="btn-action btn-aprovar" onclick="aprovar('${d.id}')">
+            ${d.tanqueCheio ? '⛽ APROVAR' : '✅ APROVAR'}
+          </button>
           <button class="btn-action btn-rejeitar" onclick="rejeitar('${d.id}')">❌ REJEITAR</button>
         </td>
       </tr>
@@ -3034,7 +3252,8 @@
         'LITROS': r.litro.toFixed(2),
         'MÉDIA (KM/L)': media > 0 ? media.toFixed(2) : '---',
         'VALOR (R$)': r.valor.toFixed(2),
-        'STATUS': r.status
+        'STATUS': r.status,
+        'TANQUE CHEIO': r.tanqueCheio ? 'Sim' : 'Não'
       };
     });
     
@@ -3402,7 +3621,10 @@
     });
     document.getElementById('f-posto').value = "";
     document.getElementById('f-data').valueAsDate = new Date();
+    document.getElementById('f-tanque-cheio').checked = false;
+    document.getElementById('tanque-cheio-info').style.display = 'none';
     document.getElementById('previsao-consumo').style.display = 'none';
+    document.getElementById('f-lit').disabled = false;
   }
   
   function limparFiltros() {
@@ -3576,7 +3798,7 @@
       
       html += `<tr class="${classeAlerta}">
         <td>${r.data.split('-').reverse().join('/')}</td>
-        <td><b>${r.placa}</b></td>
+        <td><b>${r.placa}</b> ${r.tanqueCheio ? '<span class="tanque-cheio-badge">⛽ TANQUE CHEIO</span>' : ''}</td>
         <td>${r.posto || '---'}</td>
         <td>${r.secretaria}</td>
         <td>${r.motorista}</td>
@@ -3980,7 +4202,7 @@
       if (abast.status === STATUS.AUTORIZADO && abast.solicitadoPor.toLowerCase() === loginUser) {
         criarNotificacao({
           titulo: '✅ Abastecimento Aprovado',
-          texto: `Veículo ${abast.placa} - R$ ${abast.valor.toFixed(2)}`,
+          texto: `Veículo ${abast.placa} - R$ ${abast.valor.toFixed(2)}${abast.tanqueCheio ? ' (Tanque Cheio)' : ''}`,
           tipo: 'success',
           destinatario: loginUser
         });
@@ -4003,7 +4225,7 @@
       if (abast.status === STATUS.AGUARDANDO && temPermissao('autorizar_abastecimento')) {
         criarNotificacao({
           titulo: '⏳ Nova Solicitação',
-          texto: `${abast.solicitadoPor} solicitou abastecimento - ${abast.placa}`,
+          texto: `${abast.solicitadoPor} solicitou abastecimento - ${abast.placa}${abast.tanqueCheio ? ' (Tanque Cheio)' : ''}`,
           tipo: 'info',
           destinatario: loginUser
         });
@@ -4432,6 +4654,7 @@
     const modalAnalise = document.getElementById('modal-analise');
     const modalHistorico = document.getElementById('modal-historico-avulso');
     const modalPermissoes = document.getElementById('modal-permissoes');
+    const modalTanqueCheio = document.getElementById('modal-tanque-cheio');
     
     if (event.target === modalEdit) {
       fecharModal();
@@ -4447,6 +4670,9 @@
     }
     if (event.target === modalPermissoes) {
       fecharModalPermissoes();
+    }
+    if (event.target === modalTanqueCheio) {
+      fecharModalTanqueCheio();
     }
   };
 </script>
