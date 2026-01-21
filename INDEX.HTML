@@ -284,6 +284,8 @@
   .stat-trend {
       font-size: 12px;
       margin-top: 5px;
+      display: flex;
+      align-items: center;
   }
   .stat-trend.positive {
       color: var(--success);
@@ -947,7 +949,7 @@
   </div>
 </div>
 
-<!-- Modal para Aprovar Tanque Cheio -->
+<!-- Modal para Aprovar Tanque Cheio - ATUALIZADO -->
 <div id="modal-tanque-cheio" class="modal">
   <div class="modal-content">
     <span class="modal-close" onclick="fecharModalTanqueCheio()">&times;</span>
@@ -957,14 +959,39 @@
       <!-- Detalhes do abastecimento serão preenchidos aqui -->
     </div>
     
+    <!-- NOVA SEÇÃO: Limite do Secretário -->
+    <div id="tanque-cheio-limite" style="margin-bottom:20px; padding:15px; background:#f1f5f9; border-radius:8px; display:none;">
+      <h4 style="margin:0 0 10px 0; font-size:13px; color:var(--primary);">📊 LIMITE DO SECRETÁRIO</h4>
+      <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px;">
+        <div style="text-align:center;">
+          <div style="font-size:11px; color:#64748b;">LIMITE MENSAL</div>
+          <div style="font-size:18px; font-weight:bold; color:var(--accent);" id="limite-mensal">R$ 0,00</div>
+        </div>
+        <div style="text-align:center;">
+          <div style="font-size:11px; color:#64748b;">GASTO ATUAL</div>
+          <div style="font-size:18px; font-weight:bold; color:var(--warning);" id="gasto-atual">R$ 0,00</div>
+        </div>
+        <div style="text-align:center;">
+          <div style="font-size:11px; color:#64748b;">SALDO RESTANTE</div>
+          <div style="font-size:18px; font-weight:bold; color:var(--success);" id="saldo-restante">R$ 0,00</div>
+        </div>
+      </div>
+      <div class="progress-bar" style="margin-top:10px;">
+        <div class="progress-fill" id="progresso-limite" style="width:0%"></div>
+      </div>
+      <div style="margin-top:10px; font-size:11px; color:#64748b; text-align:center;" id="info-limite">
+        <!-- Informações adicionais sobre o limite -->
+      </div>
+    </div>
+    
     <div class="grid-form">
       <div>
         <label>LITROS ABASTECIDOS *</label>
-        <input type="number" id="tanque-litros" placeholder="0.00" step="0.01" min="0" oninput="calcularValorTanqueCheio()">
+        <input type="number" id="tanque-litros" placeholder="0.00" step="0.01" min="0" oninput="calcularValorTanqueCheio(); verificarLimiteSecretario()">
       </div>
       <div>
         <label>PREÇO POR LITRO (R$)</label>
-        <input type="number" id="tanque-preco" placeholder="0.00" step="0.01" min="0" oninput="calcularValorTanqueCheio()">
+        <input type="number" id="tanque-preco" placeholder="0.00" step="0.01" min="0" oninput="calcularValorTanqueCheio(); verificarLimiteSecretario()">
       </div>
       <div>
         <label>VALOR TOTAL (R$)</label>
@@ -984,7 +1011,7 @@
       <button class="btn-save" style="background: linear-gradient(135deg, var(--danger) 0%, #dc2626 100%);" onclick="fecharModalTanqueCheio()">
         ❌ CANCELAR
       </button>
-      <button class="btn-save" onclick="confirmarTanqueCheio()">
+      <button class="btn-save" id="btn-confirmar-tanque" onclick="confirmarTanqueCheio()">
         ✅ CONFIRMAR ABASTECIMENTO
       </button>
     </div>
@@ -1099,11 +1126,11 @@
       <div class="grid-form">
         <div>
           <label>PLACA *</label>
-          <input type="text" id="f-placa" placeholder="ABC-1234" maxlength="8" oninput="sugerir(this.value); verificarMediaEmTempoReal()">
+          <input type="text" id="f-placa" placeholder="ABC-1234" maxlength="8" oninput="sugerir(this.value); verificarMediaEmTempoReal(); verificarLimiteEmTempoReal()">
         </div>
         <div>
           <label>POSTO *</label>
-          <select id="f-posto" onchange="atualizarPrecosPosto()">
+          <select id="f-posto" onchange="atualizarPrecosPosto(); verificarLimiteEmTempoReal()">
             <option value="">SELECIONE O POSTO</option>
           </select>
         </div>
@@ -1129,7 +1156,7 @@
         </div>
         <div>
           <label>COMBUSTÍVEL *</label>
-          <select id="f-tipo" onchange="calc(); verificarMediaEmTempoReal()">
+          <select id="f-tipo" onchange="calc(); verificarMediaEmTempoReal(); verificarLimiteEmTempoReal()">
             <option value="GASOLINA">GASOLINA</option>
             <option value="ALCOOL">ÁLCOOL</option>
             <option value="DIESEL">DIESEL</option>
@@ -1141,11 +1168,11 @@
         </div>
         <div>
           <label>KM ATUAL *</label>
-          <input type="number" id="f-km" placeholder="0" min="0" oninput="validarKmAtual(); verificarMediaEmTempoReal()">
+          <input type="number" id="f-km" placeholder="0" min="0" oninput="validarKmAtual(); verificarMediaEmTempoReal(); verificarLimiteEmTempoReal()">
         </div>
         <div>
           <label>LITROS *</label>
-          <input type="number" id="f-lit" placeholder="0.00" step="0.01" min="0" oninput="calc(); verificarMediaEmTempoReal()">
+          <input type="number" id="f-lit" placeholder="0.00" step="0.01" min="0" oninput="calc(); verificarMediaEmTempoReal(); verificarLimiteEmTempoReal()">
         </div>
         <div>
           <label>VALOR TOTAL (R$)</label>
@@ -1156,7 +1183,7 @@
       <!-- Opção Tanque Cheio -->
       <div style="grid-column: 1/-1; margin-top:15px;">
         <label style="display:flex; align-items:center; gap:10px; cursor:pointer;">
-          <input type="checkbox" id="f-tanque-cheio" onchange="toggleTanqueCheio()">
+          <input type="checkbox" id="f-tanque-cheio" onchange="toggleTanqueCheio(); verificarLimiteEmTempoReal()">
           <span style="color:var(--warning); font-weight:bold;">⛽ TANQUE CHEIO (Secretário)</span>
         </label>
         <div id="tanque-cheio-info" style="display:none; margin-top:10px; padding:10px; background:#fff3cd; border-radius:8px; font-size:11px;">
@@ -1650,6 +1677,7 @@
   let userPermissions = [];
   let usuarioEditandoPermissoes = null;
   let abastecimentoTanqueCheioAtual = null;
+  let limiteSecretarioAtual = null;
   
   db.ref('config/precos').on('value', snap => {
     if (snap.val()) {
@@ -1805,6 +1833,135 @@
     }
   }
   
+  // NOVA FUNÇÃO: Verificar limite em tempo real
+  function verificarLimiteEmTempoReal() {
+    if (userRole !== 'secretarios') return;
+    
+    // Se for tanque cheio, não validar limite agora
+    const isTanqueCheio = document.getElementById('f-tanque-cheio').checked;
+    if (isTanqueCheio) {
+      // Para tanque cheio, remover alertas
+      const alerta = document.getElementById('alerta-limite');
+      if (alerta) alerta.remove();
+      const info = document.getElementById('info-limite');
+      if (info) info.remove();
+      
+      const btnRegistrar = document.getElementById('btn-registrar');
+      btnRegistrar.disabled = false;
+      btnRegistrar.style.background = '';
+      btnRegistrar.innerHTML = '✔️ REGISTRAR ABASTECIMENTO';
+      return;
+    }
+    
+    const litros = parseFloat(document.getElementById('f-lit').value) || 0;
+    const tipo = document.getElementById('f-tipo').value;
+    const posto = document.getElementById('f-posto').value;
+    
+    if (!posto || litros <= 0) {
+      // Se não tiver dados suficientes, não mostra o alerta
+      return;
+    }
+    
+    const postoData = postos.find(p => p.nome === posto);
+    if (!postoData || !postoData.precos) return;
+    
+    const precoPorLitro = postoData.precos[tipo] || 0;
+    const valorAbastecimento = litros * precoPorLitro;
+    
+    const gastoAtual = cache
+      .filter(x => 
+        (x.status === STATUS.AUTORIZADO || x.status === STATUS.AGUARDANDO) &&
+        x.secretaria === userSecretaria
+      )
+      .reduce((acc, item) => acc + (item.valor || 0), 0);
+    
+    const gastoProjetado = gastoAtual + valorAbastecimento;
+    const saldoRestante = Math.max(0, userLimit - gastoAtual);
+    
+    // Atualizar interface para mostrar situação
+    const valorInput = document.getElementById('f-val');
+    const btnRegistrar = document.getElementById('btn-registrar');
+    
+    if (gastoProjetado > userLimit) {
+      // Excedeu o limite
+      btnRegistrar.disabled = true;
+      btnRegistrar.style.background = 'linear-gradient(135deg, var(--danger) 0%, #dc2626 100%)';
+      btnRegistrar.innerHTML = '⛔ LIMITE EXCEDIDO';
+      
+      // Mostrar alerta visual
+      valorInput.style.borderColor = 'var(--danger)';
+      valorInput.style.backgroundColor = '#fee2e2';
+      valorInput.style.color = 'var(--danger)';
+      
+      // Adicionar tooltip/informação
+      if (!document.getElementById('alerta-limite')) {
+        const alerta = document.createElement('div');
+        alerta.id = 'alerta-limite';
+        alerta.style.marginTop = '10px';
+        alerta.style.padding = '10px';
+        alerta.style.background = '#fee2e2';
+        alerta.style.borderRadius = '6px';
+        alerta.style.borderLeft = '4px solid var(--danger)';
+        alerta.style.fontSize = '11px';
+        alerta.innerHTML = `
+          <strong>⚠️ LIMITE EXCEDIDO!</strong><br>
+          Limite: R$ ${userLimit.toFixed(2)}<br>
+          Gasto atual: R$ ${gastoAtual.toFixed(2)}<br>
+          Valor deste abastecimento: R$ ${valorAbastecimento.toFixed(2)}<br>
+          <strong>Reduza os litros para continuar.</strong>
+        `;
+        
+        const form = document.querySelector('.grid-form');
+        if (form) {
+          form.appendChild(alerta);
+        }
+      }
+    } else {
+      // Dentro do limite
+      btnRegistrar.disabled = false;
+      btnRegistrar.style.background = '';
+      btnRegistrar.innerHTML = '✔️ REGISTRAR ABASTECIMENTO';
+      
+      valorInput.style.borderColor = '#e2e8f0';
+      valorInput.style.backgroundColor = '#f1f5f9';
+      valorInput.style.color = '#1e293b';
+      
+      // Remover alerta se existir
+      const alerta = document.getElementById('alerta-limite');
+      if (alerta) {
+        alerta.remove();
+      }
+      
+      // Mostrar informação de saldo se estiver próximo do limite
+      if (saldoRestante < userLimit * 0.3 && saldoRestante > 0) {
+        if (!document.getElementById('info-limite')) {
+          const info = document.createElement('div');
+          info.id = 'info-limite';
+          info.style.marginTop = '10px';
+          info.style.padding = '8px';
+          info.style.background = '#fff3cd';
+          info.style.borderRadius = '6px';
+          info.style.borderLeft = '4px solid var(--warning)';
+          info.style.fontSize = '10px';
+          info.innerHTML = `
+            <strong>⚠️ ATENÇÃO AO LIMITE</strong><br>
+            Saldo restante: <strong>R$ ${saldoRestante.toFixed(2)}</strong>
+          `;
+          
+          const form = document.querySelector('.grid-form');
+          if (form) {
+            form.appendChild(info);
+          }
+        }
+      } else {
+        const info = document.getElementById('info-limite');
+        if (info) {
+          info.remove();
+        }
+      }
+    }
+  }
+  
   function logar() {
     const u = document.getElementById('user').value.toLowerCase().trim();
     const s = document.getElementById('senha').value.trim();
@@ -1922,6 +2079,11 @@
     
     // Atualizar previsão de consumo
     atualizarPrevisaoConsumo();
+    
+    // Verificar limite em tempo real para secretários
+    if (userRole === 'secretarios') {
+      verificarLimiteEmTempoReal();
+    }
   }
   
   function atualizarPrevisaoConsumo() {
@@ -2125,6 +2287,8 @@
       const erros = validarAbastecimento(dados);
       if (erros.length > 0) {
         mostrarNotificacao(erros.join("\n"), "error");
+        btnRegistrar.disabled = false;
+        btnRegistrar.innerHTML = textoOriginal;
         return;
       }
   
@@ -2135,6 +2299,8 @@
           "⛔ VOCÊ NÃO TEM PERMISSÃO PARA ESTE TIPO DE COMBUSTÍVEL!",
           "error"
         );
+        btnRegistrar.disabled = false;
+        btnRegistrar.innerHTML = textoOriginal;
         return;
       }
   
@@ -2145,6 +2311,8 @@
           "❌ ERRO: PREÇO DO COMBUSTÍVEL NÃO CONFIGURADO NO POSTO!",
           "error"
         );
+        btnRegistrar.disabled = false;
+        btnRegistrar.innerHTML = textoOriginal;
         return;
       }
   
@@ -2155,6 +2323,35 @@
       } else {
         dados.precoPorLitro = postoData.precos[dados.tipo];
         dados.valor = dados.litro * dados.precoPorLitro;
+      }
+
+      // 🔴 NOVA VALIDAÇÃO: Verificar limite do secretário
+      if (userRole === 'secretarios' && !dados.tanqueCheio) {
+        const gastoAtual = cache
+          .filter(x => 
+            (x.status === STATUS.AUTORIZADO || x.status === STATUS.AGUARDANDO) &&
+            x.secretaria === userSecretaria
+          )
+          .reduce((acc, item) => acc + (item.valor || 0), 0);
+        
+        const gastoProjetado = gastoAtual + dados.valor;
+        
+        if (gastoProjetado > userLimit) {
+          const saldoRestante = Math.max(0, userLimit - gastoAtual);
+          mostrarNotificacao(
+            `❌ LIMITE ORÇAMENTÁRIO EXCEDIDO!\n\n` +
+            `Limite mensal: R$ ${userLimit.toFixed(2)}\n` +
+            `Gasto atual: R$ ${gastoAtual.toFixed(2)}\n` +
+            `Valor deste abastecimento: R$ ${dados.valor.toFixed(2)}\n` +
+            `Gasto projetado: R$ ${gastoProjetado.toFixed(2)}\n` +
+            `Saldo restante: R$ ${saldoRestante.toFixed(2)}\n\n` +
+            `Você precisa reduzir os litros ou cancelar o registro.`,
+            "error"
+          );
+          btnRegistrar.disabled = false;
+          btnRegistrar.innerHTML = textoOriginal;
+          return;
+        }
       }
   
       // NOVO: 🔍 Validar média do veículo antes de registrar
@@ -2190,7 +2387,11 @@
   
         if (ultimosAbastecimentos.length > 0) {
           const confirmar = await mostrarModalHistorico(dados.placa, ultimosAbastecimentos);
-          if (!confirmar) return;
+          if (!confirmar) {
+            btnRegistrar.disabled = false;
+            btnRegistrar.innerHTML = textoOriginal;
+            return;
+          }
         }
       }
   
@@ -2231,6 +2432,110 @@
     }
   }
   
+  // NOVA FUNÇÃO: Carregar informações do limite do secretário
+  async function carregarLimiteSecretario(abastecimento) {
+    const limiteDiv = document.getElementById('tanque-cheio-limite');
+    const secretaria = abastecimento.secretaria;
+    
+    // Buscar todos os usuários para encontrar o secretário responsável
+    const usuariosSnapshot = await db.ref('usuarios').once('value');
+    const usuarios = [];
+    let secretarioEncontrado = null;
+    
+    usuariosSnapshot.forEach(snap => {
+      const usuario = snap.val();
+      usuario.id = snap.key;
+      usuarios.push(usuario);
+      
+      // Procurar usuário do tipo secretarios vinculado à secretaria do abastecimento
+      if (usuario.role === 'secretarios' && 
+          usuario.secretariaVinculada === secretaria) {
+        secretarioEncontrado = usuario;
+      }
+    });
+    
+    if (!secretarioEncontrado) {
+      limiteDiv.style.display = 'none';
+      limiteSecretarioAtual = null;
+      return;
+    }
+    
+    // Calcular gasto atual da secretaria no mês atual
+    const hoje = new Date();
+    const mesAtual = hoje.getMonth();
+    const anoAtual = hoje.getFullYear();
+    
+    const gastoAtual = cache
+      .filter(x => 
+        x.status === STATUS.AUTORIZADO &&
+        x.secretaria === secretaria &&
+        !x.tanqueCheio // Excluir tanques cheios pendentes
+      )
+      .reduce((acc, item) => acc + (item.valor || 0), 0);
+    
+    const limiteMensal = secretarioEncontrado.limite || 0;
+    const saldoRestante = Math.max(0, limiteMensal - gastoAtual);
+    const percentualGasto = limiteMensal > 0 ? (gastoAtual / limiteMensal * 100) : 0;
+    
+    // Atualizar exibição
+    document.getElementById('limite-mensal').textContent = 
+      `R$ ${limiteMensal.toFixed(2)}`;
+    document.getElementById('gasto-atual').textContent = 
+      `R$ ${gastoAtual.toFixed(2)}`;
+    document.getElementById('saldo-restante').textContent = 
+      `R$ ${saldoRestante.toFixed(2)}`;
+    
+    // Atualizar barra de progresso
+    const progresso = document.getElementById('progresso-limite');
+    progresso.style.width = `${Math.min(100, percentualGasto)}%`;
+    
+    // Definir cor baseada no percentual
+    if (percentualGasto >= 90) {
+      progresso.className = 'progress-fill danger';
+    } else if (percentualGasto >= 70) {
+      progresso.className = 'progress-fill warning';
+    } else {
+      progresso.className = 'progress-fill';
+    }
+    
+    // Informações adicionais
+    const infoDiv = document.getElementById('info-limite');
+    infoDiv.innerHTML = `
+      Secretário: <strong>${secretarioEncontrado.id.toUpperCase()}</strong> | 
+      Secretaria: <strong>${secretaria}</strong>
+    `;
+    
+    limiteDiv.style.display = 'block';
+    limiteSecretarioAtual = { limiteMensal, gastoAtual, saldoRestante };
+    return { limiteMensal, gastoAtual, saldoRestante };
+  }
+  
+  // NOVA FUNÇÃO: Verificar limite do secretário em tempo real
+  function verificarLimiteSecretario() {
+    const valorInput = document.getElementById('tanque-valor');
+    const valorTotal = parseFloat(valorInput.value.replace('R$ ', '').replace(',', '.')) || 0;
+    
+    const saldoElement = document.getElementById('saldo-restante');
+    const saldoRestante = parseFloat(saldoElement.textContent.replace('R$ ', '').replace(',', '.')) || 0;
+    
+    const btnConfirmar = document.getElementById('btn-confirmar-tanque');
+    
+    if (valorTotal > saldoRestante && saldoRestante > 0) {
+      // Valor excede o saldo restante
+      btnConfirmar.disabled = true;
+      btnConfirmar.innerHTML = '⛔ EXCEDE LIMITE';
+      btnConfirmar.style.background = 'linear-gradient(135deg, var(--danger) 0%, #dc2626 100%)';
+      
+      // Mostrar alerta
+      const infoDiv = document.getElementById('info-limite');
+      infoDiv.innerHTML += `<br><span style="color:var(--danger); font-weight:bold;">⚠️ Valor excede o saldo restante em R$ ${(valorTotal - saldoRestante).toFixed(2)}</span>`;
+    } else {
+      btnConfirmar.disabled = false;
+      btnConfirmar.innerHTML = '✅ CONFIRMAR ABASTECIMENTO';
+      btnConfirmar.style.background = '';
+    }
+  }
+  
   // Modal para aprovar tanque cheio
   function abrirModalTanqueCheio(abast) {
     abastecimentoTanqueCheioAtual = abast;
@@ -2242,6 +2547,7 @@
       <p><strong>Combustível:</strong> ${abast.tipo}</p>
       <p><strong>Motorista:</strong> ${abast.motorista}</p>
       <p><strong>Solicitante:</strong> ${abast.solicitadoPor}</p>
+      <p><strong>Secretaria:</strong> ${abast.secretaria}</p>
     `;
     
     // Preencher preço padrão
@@ -2255,6 +2561,19 @@
     document.getElementById('tanque-litros').value = '';
     document.getElementById('tanque-valor').value = '';
     
+    // Carregar informações do limite do secretário
+    if (userRole === 'admin' || loginUser === 'master') {
+      carregarLimiteSecretario(abast);
+    } else {
+      document.getElementById('tanque-cheio-limite').style.display = 'none';
+    }
+    
+    // Resetar botão de confirmação
+    const btnConfirmar = document.getElementById('btn-confirmar-tanque');
+    btnConfirmar.disabled = false;
+    btnConfirmar.innerHTML = '✅ CONFIRMAR ABASTECIMENTO';
+    btnConfirmar.style.background = '';
+    
     // Abrir modal
     document.getElementById('modal-tanque-cheio').style.display = 'flex';
   }
@@ -2264,6 +2583,9 @@
     const preco = parseFloat(document.getElementById('tanque-preco').value) || 0;
     const valorTotal = litros * preco;
     document.getElementById('tanque-valor').value = "R$ " + valorTotal.toFixed(2);
+    
+    // Verificar limite em tempo real
+    verificarLimiteSecretario();
   }
   
   function confirmarTanqueCheio() {
@@ -2285,6 +2607,22 @@
       return;
     }
     
+    // Verificar limite uma última vez
+    const saldoElement = document.getElementById('saldo-restante');
+    const saldoRestante = parseFloat(saldoElement.textContent.replace('R$ ', '').replace(',', '.')) || 0;
+    
+    if (valor > saldoRestante && saldoRestante > 0) {
+      const confirmarExcedente = confirm(
+        `⚠️ ATENÇÃO: VALOR EXCEDE O LIMITE DISPONÍVEL!\n\n` +
+        `Valor do abastecimento: R$ ${valor.toFixed(2)}\n` +
+        `Saldo disponível: R$ ${saldoRestante.toFixed(2)}\n` +
+        `Excedente: R$ ${(valor - saldoRestante).toFixed(2)}\n\n` +
+        `Deseja continuar mesmo assim?`
+      );
+      
+      if (!confirmarExcedente) return;
+    }
+    
     if (!confirm(`Confirmar abastecimento de ${litros}L por R$ ${valor.toFixed(2)}?`)) return;
     
     const dadosAtualizados = {
@@ -2304,7 +2642,8 @@
         registrarAuditoria('ABASTECIMENTO_TANQUE_CHEIO_APROVADO', { 
           id: abastecimentoTanqueCheioAtual.id, 
           litros: litros, 
-          valor: valor 
+          valor: valor,
+          secretaria: abastecimentoTanqueCheioAtual.secretaria
         });
         mostrarNotificacao("✅ TANQUE CHEIO APROVADO COM SUCESSO!", "success");
         fecharModalTanqueCheio();
@@ -2317,6 +2656,7 @@
   function fecharModalTanqueCheio() {
     document.getElementById('modal-tanque-cheio').style.display = 'none';
     abastecimentoTanqueCheioAtual = null;
+    limiteSecretarioAtual = null;
   }
   
   function aprovar(id) {
@@ -3751,6 +4091,18 @@
     document.getElementById('tanque-cheio-info').style.display = 'none';
     document.getElementById('previsao-consumo').style.display = 'none';
     document.getElementById('f-lit').disabled = false;
+    
+    // Remover alertas de limite
+    const alerta = document.getElementById('alerta-limite');
+    if (alerta) alerta.remove();
+    const info = document.getElementById('info-limite');
+    if (info) info.remove();
+    
+    // Resetar botão de registrar
+    const btnRegistrar = document.getElementById('btn-registrar');
+    btnRegistrar.disabled = false;
+    btnRegistrar.style.background = '';
+    btnRegistrar.innerHTML = '✔️ REGISTRAR ABASTECIMENTO';
   }
   
   function limparFiltros() {
