@@ -1,7 +1,6 @@
 <!-- Firebase e Chart.js -->
 <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-database-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-messaging-compat.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css">
 <script src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
@@ -1100,7 +1099,7 @@
       <div class="grid-form">
         <div>
           <label>PLACA *</label>
-          <input type="text" id="f-placa" placeholder="ABC-1234" maxlength="8" oninput="sugerir(this.value)">
+          <input type="text" id="f-placa" placeholder="ABC-1234" maxlength="8" oninput="sugerir(this.value); verificarMediaEmTempoReal()">
         </div>
         <div>
           <label>POSTO *</label>
@@ -1130,7 +1129,7 @@
         </div>
         <div>
           <label>COMBUSTÍVEL *</label>
-          <select id="f-tipo" onchange="calc()">
+          <select id="f-tipo" onchange="calc(); verificarMediaEmTempoReal()">
             <option value="GASOLINA">GASOLINA</option>
             <option value="ALCOOL">ÁLCOOL</option>
             <option value="DIESEL">DIESEL</option>
@@ -1142,11 +1141,11 @@
         </div>
         <div>
           <label>KM ATUAL *</label>
-          <input type="number" id="f-km" placeholder="0" min="0" oninput="validarKmAtual()">
+          <input type="number" id="f-km" placeholder="0" min="0" oninput="validarKmAtual(); verificarMediaEmTempoReal()">
         </div>
         <div>
           <label>LITROS *</label>
-          <input type="number" id="f-lit" placeholder="0.00" step="0.01" min="0" oninput="calc()">
+          <input type="number" id="f-lit" placeholder="0.00" step="0.01" min="0" oninput="calc(); verificarMediaEmTempoReal()">
         </div>
         <div>
           <label>VALOR TOTAL (R$)</label>
@@ -1580,6 +1579,13 @@
     ALCOOL: 9
   };
   
+  // NOVO: Adicionar limites de alerta
+  const LIMITES_ALERTA = {
+    GASOLINA: 9,
+    DIESEL: 6,
+    ALCOOL: 7
+  };
+  
   const PERFIS = {
     MASTER: 'master',
     ADMIN: 'admin',
@@ -1687,6 +1693,116 @@
       infoDiv.style.display = 'none';
     }
     calc();
+  }
+  
+  // NOVO: Função corrigida para calcular média
+  function calcularMedia(abastecimento) {
+    // Buscar o último abastecimento APROVADO do mesmo veículo e combustível
+    const ultimoAbast = cache
+      .filter(v => 
+        v.placa === abastecimento.placa && 
+        v.tipo === abastecimento.tipo &&
+        v.status === STATUS.AUTORIZADO &&
+        v.timestamp < abastecimento.timestamp
+      )
+      .sort((a, b) => b.timestamp - a.timestamp)[0];
+
+    if (!ultimoAbast || abastecimento.litro <= 0) {
+      return 0;
+    }
+
+    const kmRodados = abastecimento.km - ultimoAbast.km;
+    
+    // Verificar se os km são válidos (não podem ser negativos)
+    if (kmRodados <= 0) {
+      return 0;
+    }
+
+    return kmRodados / abastecimento.litro;
+  }
+  
+  // NOVO: Função para validar média do veículo no momento do registro
+  function validarMediaVeiculo(dados) {
+    const ultimoAbast = cache
+      .filter(x => 
+        x.placa === dados.placa && 
+        x.tipo === dados.tipo &&
+        x.status === STATUS.AUTORIZADO
+      )
+      .sort((a, b) => b.timestamp - a.timestamp)[0];
+
+    if (!ultimoAbast || dados.litro <= 0) {
+      return { valido: true }; // Sem histórico suficiente
+    }
+
+    const kmRodados = dados.km - ultimoAbast.km;
+    
+    if (kmRodados <= 0) {
+      return { valido: true }; // Km inválido, não calcular
+    }
+
+    const media = kmRodados / dados.litro;
+    const limiteAlerta = LIMITES_ALERTA[dados.tipo];
+
+    return {
+      valido: true,
+      media: media,
+      abaixoDoLimite: media < limiteAlerta,
+      limite: limiteAlerta,
+      ultimoKm: ultimoAbast.km,
+      kmRodados: kmRodados
+    };
+  }
+  
+  // NOVO: Função para verificar média em tempo real no formulário
+  function verificarMediaEmTempoReal() {
+    const placa = document.getElementById('f-placa').value.toUpperCase().trim();
+    const tipo = document.getElementById('f-tipo').value;
+    const litros = parseFloat(document.getElementById('f-lit').value) || 0;
+    const kmAtual = parseFloat(document.getElementById('f-km').value) || 0;
+    
+    if (!placa || litros <= 0 || kmAtual <= 0) {
+      // Se não tiver dados suficientes, não mostra o alerta
+      return;
+    }
+    
+    const validacao = validarMediaVeiculo({
+      placa: placa,
+      tipo: tipo,
+      litro: litros,
+      km: kmAtual
+    });
+    
+    const previsaoDiv = document.getElementById('previsao-content');
+    // Remover alertas anteriores
+    const alertaAnterior = previsaoDiv.querySelector('.alerta-media-tempo-real');
+    if (alertaAnterior) {
+      alertaAnterior.remove();
+    }
+    
+    if (validacao.abaixoDoLimite) {
+      const limiteAlerta = LIMITES_ALERTA[tipo];
+      
+      const alertaDiv = document.createElement('div');
+      alertaDiv.className = 'alerta-media-tempo-real';
+      alertaDiv.style.marginTop = '10px';
+      alertaDiv.style.padding = '10px';
+      alertaDiv.style.background = '#fee2e2';
+      alertaDiv.style.borderRadius = '6px';
+      alertaDiv.style.borderLeft = '4px solid var(--danger)';
+      
+      alertaDiv.innerHTML = `
+        <div style="font-size:11px; color:#b91c1c; font-weight:bold;">
+          ⚠️ ALERTA: Média abaixo do esperado!
+        </div>
+        <div style="font-size:10px; color:#b91c1c; margin-top:5px;">
+          Média calculada: <strong>${validacao.media.toFixed(2)} km/l</strong><br>
+          Mínimo esperado para ${tipo}: <strong>${limiteAlerta} km/l</strong>
+        </div>
+      `;
+      
+      previsaoDiv.appendChild(alertaDiv);
+    }
   }
   
   function logar() {
@@ -1877,6 +1993,9 @@
     `;
     
     document.getElementById('previsao-consumo').style.display = 'block';
+    
+    // Adicionar verificação de média em tempo real
+    verificarMediaEmTempoReal();
   }
   
   function validarKmAtual() {
@@ -1937,26 +2056,6 @@
         selectRel.innerHTML += `<option value="${p.nome}">${p.nome}</option>`;
       });
     }
-  }
-  
-  function calcularMedia(abastecimento) {
-    const historico = cache
-      .filter(v => 
-        v.placa === abastecimento.placa && 
-        v.timestamp < abastecimento.timestamp &&
-        v.status === STATUS.AUTORIZADO
-      )
-      .sort((a, b) => b.timestamp - a.timestamp);
-    
-    if (historico.length === 0 || abastecimento.litro <= 0) {
-      return 0;
-    }
-    
-    const kmAnterior = historico[0].km;
-    const kmAtual = abastecimento.km;
-    const litros = abastecimento.litro;
-    
-    return (kmAtual - kmAnterior) / litros;
   }
   
   function validarAbastecimento(dados) {
@@ -2056,6 +2155,30 @@
       } else {
         dados.precoPorLitro = postoData.precos[dados.tipo];
         dados.valor = dados.litro * dados.precoPorLitro;
+      }
+  
+      // NOVO: 🔍 Validar média do veículo antes de registrar
+      if (!dados.tanqueCheio) { // Tanque cheio não calcula média agora
+        const validacaoMedia = validarMediaVeiculo(dados);
+        
+        if (validacaoMedia.media > 0 && validacaoMedia.abaixoDoLimite) {
+          const confirmar = confirm(
+            `⚠️ ALERTA: MÉDIA DE CONSUMO BAIXA!\n\n` +
+            `Veículo: ${dados.placa}\n` +
+            `Tipo: ${dados.tipo}\n` +
+            `KM rodados: ${validacaoMedia.kmRodados.toFixed(0)} km\n` +
+            `Litros: ${dados.litro.toFixed(2)} L\n` +
+            `Média calculada: ${validacaoMedia.media.toFixed(2)} km/l\n` +
+            `Mínimo esperado: ${validacaoMedia.limite} km/l\n\n` +
+            `Deseja continuar com o registro?`
+          );
+          
+          if (!confirmar) {
+            btnRegistrar.disabled = false;
+            btnRegistrar.innerHTML = textoOriginal;
+            return;
+          }
+        }
       }
   
       // 🧾 AVULSOS / GERAL — histórico
@@ -2333,8 +2456,8 @@
         
         const mediaGeral = totalLitros > 0 ? totalKm / totalLitros : 0;
         
-        // Limites personalizados por tipo de combustível
-        const limiteAlerta = veiculo.tipo === 'DIESEL' ? 4 : 9;
+        // NOVO: Usar os limites de alerta específicos
+        const limiteAlerta = LIMITES_ALERTA[veiculo.tipo] || 9;
         
         if (mediaGeral > 0 && mediaGeral < limiteAlerta) {
           alertasMediaBaixa.push({
@@ -2518,14 +2641,16 @@
       `;
       
       ultimosAbastecimentos.forEach((abast, index) => {
-        const mediaAbast = index < ultimosAbastecimentos.length - 1 
-          ? (abast.km - ultimosAbastecimentos[index + 1].km) / abast.litro 
-          : 0;
+        const mediaAbast = calcularMedia(abast);
         
         const corSecretaria = abast.secretaria === 'AVULSOS / GERAL' ? '#94a3b8' : 'var(--accent)';
         
+        // NOVO: Verificar se a média está abaixo do limite de alerta
+        const limiteAlerta = LIMITES_ALERTA[abast.tipo] || 9;
+        const temAlertaMedia = mediaAbast > 0 && mediaAbast < limiteAlerta;
+        
         html += `
-          <div style="background:white; padding:12px; border-radius:8px; margin-bottom:10px; border-left:4px solid ${corSecretaria};">
+          <div style="background:white; padding:12px; border-radius:8px; margin-bottom:10px; border-left:4px solid ${temAlertaMedia ? 'var(--danger)' : corSecretaria};">
             <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:8px;">
               <div>
                 <div style="font-size:10px; color:#64748b; text-transform:uppercase;">Data</div>
@@ -2547,8 +2672,9 @@
               </div>
               <div style="text-align:center;">
                 <div style="font-size:10px; color:#64748b;">MÉDIA</div>
-                <div style="font-size:13px; font-weight:bold; color:${mediaAbast > 0 && mediaAbast < 4 ? 'var(--danger)' : 'var(--success)'};">
+                <div style="font-size:13px; font-weight:bold; color:${temAlertaMedia ? 'var(--danger)' : (mediaAbast > 0 && mediaAbast >= limiteAlerta ? 'var(--success)' : '#64748b')};">
                   ${mediaAbast > 0 ? mediaAbast.toFixed(2) + ' km/l' : '---'}
+                  ${temAlertaMedia ? ' ⚠️' : ''}
                 </div>
               </div>
               <div style="text-align:center;">
@@ -2743,17 +2869,9 @@
       let linhas = "";
       itens.forEach(d => {
         const media = calcularMedia(d);
-        const limiteMinimo = d.tipo === 'DIESEL' ? 4 : 9;
-        const limiteExcelente = d.tipo === 'DIESEL' ? 8 : 12;
-        
-        let classeAlerta = "";
-        if (media > 0) {
-          if (media < limiteMinimo) {
-            classeAlerta = "alerta-media";
-          } else if (media >= limiteExcelente) {
-            classeAlerta = "eficiencia-excelente";
-          }
-        }
+        // NOVO: Usar os limites de alerta específicos
+        const limiteAlerta = LIMITES_ALERTA[d.tipo];
+        const classeAlerta = (media > 0 && media < limiteAlerta) ? "alerta-media" : "";
         
         linhas += `<tr class="${classeAlerta}">
           <td>${d.data.split('-').reverse().join('/')}</td>
@@ -2766,7 +2884,7 @@
           <td>${d.litro.toFixed(2)} L</td>
           ${!isFrentista ? `
           <td ${classeAlerta ? `style="font-weight:bold;"` : ''}>
-            ${media > 0 ? media.toFixed(2) + ' km/l' + (classeAlerta === 'alerta-media' ? ' 🚨' : classeAlerta === 'eficiencia-excelente' ? ' ⭐' : '') : '---'}
+            ${media > 0 ? media.toFixed(2) + ' km/l' + (classeAlerta ? ' 🚨' : '') : '---'}
           </td>
           <td>R$ ${d.valor.toFixed(2)}</td>
           ` : ''}
@@ -3075,13 +3193,16 @@
       let eficienciaClass = '';
       let eficienciaTexto = '';
       
-      if (item.media >= 12) {
+      // NOVO: Usar limites de alerta específicos para determinar a classificação
+      const limiteAlerta = item.media ? LIMITES_ALERTA[cache.find(x => x.placa === item.placa)?.tipo] || 9 : 9;
+      
+      if (item.media >= (limiteAlerta + 3)) {
         eficienciaClass = 'eficiencia-excelente';
         eficienciaTexto = '⭐ EXCELENTE';
-      } else if (item.media >= 7) {
+      } else if (item.media >= limiteAlerta) {
         eficienciaClass = '';
         eficienciaTexto = '✅ BOA';
-      } else if (item.media >= 4) {
+      } else if (item.media >= (limiteAlerta - 2)) {
         eficienciaClass = 'alerta-km-alto';
         eficienciaTexto = '⚠️ REGULAR';
       } else {
@@ -3241,6 +3362,9 @@
     // Preparar dados para Excel
     const dadosExcel = registros.map(r => {
       const media = calcularMedia(r);
+      const limiteAlerta = LIMITES_ALERTA[r.tipo];
+      const alerta = (media > 0 && media < limiteAlerta) ? 'SIM' : 'NÃO';
+      
       return {
         'DATA': r.data.split('-').reverse().join('/'),
         'PLACA': r.placa,
@@ -3251,6 +3375,8 @@
         'KM': r.km,
         'LITROS': r.litro.toFixed(2),
         'MÉDIA (KM/L)': media > 0 ? media.toFixed(2) : '---',
+        'LIMITE ALERTA': limiteAlerta,
+        'ALERTA BAIXA MÉDIA': alerta,
         'VALOR (R$)': r.valor.toFixed(2),
         'STATUS': r.status,
         'TANQUE CHEIO': r.tanqueCheio ? 'Sim' : 'Não'
@@ -3793,8 +3919,9 @@
     
     registros.sort((a, b) => b.timestamp - a.timestamp).forEach(r => {
       const media = calcularMedia(r);
-      const limiteMinimo = r.tipo === 'DIESEL' ? 4 : 9;
-      const classeAlerta = media > 0 && media < limiteMinimo ? 'alerta-media' : '';
+      // NOVO: Usar limites de alerta específicos
+      const limiteAlerta = LIMITES_ALERTA[r.tipo];
+      const classeAlerta = (media > 0 && media < limiteAlerta) ? 'alerta-media' : '';
       
       html += `<tr class="${classeAlerta}">
         <td>${r.data.split('-').reverse().join('/')}</td>
@@ -4526,18 +4653,27 @@
     const container = document.getElementById('alertas-executivo');
     let alertas = [];
     
-    // Verificar veículos com eficiência crítica
-    const veiculosCriticos = cache.filter(x => {
-      const media = calcularMediaAvancada(x.placa, x.tipo);
-      const limite = x.tipo === 'DIESEL' ? 4 : 9;
-      return media > 0 && media < limite;
-    }).length;
+    // Verificar veículos com eficiência crítica usando os novos limites
+    const veiculosCriticos = [];
     
-    if (veiculosCriticos > 0) {
+    cache.filter(x => x.status === STATUS.AUTORIZADO).forEach(abast => {
+      const media = calcularMedia(abast);
+      const limiteAlerta = LIMITES_ALERTA[abast.tipo];
+      if (media > 0 && media < limiteAlerta) {
+        if (!veiculosCriticos.includes(abast.placa)) {
+          veiculosCriticos.push(abast.placa);
+        }
+      }
+    });
+    
+    if (veiculosCriticos.length > 0) {
       alertas.push(`
         <div class="alert-box danger">
-          <strong>🚨 ${veiculosCriticos} VEÍCULO(S) COM EFICIÊNCIA CRÍTICA</strong><br>
+          <strong>🚨 ${veiculosCriticos.length} VEÍCULO(S) COM EFICIÊNCIA CRÍTICA</strong><br>
           <span style="font-size:11px;">Recomenda-se revisão preventiva urgente</span>
+          <div style="margin-top:10px; font-size:11px;">
+            Veículos: ${veiculosCriticos.join(', ')}
+          </div>
         </div>
       `);
     }
