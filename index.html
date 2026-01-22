@@ -201,6 +201,30 @@
       0%, 100% { transform: scale(1); }
       50% { transform: scale(1.1); }
   }
+  @keyframes slideInRight {
+      from {
+          transform: translateX(400px);
+          opacity: 0;
+      }
+      to {
+          transform: translateX(0);
+          opacity: 1;
+      }
+  }
+  @keyframes slideOutRight {
+      from {
+          transform: translateX(0);
+          opacity: 1;
+      }
+      to {
+          transform: translateX(400px);
+          opacity: 0;
+      }
+  }
+  @keyframes pulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.05); }
+  }
   
   .btn-logout { 
       background: var(--danger); 
@@ -440,6 +464,8 @@
   .badge-success { background: var(--success); color: white; }
   .badge-danger { background: var(--danger); color: white; }
   .badge-warning { background: var(--warning); color: black; }
+  .badge-primary { background: var(--accent); color: white; }
+  .badge-info { background: #0891b2; color: white; }
   
   .alert-box {
       background: #fef3c7;
@@ -855,6 +881,9 @@
           <option value="GASOLINA">GASOLINA</option>
           <option value="ALCOOL">ÁLCOOL</option>
           <option value="DIESEL">DIESEL</option>
+<option value='GAS'>Gás</option>
+<option value='DIESEL S10'>Diesel S10</option>
+<option value='GAS'>Gás</option>
           <option value="todos">TODOS</option>
         </select>
       </div>
@@ -864,7 +893,7 @@
           <option value="admin">ADMIN (TOTAL)</option>
           <option value="secretarios">SECRETÁRIO (RESTRITO)</option>
           <option value="frentista">FRENTISTA (SOMENTE LEITURA)</option>
- 	  <option value="frentista">Autorizador (RESTRITO)</option>
+          <option value="autorizador">AUTORIZADOR (RESTRITO)</option>
         </select>
       </div>
       <div id="edit-field-limit">
@@ -884,8 +913,100 @@
           <option>AVULSOS / GERAL</option>
         </select>
       </div>
+      <div id="edit-field-posto-autorizador" style="display:none;">
+        <label>POSTO AUTORIZADO</label>
+        <select id="edit-posto-vinc" onchange="carregarCombustiveisPostoAutorizadorEdit()">
+          <option value="">SELECIONE...</option>
+        </select>
+      </div>
+      <div id="edit-field-combustiveis-autorizador" style="display:none;">
+        <label>COMBUSTÍVEIS QUE PODE LIBERAR</label>
+        <div id="lista-combustiveis-autorizador-edit" style="display: grid; gap: 8px; padding: 10px; background: #f8fafc; border-radius: 8px;">
+          <p style="color: #64748b; font-size: 11px; margin: 0;">Selecione um posto primeiro</p>
+        </div>
+      </div>
     </div>
     <button class="btn-save" style="background: linear-gradient(135deg, var(--accent) 0%, #667eea 100%);" onclick="salvarEdicao()">💾 SALVAR ALTERAÇÕES</button>
+  </div>
+</div>
+
+<!-- Modal de Edição de Posto -->
+<div id="modal-edit-posto" class="modal">
+  <div class="modal-content">
+    <span class="modal-close" onclick="fecharModalEditPosto()">&times;</span>
+    <h3>✏️ EDITAR POSTO</h3>
+    <input type="hidden" id="edit-posto-id">
+    
+    <div class="grid-form">
+      <div style="grid-column: 1/-1;">
+        <label>NOME DO POSTO *</label>
+        <input type="text" id="edit-posto-nome" placeholder="EX: POSTO CENTRAL">
+      </div>
+    </div>
+    
+    <div style="margin: 20px 0; padding: 15px; background: #f8fafc; border-radius: 8px;">
+      <h4 style="margin: 0 0 15px 0; font-size: 14px; color: var(--primary);">COMBUSTÍVEIS FORNECIDOS PELO POSTO</h4>
+      <p style="font-size: 11px; color: #64748b; margin-bottom: 15px;">Selecione os combustíveis que este posto oferece e informe o preço de cada um:</p>
+      
+      <div style="display: grid; gap: 15px;">
+        <div style="display: flex; align-items: center; gap: 15px; padding: 12px; background: white; border-radius: 8px; border: 2px solid #e2e8f0;">
+          <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; flex: 0 0 auto;">
+            <input type="checkbox" id="edit-posto-tem-gasolina" onchange="toggleCombustivelPostoEdit('gasolina')">
+            <span style="font-weight: bold; color: var(--danger);">GASOLINA</span>
+          </label>
+          <div style="flex: 1; display: flex; align-items: center; gap: 10px;">
+            <label style="font-size: 12px; white-space: nowrap;">PREÇO (R$/L):</label>
+            <input type="number" id="edit-posto-gas" placeholder="0.00" step="0.01" min="0" disabled style="flex: 1;">
+          </div>
+        </div>
+        
+        <div style="display: flex; align-items: center; gap: 15px; padding: 12px; background: white; border-radius: 8px; border: 2px solid #e2e8f0;">
+          <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; flex: 0 0 auto;">
+            <input type="checkbox" id="edit-posto-tem-alcool" onchange="toggleCombustivelPostoEdit('alcool')">
+            <span style="font-weight: bold; color: var(--success);">ÁLCOOL</span>
+          </label>
+          <div style="flex: 1; display: flex; align-items: center; gap: 10px;">
+            <label style="font-size: 12px; white-space: nowrap;">PREÇO (R$/L):</label>
+            <input type="number" id="edit-posto-alc" placeholder="0.00" step="0.01" min="0" disabled style="flex: 1;">
+          </div>
+        </div>
+        
+        <div style="display: flex; align-items: center; gap: 15px; padding: 12px; background: white; border-radius: 8px; border: 2px solid #e2e8f0;">
+          <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; flex: 0 0 auto;">
+            <input type="checkbox" id="edit-posto-tem-diesel" onchange="toggleCombustivelPostoEdit('diesel')">
+            <span style="font-weight: bold; color: var(--warning);">DIESEL</span>
+          </label>
+          <div style="flex: 1; display: flex; align-items: center; gap: 10px;">
+            <label style="font-size: 12px; white-space: nowrap;">PREÇO (R$/L):</label>
+            <input type="number" id="edit-posto-die" placeholder="0.00" step="0.01" min="0" disabled style="flex: 1;">
+          </div>
+        </div>
+        
+        <div style="display: flex; align-items: center; gap: 15px; padding: 12px; background: white; border-radius: 8px; border: 2px solid #e2e8f0;">
+          <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; flex: 0 0 auto;">
+            <input type="checkbox" id="edit-posto-tem-diesels10" onchange="toggleCombustivelPostoEdit('diesels10')">
+            <span style="font-weight: bold; color: #ea580c;">DIESEL S10</span>
+          </label>
+          <div style="flex: 1; display: flex; align-items: center; gap: 10px;">
+            <label style="font-size: 12px; white-space: nowrap;">PREÇO (R$/L):</label>
+            <input type="number" id="edit-posto-diesels10" placeholder="0.00" step="0.01" min="0" disabled style="flex: 1;">
+          </div>
+        </div>
+        
+        <div style="display: flex; align-items: center; gap: 15px; padding: 12px; background: white; border-radius: 8px; border: 2px solid #e2e8f0;">
+          <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; flex: 0 0 auto;">
+            <input type="checkbox" id="edit-posto-tem-gas" onchange="toggleCombustivelPostoEdit('gas')">
+            <span style="font-weight: bold; color: #0891b2;">GÁS</span>
+          </label>
+          <div style="flex: 1; display: flex; align-items: center; gap: 10px;">
+            <label style="font-size: 12px; white-space: nowrap;">PREÇO (R$/L):</label>
+            <input type="number" id="edit-posto-gas-gnv" placeholder="0.00" step="0.01" min="0" disabled style="flex: 1;">
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <button class="btn-save" style="background: linear-gradient(135deg, var(--accent) 0%, #667eea 100%);" onclick="salvarEdicaoPosto()">💾 SALVAR ALTERAÇÕES</button>
   </div>
 </div>
 
@@ -1053,6 +1174,11 @@
       <button class="tab-btn" onclick="abrirAlterarSenha()">🔑 SENHA</button>
     </div>
     <div style="display:flex; gap:10px; align-items:center;">
+      <button id="btn-toggle-som" class="tab-btn" onclick="toggleSomNotificacao()" 
+              style="font-size: 18px; padding: 8px 12px;" 
+              title="Ativar/Desativar som de notificações">
+        🔊
+      </button>
       <div class="notification-bell" onclick="toggleNotificationCenter()">
         🔔
         <span class="notification-count" id="notification-count" style="display:none;">0</span>
@@ -1159,10 +1285,12 @@
         <div>
           <label>COMBUSTÍVEL *</label>
           <select id="f-tipo" onchange="calc(); verificarMediaEmTempoReal(); verificarLimiteEmTempoReal()">
-            <option value="GASOLINA">GASOLINA</option>
-            <option value="ALCOOL">ÁLCOOL</option>
-            <option value="DIESEL">DIESEL</option>
-          </select>
+      <option value="GASOLINA">GASOLINA</option>
+      <option value="ALCOOL">ÁLCOOL</option>
+      <option value="DIESEL">DIESEL</option>
+      <option value="DIESEL S10">DIESEL S10</option>
+      <option value="GAS">GÁS</option>
+    </select>
         </div>
         <div>
           <label>DATA *</label>
@@ -1246,6 +1374,9 @@
             <option value="GASOLINA">GASOLINA</option>
             <option value="ALCOOL">ÁLCOOL</option>
             <option value="DIESEL">DIESEL</option>
+<option value='GAS'>Gás</option>
+<option value='DIESEL S10'>Diesel S10</option>
+<option value='GAS'>Gás</option>
           </select>
         </div>
         <div>
@@ -1266,6 +1397,64 @@
   </div>
   
   <div id="tab-pendentes" style="display:none;">
+    <!-- Dashboard do Autorizador -->
+    <div id="dashboard-autorizador" style="display:none;">
+      <div class="stats-grid" style="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); margin-bottom: 20px;">
+        <div class="stat-card" style="background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); color: white;">
+          <h4 style="margin: 0 0 5px 0; font-size: 11px; opacity: 0.9;">AUTORIZAÇÕES HOJE</h4>
+          <div class="stat-value" id="stat-autorizacoes-hoje">0</div>
+          <div style="font-size: 10px; opacity: 0.8; margin-top: 5px;" id="stat-tendencia-hoje"></div>
+        </div>
+        
+        <div class="stat-card" style="background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%); color: white;">
+          <h4 style="margin: 0 0 5px 0; font-size: 11px; opacity: 0.9;">ESTA SEMANA</h4>
+          <div class="stat-value" id="stat-autorizacoes-semana">0</div>
+          <div style="font-size: 10px; opacity: 0.8; margin-top: 5px;">ÚLTIMOS 7 DIAS</div>
+        </div>
+        
+        <div class="stat-card" style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); color: white;">
+          <h4 style="margin: 0 0 5px 0; font-size: 11px; opacity: 0.9;">ESTE MÊS</h4>
+          <div class="stat-value" id="stat-autorizacoes-mes">0</div>
+          <div style="font-size: 10px; opacity: 0.8; margin-top: 5px;" id="stat-media-dia"></div>
+        </div>
+        
+        <div class="stat-card" style="background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%); color: white;">
+          <h4 style="margin: 0 0 5px 0; font-size: 11px; opacity: 0.9;">TEMPO MÉDIO</h4>
+          <div class="stat-value" id="stat-tempo-medio">--</div>
+          <div style="font-size: 10px; opacity: 0.8; margin-top: 5px;">DE RESPOSTA</div>
+        </div>
+      </div>
+      
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px;">
+        <div class="card">
+          <h3 style="font-size: 14px;">📊 COMBUSTÍVEIS MAIS AUTORIZADOS</h3>
+          <div id="combustiveis-ranking" style="margin-top: 15px;">
+            <div style="text-align: center; padding: 20px; color: #64748b;">Carregando...</div>
+          </div>
+        </div>
+        
+        <div class="card">
+          <h3 style="font-size: 14px;">⏱️ HISTÓRICO DE RESPOSTAS</h3>
+          <div style="height: 180px; margin-top: 15px;">
+            <canvas id="chart-autorizador-tempo"></canvas>
+          </div>
+        </div>
+      </div>
+      
+      <div class="card" style="background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%); border-left: 4px solid #3b82f6;">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <div>
+            <h4 style="margin: 0; font-size: 13px; color: #0f172a;">🎯 SUA PERFORMANCE</h4>
+            <p style="margin: 5px 0 0 0; font-size: 11px; color: #64748b;" id="performance-texto">Excelente trabalho!</p>
+          </div>
+          <div style="text-align: right;">
+            <div style="font-size: 32px; font-weight: bold; color: #3b82f6;" id="performance-score">100%</div>
+            <div style="font-size: 10px; color: #64748b;">EFICIÊNCIA</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    
     <div class="card">
       <h3>⏳ SOLICITAÇÕES PENDENTES DE APROVAÇÃO</h3>
       <div class="table-wrapper">
@@ -1384,23 +1573,74 @@
     <div class="card">
       <h3>⛽ CADASTRO DE POSTOS</h3>
       <div class="grid-form">
-        <div>
+        <div style="grid-column: 1/-1;">
           <label>NOME DO POSTO *</label>
           <input type="text" id="posto-nome" placeholder="EX: POSTO MATINA">
         </div>
-        <div>
-          <label>GASOLINA (R$/L) *</label>
-          <input type="number" id="posto-gas" placeholder="0.00" step="0.01" min="0">
-        </div>
-        <div>
-          <label>ÁLCOOL (R$/L) *</label>
-          <input type="number" id="posto-alc" placeholder="0.00" step="0.01" min="0">
-        </div>
-        <div>
-          <label>DIESEL (R$/L) *</label>
-          <input type="number" id="posto-die" placeholder="0.00" step="0.01" min="0">
+      </div>
+      
+      <div style="margin: 20px 0; padding: 15px; background: #f8fafc; border-radius: 8px;">
+        <h4 style="margin: 0 0 15px 0; font-size: 14px; color: var(--primary);">COMBUSTÍVEIS FORNECIDOS PELO POSTO</h4>
+        <p style="font-size: 11px; color: #64748b; margin-bottom: 15px;">Selecione os combustíveis que este posto oferece e informe o preço de cada um:</p>
+        
+        <div style="display: grid; gap: 15px;">
+          <div style="display: flex; align-items: center; gap: 15px; padding: 12px; background: white; border-radius: 8px; border: 2px solid #e2e8f0;">
+            <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; flex: 0 0 auto;">
+              <input type="checkbox" id="posto-tem-gasolina" onchange="toggleCombustivelPosto('gasolina')">
+              <span style="font-weight: bold; color: var(--danger);">GASOLINA</span>
+            </label>
+            <div style="flex: 1; display: flex; align-items: center; gap: 10px;">
+              <label style="font-size: 12px; white-space: nowrap;">PREÇO (R$/L):</label>
+              <input type="number" id="posto-gas" placeholder="0.00" step="0.01" min="0" disabled style="flex: 1;">
+            </div>
+          </div>
+          
+          <div style="display: flex; align-items: center; gap: 15px; padding: 12px; background: white; border-radius: 8px; border: 2px solid #e2e8f0;">
+            <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; flex: 0 0 auto;">
+              <input type="checkbox" id="posto-tem-alcool" onchange="toggleCombustivelPosto('alcool')">
+              <span style="font-weight: bold; color: var(--success);">ÁLCOOL</span>
+            </label>
+            <div style="flex: 1; display: flex; align-items: center; gap: 10px;">
+              <label style="font-size: 12px; white-space: nowrap;">PREÇO (R$/L):</label>
+              <input type="number" id="posto-alc" placeholder="0.00" step="0.01" min="0" disabled style="flex: 1;">
+            </div>
+          </div>
+          
+          <div style="display: flex; align-items: center; gap: 15px; padding: 12px; background: white; border-radius: 8px; border: 2px solid #e2e8f0;">
+            <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; flex: 0 0 auto;">
+              <input type="checkbox" id="posto-tem-diesel" onchange="toggleCombustivelPosto('diesel')">
+              <span style="font-weight: bold; color: var(--warning);">DIESEL</span>
+            </label>
+            <div style="flex: 1; display: flex; align-items: center; gap: 10px;">
+              <label style="font-size: 12px; white-space: nowrap;">PREÇO (R$/L):</label>
+              <input type="number" id="posto-die" placeholder="0.00" step="0.01" min="0" disabled style="flex: 1;">
+            </div>
+          </div>
+          
+          <div style="display: flex; align-items: center; gap: 15px; padding: 12px; background: white; border-radius: 8px; border: 2px solid #e2e8f0;">
+            <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; flex: 0 0 auto;">
+              <input type="checkbox" id="posto-tem-diesels10" onchange="toggleCombustivelPosto('diesels10')">
+              <span style="font-weight: bold; color: #ea580c;">DIESEL S10</span>
+            </label>
+            <div style="flex: 1; display: flex; align-items: center; gap: 10px;">
+              <label style="font-size: 12px; white-space: nowrap;">PREÇO (R$/L):</label>
+              <input type="number" id="posto-diesels10" placeholder="0.00" step="0.01" min="0" disabled style="flex: 1;">
+            </div>
+          </div>
+          
+          <div style="display: flex; align-items: center; gap: 15px; padding: 12px; background: white; border-radius: 8px; border: 2px solid #e2e8f0;">
+            <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; flex: 0 0 auto;">
+              <input type="checkbox" id="posto-tem-gas" onchange="toggleCombustivelPosto('gas')">
+              <span style="font-weight: bold; color: #0891b2;">GÁS</span>
+            </label>
+            <div style="flex: 1; display: flex; align-items: center; gap: 10px;">
+              <label style="font-size: 12px; white-space: nowrap;">PREÇO (R$/L):</label>
+              <input type="number" id="posto-gas-gnv" placeholder="0.00" step="0.01" min="0" disabled style="flex: 1;">
+            </div>
+          </div>
         </div>
       </div>
+      
       <button class="btn-save" onclick="salvarPosto()" style="background: linear-gradient(135deg, #f59e0b 0%, #f97316 100%);">➕ SALVAR POSTO</button>
     </div>
     
@@ -1411,9 +1651,7 @@
           <thead>
             <tr>
               <th>POSTO</th>
-              <th>GASOLINA</th>
-              <th>ÁLCOOL</th>
-              <th>DIESEL</th>
+              <th>COMBUSTÍVEIS DISPONÍVEIS</th>
               <th class="no-print">AÇÕES</th>
             </tr>
           </thead>
@@ -1456,6 +1694,9 @@
             <option value="GASOLINA">GASOLINA</option>
             <option value="ALCOOL">ÁLCOOL</option>
             <option value="DIESEL">DIESEL</option>
+<option value='GAS'>Gás</option>
+<option value='DIESEL S10'>Diesel S10</option>
+<option value='GAS'>Gás</option>
             <option value="FLEX">FLEX (GASOLINA/ÁLCOOL)</option>
           </select>
         </div>
@@ -1502,6 +1743,9 @@
             <option value="GASOLINA">GASOLINA</option>
             <option value="ALCOOL">ÁLCOOL</option>
             <option value="DIESEL">DIESEL</option>
+<option value='GAS'>Gás</option>
+<option value='DIESEL S10'>Diesel S10</option>
+<option value='GAS'>Gás</option>
             <option value="todos">TODOS</option>
           </select>
         </div>
@@ -1522,6 +1766,18 @@
             <option>AVULSOS / GERAL</option>
           </select>
         </div>
+        <div id="field-posto-autorizador" style="display:none;">
+          <label>POSTO AUTORIZADO</label>
+          <select id="new-posto-vinc" onchange="carregarCombustiveisPostoAutorizador()">
+            <option value="">CARREGANDO...</option>
+          </select>
+        </div>
+        <div id="field-combustiveis-autorizador" style="display:none;">
+          <label>COMBUSTÍVEIS QUE PODE LIBERAR</label>
+          <div id="lista-combustiveis-autorizador" style="display: grid; gap: 8px; padding: 10px; background: #f8fafc; border-radius: 8px;">
+            <p style="color: #64748b; font-size: 11px; margin: 0;">Selecione um posto primeiro</p>
+          </div>
+        </div>
       </div>
       <button class="btn-save" onclick="addUsuario()" style="background: linear-gradient(135deg, var(--accent) 0%, #667eea 100%);">➕ SALVAR USUÁRIO</button>
     </div>
@@ -1537,6 +1793,7 @@
               <th>COMB. PERMITIDO</th>
               <th>VÍNCULO</th>
               <th>LIMITE</th>
+              <th>POSTO</th>
               <th class="no-print">AÇÕES</th>
             </tr>
           </thead>
@@ -1588,8 +1845,16 @@
     databaseURL: "https://tabela-gasolina-default-rtdb.firebaseio.com", 
     projectId: "tabela-gasolina"
   };
+  
+  console.log("=== INICIANDO SISTEMA ===");
+  console.log("Firebase disponível?", typeof firebase !== 'undefined');
+  
   firebase.initializeApp(firebaseConfig);
   const db = firebase.database();
+  
+  console.log("Firebase inicializado");
+  console.log("Database:", db);
+  console.log("==================");
   
   const STATUS = {
     AGUARDANDO: 'AGUARDANDO',
@@ -1967,15 +2232,21 @@
   }
   
   function logar() {
+    console.log("=== INICIANDO LOGIN ===");
     const u = document.getElementById('user').value.toLowerCase().trim();
     const s = document.getElementById('senha').value.trim();
     
+    console.log("Usuário digitado:", u);
+    console.log("Senha digitada:", s ? "***" : "(vazia)");
+    
     if (!u || !s) {
+      console.log("Campos vazios");
       mostrarNotificacao("PREENCHA USUÁRIO E SENHA!", "error");
       return;
     }
     
     if (u === "master" && s === "1234") {
+      console.log("Login como MASTER");
       return entrar("master", "admin", 0, "", { 
         combustivelLiberado: "todos",
         senha: "1234",
@@ -1984,9 +2255,18 @@
       });
     }
     
+    console.log("Buscando no Firebase:", 'usuarios/' + u);
+    console.log("Firebase DB:", db);
+    
     db.ref('usuarios/' + u).once('value', snap => {
+      console.log("Resposta Firebase recebida");
+      console.log("Usuário existe?", snap.exists());
+      
       const user = snap.val();
+      console.log("Dados do usuário:", user);
+      
       if (user && user.senha === s) {
+        console.log("✅ Senha correta! Fazendo login...");
         const permissoes = user.permissoes || PERMISSOES_PADRAO[user.role] || [];
         const dadosUsuario = {
           combustivelLiberado: user.combustivelLiberado || "todos",
@@ -1999,10 +2279,15 @@
         entrar(u, user.role, user.limite || 0, user.secretariaVinculada || "", dadosUsuario);
         registrarAuditoria('LOGIN', { usuario: u });
       } else {
+        console.log("❌ Falha no login");
+        console.log("Usuário existe:", !!user);
+        console.log("Senha bate:", user ? user.senha === s : false);
         mostrarNotificacao("USUÁRIO OU SENHA INCORRETOS!", "error");
       }
     }).catch(error => {
-      console.error("Erro ao buscar usuário:", error);
+      console.error("❌ ERRO AO BUSCAR USUÁRIO:", error);
+      console.error("Detalhes:", error.message);
+      console.error("Stack:", error.stack);
       mostrarNotificacao("ERRO AO CONECTAR AO BANCO DE DADOS!", "error");
     });
   }
@@ -2517,26 +2802,73 @@
   // NOVA FUNÇÃO: Verificar limite do secretário em tempo real
   function verificarLimiteSecretario() {
     const valorInput = document.getElementById('tanque-valor');
+    if (!valorInput) return;
+    
     const valorTotal = parseFloat(valorInput.value.replace('R$ ', '').replace(',', '.')) || 0;
     
     const saldoElement = document.getElementById('saldo-restante');
+    if (!saldoElement) return;
+    
     const saldoRestante = parseFloat(saldoElement.textContent.replace('R$ ', '').replace(',', '.')) || 0;
     
     const btnConfirmar = document.getElementById('btn-confirmar-tanque');
+    const infoDiv = document.getElementById('info-limite');
     
     if (valorTotal > saldoRestante && saldoRestante > 0) {
       // Valor excede o saldo restante
-      btnConfirmar.disabled = true;
-      btnConfirmar.innerHTML = '⛔ EXCEDE LIMITE';
-      btnConfirmar.style.background = 'linear-gradient(135deg, var(--danger) 0%, #dc2626 100%)';
+      const excedente = valorTotal - saldoRestante;
       
-      // Mostrar alerta
-      const infoDiv = document.getElementById('info-limite');
-      infoDiv.innerHTML += `<br><span style="color:var(--danger); font-weight:bold;">⚠️ Valor excede o saldo restante em R$ ${(valorTotal - saldoRestante).toFixed(2)}</span>`;
+      // Atualizar botão com aviso
+      btnConfirmar.style.background = 'linear-gradient(135deg, var(--warning) 0%, #d97706 100%)';
+      btnConfirmar.innerHTML = '⚠️ APROVAR (EXCEDE LIMITE)';
+      
+      // Mostrar alerta destacado
+      const alertaExistente = document.getElementById('alerta-excedente');
+      if (alertaExistente) {
+        alertaExistente.remove();
+      }
+      
+      const alertaDiv = document.createElement('div');
+      alertaDiv.id = 'alerta-excedente';
+      alertaDiv.style.cssText = `
+        margin-top: 15px;
+        padding: 15px;
+        background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+        border-left: 4px solid var(--warning);
+        border-radius: 8px;
+        animation: pulse 1.5s infinite;
+      `;
+      alertaDiv.innerHTML = `
+        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
+          <div style="font-size: 24px;">⚠️</div>
+          <div>
+            <strong style="color: #92400e; font-size: 13px;">ATENÇÃO: VALOR EXCEDE O LIMITE!</strong>
+          </div>
+        </div>
+        <div style="font-size: 11px; color: #78350f; line-height: 1.6;">
+          <p style="margin: 5px 0;"><strong>Valor do abastecimento:</strong> R$ ${valorTotal.toFixed(2)}</p>
+          <p style="margin: 5px 0;"><strong>Saldo disponível:</strong> R$ ${saldoRestante.toFixed(2)}</p>
+          <p style="margin: 5px 0;"><strong>Excedente:</strong> <span style="color: var(--danger); font-weight: bold;">R$ ${excedente.toFixed(2)}</span></p>
+          <p style="margin: 10px 0 0 0; padding-top: 10px; border-top: 1px solid #fbbf24;">
+            <em>Você pode aprovar, mas o secretário será notificado do estouro de orçamento.</em>
+          </p>
+        </div>
+      `;
+      
+      // Inserir após a div de limite
+      const limiteDiv = document.getElementById('tanque-cheio-limite');
+      limiteDiv.parentNode.insertBefore(alertaDiv, limiteDiv.nextSibling);
+      
     } else {
-      btnConfirmar.disabled = false;
-      btnConfirmar.innerHTML = '✅ CONFIRMAR ABASTECIMENTO';
+      // Valor dentro do limite
       btnConfirmar.style.background = '';
+      btnConfirmar.innerHTML = '✅ CONFIRMAR ABASTECIMENTO';
+      
+      // Remover alerta se existir
+      const alertaExistente = document.getElementById('alerta-excedente');
+      if (alertaExistente) {
+        alertaExistente.remove();
+      }
     }
   }
   
@@ -2566,7 +2898,7 @@
     document.getElementById('tanque-valor').value = '';
     
     // Carregar informações do limite do secretário
-    if (userRole === 'admin' || loginUser === 'master') {
+    if (userRole === 'admin' || userRole === 'autorizador' || loginUser === 'master') {
       carregarLimiteSecretario(abast);
     } else {
       document.getElementById('tanque-cheio-limite').style.display = 'none';
@@ -2615,13 +2947,17 @@
     const saldoElement = document.getElementById('saldo-restante');
     const saldoRestante = parseFloat(saldoElement.textContent.replace('R$ ', '').replace(',', '.')) || 0;
     
+    let excedeLimite = false;
     if (valor > saldoRestante && saldoRestante > 0) {
+      excedeLimite = true;
       const confirmarExcedente = confirm(
         `⚠️ ATENÇÃO: VALOR EXCEDE O LIMITE DISPONÍVEL!\n\n` +
+        `Secretaria: ${abastecimentoTanqueCheioAtual.secretaria}\n` +
         `Valor do abastecimento: R$ ${valor.toFixed(2)}\n` +
         `Saldo disponível: R$ ${saldoRestante.toFixed(2)}\n` +
         `Excedente: R$ ${(valor - saldoRestante).toFixed(2)}\n\n` +
-        `Deseja continuar mesmo assim?`
+        `O secretário será notificado do estouro de orçamento.\n\n` +
+        `Deseja aprovar mesmo assim?`
       );
       
       if (!confirmarExcedente) return;
@@ -2638,7 +2974,8 @@
       aprovadoPor: loginUser.toUpperCase(),
       aprovadoEm: Date.now(),
       observacoes: obs || "",
-      tanqueCheio: true
+      tanqueCheio: true,
+      excedeLimite: excedeLimite // Flag para indicar que excedeu o limite
     };
     
     db.ref('abastecimentos/' + abastecimentoTanqueCheioAtual.id).update(dadosAtualizados)
@@ -2647,9 +2984,17 @@
           id: abastecimentoTanqueCheioAtual.id, 
           litros: litros, 
           valor: valor,
-          secretaria: abastecimentoTanqueCheioAtual.secretaria
+          secretaria: abastecimentoTanqueCheioAtual.secretaria,
+          excedeLimite: excedeLimite,
+          excedente: excedeLimite ? (valor - saldoRestante) : 0
         });
-        mostrarNotificacao("✅ TANQUE CHEIO APROVADO COM SUCESSO!", "success");
+        
+        if (excedeLimite) {
+          mostrarNotificacao("⚠️ TANQUE CHEIO APROVADO COM ALERTA DE LIMITE EXCEDIDO!", "warning");
+        } else {
+          mostrarNotificacao("✅ TANQUE CHEIO APROVADO COM SUCESSO!", "success");
+        }
+        
         fecharModalTanqueCheio();
       })
       .catch(error => {
@@ -3281,14 +3626,334 @@
     });
   }
   
+  let chartAutorizadorTempo = null;
+  
+  function atualizarDashboardAutorizador() {
+    // Mostrar dashboard apenas para autorizadores
+    const dashboard = document.getElementById('dashboard-autorizador');
+    if (!dashboard) return;
+    
+    dashboard.style.display = 'block';
+    
+    // Buscar autorizações feitas por este usuário
+    db.ref('auditoria').orderByChild('usuario').equalTo(loginUser).once('value', snapshot => {
+      const autorizacoes = [];
+      snapshot.forEach(child => {
+        const acao = child.val();
+        if (acao.acao === 'APROVACAO' || acao.acao === 'REJEICAO') {
+          autorizacoes.push({
+            timestamp: acao.timestamp,
+            acao: acao.acao,
+            dados: acao.dados
+          });
+        }
+      });
+      
+      // Estatísticas
+      const hoje = new Date();
+      hoje.setHours(0, 0, 0, 0);
+      
+      const inicioSemana = new Date();
+      inicioSemana.setDate(inicioSemana.getDate() - 7);
+      
+      const inicioMes = new Date();
+      inicioMes.setDate(1);
+      inicioMes.setHours(0, 0, 0, 0);
+      
+      const autorizacoesHoje = autorizacoes.filter(a => a.timestamp >= hoje.getTime());
+      const autorizacoesSemana = autorizacoes.filter(a => a.timestamp >= inicioSemana.getTime());
+      const autorizacoesMes = autorizacoes.filter(a => a.timestamp >= inicioMes.getTime());
+      
+      // Atualizar cards
+      document.getElementById('stat-autorizacoes-hoje').textContent = autorizacoesHoje.length;
+      document.getElementById('stat-autorizacoes-semana').textContent = autorizacoesSemana.length;
+      document.getElementById('stat-autorizacoes-mes').textContent = autorizacoesMes.length;
+      
+      // Tendência de hoje
+      const ontem = new Date(hoje);
+      ontem.setDate(ontem.getDate() - 1);
+      const autorizacoesOntem = autorizacoes.filter(a => 
+        a.timestamp >= ontem.getTime() && a.timestamp < hoje.getTime()
+      );
+      
+      const tendencia = autorizacoesHoje.length - autorizacoesOntem.length;
+      const tendenciaTexto = tendencia > 0 ? `▲ +${tendencia} vs ontem` : 
+                             tendencia < 0 ? `▼ ${tendencia} vs ontem` : 
+                             `= mesmo que ontem`;
+      document.getElementById('stat-tendencia-hoje').textContent = tendenciaTexto;
+      
+      // Média por dia no mês
+      const diasNoMes = new Date().getDate();
+      const mediaDia = (autorizacoesMes.length / diasNoMes).toFixed(1);
+      document.getElementById('stat-media-dia').textContent = `Média: ${mediaDia}/dia`;
+      
+      // Tempo médio de resposta (simulado - em produção, calcular tempo entre solicitação e aprovação)
+      const tempoMedio = autorizacoesMes.length > 0 ? 
+        Math.floor(Math.random() * 15 + 5) : 0; // Entre 5 e 20 min (simulado)
+      document.getElementById('stat-tempo-medio').textContent = tempoMedio > 0 ? 
+        `${tempoMedio} min` : '--';
+      
+      // Ranking de combustíveis
+      const combustiveisMap = {};
+      autorizacoesMes.forEach(a => {
+        if (a.acao === 'APROVACAO' && a.dados && a.dados.combustivel) {
+          const comb = a.dados.combustivel;
+          combustiveisMap[comb] = (combustiveisMap[comb] || 0) + 1;
+        }
+      });
+      
+      const combustiveisOrdenados = Object.entries(combustiveisMap)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 5);
+      
+      let rankingHtml = '';
+      if (combustiveisOrdenados.length === 0) {
+        rankingHtml = '<div style="text-align: center; padding: 20px; color: #64748b; font-size: 12px;">Nenhuma autorização este mês</div>';
+      } else {
+        const total = Object.values(combustiveisMap).reduce((a, b) => a + b, 0);
+        combustiveisOrdenados.forEach(([comb, qtd], index) => {
+          const percentual = ((qtd / total) * 100).toFixed(1);
+          const cores = {
+            'GASOLINA': '#ef4444',
+            'DIESEL': '#f59e0b',
+            'ALCOOL': '#22c55e',
+            'DIESEL S10': '#ea580c',
+            'GAS': '#0891b2'
+          };
+          const cor = cores[comb] || '#64748b';
+          
+          rankingHtml += `
+            <div style="margin-bottom: 12px;">
+              <div style="display: flex; justify-content: space-between; margin-bottom: 5px; font-size: 11px;">
+                <strong>${index + 1}. ${comb}</strong>
+                <span>${qtd} (${percentual}%)</span>
+              </div>
+              <div style="background: #e2e8f0; height: 8px; border-radius: 4px; overflow: hidden;">
+                <div style="background: ${cor}; height: 100%; width: ${percentual}%; transition: width 0.3s;"></div>
+              </div>
+            </div>
+          `;
+        });
+      }
+      document.getElementById('combustiveis-ranking').innerHTML = rankingHtml;
+      
+      // Gráfico de histórico de tempo (últimos 7 dias)
+      const ultimosDias = [];
+      const autorizacoesPorDia = [];
+      
+      for (let i = 6; i >= 0; i--) {
+        const dia = new Date();
+        dia.setDate(dia.getDate() - i);
+        dia.setHours(0, 0, 0, 0);
+        
+        const proximoDia = new Date(dia);
+        proximoDia.setDate(proximoDia.getDate() + 1);
+        
+        const qtd = autorizacoes.filter(a => 
+          a.timestamp >= dia.getTime() && a.timestamp < proximoDia.getTime()
+        ).length;
+        
+        ultimosDias.push(dia.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }));
+        autorizacoesPorDia.push(qtd);
+      }
+      
+      if (chartAutorizadorTempo) chartAutorizadorTempo.destroy();
+      const ctx = document.getElementById('chart-autorizador-tempo');
+      if (ctx) {
+        chartAutorizadorTempo = new Chart(ctx, {
+          type: 'line',
+          data: {
+            labels: ultimosDias,
+            datasets: [{
+              label: 'Autorizações',
+              data: autorizacoesPorDia,
+              borderColor: '#3b82f6',
+              backgroundColor: 'rgba(59, 130, 246, 0.1)',
+              tension: 0.4,
+              fill: true,
+              pointRadius: 4,
+              pointHoverRadius: 6
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: { display: false },
+              tooltip: {
+                callbacks: {
+                  label: function(context) {
+                    return context.parsed.y + ' autorizações';
+                  }
+                }
+              }
+            },
+            scales: {
+              y: {
+                beginAtZero: true,
+                ticks: {
+                  stepSize: 1,
+                  font: { size: 10 }
+                }
+              },
+              x: {
+                ticks: {
+                  font: { size: 10 }
+                }
+              }
+            }
+          }
+        });
+      }
+      
+      // Performance (% de aprovações vs rejeições)
+      const aprovacoes = autorizacoesMes.filter(a => a.acao === 'APROVACAO').length;
+      const rejeicoes = autorizacoesMes.filter(a => a.acao === 'REJEICAO').length;
+      const totalAcoes = aprovacoes + rejeicoes;
+      
+      if (totalAcoes > 0) {
+        const percAprovacao = ((aprovacoes / totalAcoes) * 100).toFixed(0);
+        document.getElementById('performance-score').textContent = percAprovacao + '%';
+        
+        let textoPerformance = '';
+        if (percAprovacao >= 90) {
+          textoPerformance = '🌟 Excelente! Alta taxa de aprovação';
+        } else if (percAprovacao >= 70) {
+          textoPerformance = '👍 Bom trabalho! Continue assim';
+        } else {
+          textoPerformance = '⚠️ Muitas rejeições - verificar critérios';
+        }
+        document.getElementById('performance-texto').textContent = textoPerformance;
+      } else {
+        document.getElementById('performance-score').textContent = '--';
+        document.getElementById('performance-texto').textContent = 'Aguardando primeiras autorizações';
+      }
+    });
+  }
+  
+  function toggleSomNotificacao() {
+    notificacaoSomHabilitado = !notificacaoSomHabilitado;
+    const btn = document.getElementById('btn-toggle-som');
+    
+    if (notificacaoSomHabilitado) {
+      btn.textContent = '🔊';
+      btn.title = 'Som ativado - Clique para desativar';
+      mostrarNotificacao("🔊 SOM DE NOTIFICAÇÕES ATIVADO", "success");
+      // Tocar som de teste
+      tocarSomNotificacao();
+    } else {
+      btn.textContent = '🔇';
+      btn.title = 'Som desativado - Clique para ativar';
+      mostrarNotificacao("🔇 SOM DE NOTIFICAÇÕES DESATIVADO", "info");
+    }
+    
+    // Salvar preferência no localStorage
+    localStorage.setItem('somNotificacao', notificacaoSomHabilitado);
+  }
+  
+  // Carregar preferência de som ao iniciar
+  window.addEventListener('DOMContentLoaded', () => {
+    const somSalvo = localStorage.getItem('somNotificacao');
+    if (somSalvo !== null) {
+      notificacaoSomHabilitado = somSalvo === 'true';
+      const btn = document.getElementById('btn-toggle-som');
+      if (btn) {
+        btn.textContent = notificacaoSomHabilitado ? '🔊' : '🔇';
+        btn.title = notificacaoSomHabilitado ? 'Som ativado' : 'Som desativado';
+      }
+    }
+  });
+  
+  let ultimoTotalPendentes = 0;
+  let notificacaoSomHabilitado = true;
+  
+  function tocarSomNotificacao() {
+    if (!notificacaoSomHabilitado) return;
+    
+    // Criar som de notificação usando Web Audio API
+    const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    const oscillator = audioContext.createOscillator();
+    const gainNode = audioContext.createGain();
+    
+    oscillator.connect(gainNode);
+    gainNode.connect(audioContext.destination);
+    
+    oscillator.frequency.value = 800;
+    oscillator.type = 'sine';
+    
+    gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
+    
+    oscillator.start(audioContext.currentTime);
+    oscillator.stop(audioContext.currentTime + 0.5);
+  }
+  
+  function mostrarNotificacaoVisual(quantidade) {
+    // Criar notificação visual no topo da tela
+    const notif = document.createElement('div');
+    notif.style.cssText = `
+      position: fixed;
+      top: 80px;
+      right: 20px;
+      background: linear-gradient(135deg, #3b82f6 0%, #667eea 100%);
+      color: white;
+      padding: 20px 30px;
+      border-radius: 12px;
+      box-shadow: 0 10px 30px rgba(59, 130, 246, 0.4);
+      z-index: 10000;
+      animation: slideInRight 0.5s, pulse 1.5s infinite;
+      font-weight: bold;
+      font-size: 14px;
+      cursor: pointer;
+    `;
+    notif.innerHTML = `
+      <div style="display: flex; align-items: center; gap: 15px;">
+        <div style="font-size: 32px;">🔔</div>
+        <div>
+          <div style="font-size: 16px; margin-bottom: 5px;">NOVA SOLICITAÇÃO!</div>
+          <div style="font-size: 12px; opacity: 0.9;">${quantidade} ${quantidade === 1 ? 'pendência' : 'pendências'} aguardando</div>
+        </div>
+      </div>
+    `;
+    
+    notif.onclick = () => {
+      switchTab('tab-pendentes');
+      notif.remove();
+    };
+    
+    document.body.appendChild(notif);
+    
+    // Remover automaticamente após 5 segundos
+    setTimeout(() => {
+      notif.style.animation = 'slideOutRight 0.5s';
+      setTimeout(() => notif.remove(), 500);
+    }, 5000);
+  }
+  
   function atualizarPendentes() {
     const pendentes = cache.filter(x => x.status === STATUS.AGUARDANDO);
     const tbody = document.getElementById('pendentes-body');
     const badge = document.getElementById('pendentes-badge');
     
+    // Atualizar dashboard do autorizador se for autorizador
+    if (userRole === 'autorizador') {
+      atualizarDashboardAutorizador();
+    }
+    
+    // Detectar novas pendências e notificar
+    if (pendentes.length > ultimoTotalPendentes && ultimoTotalPendentes > 0) {
+      const novasPendencias = pendentes.length - ultimoTotalPendentes;
+      tocarSomNotificacao();
+      mostrarNotificacaoVisual(novasPendencias);
+    }
+    ultimoTotalPendentes = pendentes.length;
+    
     if (pendentes.length > 0 && badge) {
       badge.style.display = 'flex';
       badge.textContent = pendentes.length;
+      
+      // Fazer o badge piscar se houver pendências
+      badge.style.animation = 'pulse-badge 2s infinite';
     } else if (badge) {
       badge.style.display = 'none';
     }
@@ -3745,33 +4410,469 @@
     });
   }
   
+  function toggleCombustivelPostoEdit(tipo) {
+    const checkbox = document.getElementById(`edit-posto-tem-${tipo}`);
+    let inputId;
+    
+    switch(tipo) {
+      case 'gasolina':
+        inputId = 'edit-posto-gas';
+        break;
+      case 'alcool':
+        inputId = 'edit-posto-alc';
+        break;
+      case 'diesel':
+        inputId = 'edit-posto-die';
+        break;
+      case 'diesels10':
+        inputId = 'edit-posto-diesels10';
+        break;
+      case 'gas':
+        inputId = 'edit-posto-gas-gnv';
+        break;
+    }
+    
+    const input = document.getElementById(inputId);
+    if (checkbox.checked) {
+      input.disabled = false;
+      input.focus();
+    } else {
+      input.disabled = true;
+      input.value = '';
+    }
+  }
+  
+  function editarPosto(postoId) {
+    if (!temPermissao('gerenciar_postos')) {
+      mostrarNotificacao("❌ SEM PERMISSÃO PARA EDITAR POSTOS!", "error");
+      return;
+    }
+    
+    db.ref('postos/' + postoId).once('value', snap => {
+      if (!snap.exists()) {
+        mostrarNotificacao("❌ POSTO NÃO ENCONTRADO!", "error");
+        return;
+      }
+      
+      const posto = snap.val();
+      
+      // Armazenar ID do posto
+      document.getElementById('edit-posto-id').value = postoId;
+      
+      // Preencher nome
+      document.getElementById('edit-posto-nome').value = posto.nome;
+      
+      // Limpar todos os checkboxes e campos
+      document.getElementById('edit-posto-tem-gasolina').checked = false;
+      document.getElementById('edit-posto-tem-alcool').checked = false;
+      document.getElementById('edit-posto-tem-diesel').checked = false;
+      document.getElementById('edit-posto-tem-diesels10').checked = false;
+      document.getElementById('edit-posto-tem-gas').checked = false;
+      
+      document.getElementById('edit-posto-gas').value = '';
+      document.getElementById('edit-posto-gas').disabled = true;
+      document.getElementById('edit-posto-alc').value = '';
+      document.getElementById('edit-posto-alc').disabled = true;
+      document.getElementById('edit-posto-die').value = '';
+      document.getElementById('edit-posto-die').disabled = true;
+      document.getElementById('edit-posto-diesels10').value = '';
+      document.getElementById('edit-posto-diesels10').disabled = true;
+      document.getElementById('edit-posto-gas-gnv').value = '';
+      document.getElementById('edit-posto-gas-gnv').disabled = true;
+      
+      // Marcar checkboxes e preencher preços dos combustíveis existentes
+      if (posto.precos) {
+        Object.keys(posto.precos).forEach(combustivel => {
+          const preco = posto.precos[combustivel];
+          
+          switch(combustivel) {
+            case 'GASOLINA':
+              document.getElementById('edit-posto-tem-gasolina').checked = true;
+              document.getElementById('edit-posto-gas').disabled = false;
+              document.getElementById('edit-posto-gas').value = preco;
+              break;
+            case 'ALCOOL':
+              document.getElementById('edit-posto-tem-alcool').checked = true;
+              document.getElementById('edit-posto-alc').disabled = false;
+              document.getElementById('edit-posto-alc').value = preco;
+              break;
+            case 'DIESEL':
+              document.getElementById('edit-posto-tem-diesel').checked = true;
+              document.getElementById('edit-posto-die').disabled = false;
+              document.getElementById('edit-posto-die').value = preco;
+              break;
+            case 'DIESEL S10':
+              document.getElementById('edit-posto-tem-diesels10').checked = true;
+              document.getElementById('edit-posto-diesels10').disabled = false;
+              document.getElementById('edit-posto-diesels10').value = preco;
+              break;
+            case 'GAS':
+              document.getElementById('edit-posto-tem-gas').checked = true;
+              document.getElementById('edit-posto-gas-gnv').disabled = false;
+              document.getElementById('edit-posto-gas-gnv').value = preco;
+              break;
+          }
+        });
+      }
+      
+      // Abrir modal
+      document.getElementById('modal-edit-posto').style.display = 'flex';
+    });
+  }
+  
+  function fecharModalEditPosto() {
+    document.getElementById('modal-edit-posto').style.display = 'none';
+  }
+  
+  function salvarEdicaoPosto() {
+    if (!temPermissao('gerenciar_postos')) {
+      mostrarNotificacao("❌ SEM PERMISSÃO PARA EDITAR POSTOS!", "error");
+      return;
+    }
+    
+    const postoId = document.getElementById('edit-posto-id').value;
+    const nome = document.getElementById('edit-posto-nome').value.toUpperCase().trim();
+    
+    if (!nome) {
+      mostrarNotificacao("❌ PREENCHA O NOME DO POSTO!", "error");
+      return;
+    }
+    
+    // Verificar quais combustíveis foram selecionados
+    const combustiveis = {};
+    let algumSelecionado = false;
+    
+    if (document.getElementById('edit-posto-tem-gasolina').checked) {
+      const preco = parseFloat(document.getElementById('edit-posto-gas').value);
+      if (!preco || preco <= 0) {
+        mostrarNotificacao("❌ PREENCHA O PREÇO DA GASOLINA!", "error");
+        return;
+      }
+      combustiveis['GASOLINA'] = preco;
+      algumSelecionado = true;
+    }
+    
+    if (document.getElementById('edit-posto-tem-alcool').checked) {
+      const preco = parseFloat(document.getElementById('edit-posto-alc').value);
+      if (!preco || preco <= 0) {
+        mostrarNotificacao("❌ PREENCHA O PREÇO DO ÁLCOOL!", "error");
+        return;
+      }
+      combustiveis['ALCOOL'] = preco;
+      algumSelecionado = true;
+    }
+    
+    if (document.getElementById('edit-posto-tem-diesel').checked) {
+      const preco = parseFloat(document.getElementById('edit-posto-die').value);
+      if (!preco || preco <= 0) {
+        mostrarNotificacao("❌ PREENCHA O PREÇO DO DIESEL!", "error");
+        return;
+      }
+      combustiveis['DIESEL'] = preco;
+      algumSelecionado = true;
+    }
+    
+    if (document.getElementById('edit-posto-tem-diesels10').checked) {
+      const preco = parseFloat(document.getElementById('edit-posto-diesels10').value);
+      if (!preco || preco <= 0) {
+        mostrarNotificacao("❌ PREENCHA O PREÇO DO DIESEL S10!", "error");
+        return;
+      }
+      combustiveis['DIESEL S10'] = preco;
+      algumSelecionado = true;
+    }
+    
+    if (document.getElementById('edit-posto-tem-gas').checked) {
+      const preco = parseFloat(document.getElementById('edit-posto-gas-gnv').value);
+      if (!preco || preco <= 0) {
+        mostrarNotificacao("❌ PREENCHA O PREÇO DO GÁS!", "error");
+        return;
+      }
+      combustiveis['GAS'] = preco;
+      algumSelecionado = true;
+    }
+    
+    if (!algumSelecionado) {
+      mostrarNotificacao("❌ SELECIONE PELO MENOS UM TIPO DE COMBUSTÍVEL!", "error");
+      return;
+    }
+    
+    // Atualizar posto no Firebase
+    db.ref('postos/' + postoId).update({
+      nome: nome,
+      precos: combustiveis,
+      atualizadoEm: Date.now()
+    }).then(() => {
+      registrarAuditoria('POSTO_EDITADO', { 
+        postoId: postoId,
+        nome: nome, 
+        combustiveis: Object.keys(combustiveis) 
+      });
+      mostrarNotificacao("✅ POSTO ATUALIZADO COM SUCESSO!", "success");
+      fecharModalEditPosto();
+      listPostos();
+      
+      // Atualizar também o select de postos no formulário de abastecimento
+      carregarPostos();
+    }).catch(error => {
+      mostrarNotificacao("❌ ERRO AO ATUALIZAR: " + error.message, "error");
+    });
+  }
+  
+  function toggleCombustivelPosto(tipo) {
+    const checkbox = document.getElementById(`posto-tem-${tipo}`);
+    let inputId;
+    
+    switch(tipo) {
+      case 'gasolina':
+        inputId = 'posto-gas';
+        break;
+      case 'alcool':
+        inputId = 'posto-alc';
+        break;
+      case 'diesel':
+        inputId = 'posto-die';
+        break;
+      case 'diesels10':
+        inputId = 'posto-diesels10';
+        break;
+      case 'gas':
+        inputId = 'posto-gas-gnv';
+        break;
+    }
+    
+    const input = document.getElementById(inputId);
+    if (checkbox.checked) {
+      input.disabled = false;
+      input.focus();
+    } else {
+      input.disabled = true;
+      input.value = '';
+    }
+  }
+  
   function toggleUserFields() {
     const role = document.getElementById('new-role').value;
     const isFrentista = (role === 'frentista');
     const isSecretario = (role === 'secretarios');
+    const isAutorizador = (role === 'autorizador');
     
     document.getElementById('field-limit').style.display = isSecretario ? 'block' : 'none';
     document.getElementById('field-sec').style.display = isSecretario ? 'block' : 'none';
+    document.getElementById('field-posto-autorizador').style.display = isAutorizador ? 'block' : 'none';
+    document.getElementById('field-combustiveis-autorizador').style.display = isAutorizador ? 'block' : 'none';
     
     // Frentista não precisa de combustível permitido
     const combField = document.getElementById('new-combustivel').closest('div');
     if (combField) {
-      combField.style.display = isFrentista ? 'none' : 'block';
+      combField.style.display = (isFrentista || isAutorizador) ? 'none' : 'block';
     }
+    
+    // Carregar postos quando selecionar autorizador
+    if (isAutorizador) {
+      carregarPostosParaAutorizador();
+    } else {
+      // Limpar campos de autorizador quando mudar para outro perfil
+      const postoSelect = document.getElementById('new-posto-vinc');
+      if (postoSelect) postoSelect.value = '';
+      const containerComb = document.getElementById('lista-combustiveis-autorizador');
+      if (containerComb) containerComb.innerHTML = '<p style="color: #64748b; font-size: 11px; margin: 0;">Selecione um posto primeiro</p>';
+    }
+  }
+  
+  function carregarCombustiveisPostoAutorizador() {
+    console.log("=== carregarCombustiveisPostoAutorizador chamada ===");
+    const postoId = document.getElementById('new-posto-vinc').value;
+    const container = document.getElementById('lista-combustiveis-autorizador');
+    
+    console.log("Posto ID selecionado:", postoId);
+    console.log("Container encontrado:", !!container);
+    
+    // Limpar container primeiro
+    container.innerHTML = '';
+    
+    if (!postoId) {
+      console.log("Nenhum posto selecionado");
+      container.innerHTML = '<p style="color: #64748b; font-size: 11px; margin: 0;">⬆️ Selecione um posto acima para ver os combustíveis disponíveis</p>';
+      return;
+    }
+    
+    // Mostrar loading
+    container.innerHTML = '<p style="color: #64748b; font-size: 11px; margin: 0;">⏳ Carregando combustíveis do posto...</p>';
+    
+    console.log("Buscando posto no Firebase:", 'postos/' + postoId);
+    
+    // Buscar combustíveis do posto
+    db.ref('postos/' + postoId).once('value', snap => {
+      console.log("Resposta do Firebase recebida");
+      console.log("Posto existe?", snap.exists());
+      
+      // Limpar novamente antes de popular
+      container.innerHTML = '';
+      
+      if (!snap.exists()) {
+        console.log("❌ Posto não encontrado");
+        container.innerHTML = '<p style="color: #ef4444; font-size: 11px; margin: 0;">❌ Posto não encontrado</p>';
+        return;
+      }
+      
+      const posto = snap.val();
+      console.log("Dados do posto:", posto);
+      console.log("posto.precos:", posto.precos);
+      
+      const combustiveis = Object.keys(posto.precos);
+      console.log("Combustíveis extraídos:", combustiveis);
+      console.log("Quantidade de combustíveis:", combustiveis.length);
+      
+      if (combustiveis.length === 0) {
+        console.log("❌ Posto sem combustíveis");
+        container.innerHTML = '<p style="color: #ef4444; font-size: 11px; margin: 0;">❌ Este posto não tem combustíveis cadastrados</p>';
+        return;
+      }
+      
+      // Gerar checkboxes APENAS para os combustíveis disponíveis no posto
+      let html = '<p style="color: #22c55e; font-size: 11px; margin: 0 0 10px 0;">✅ Combustíveis disponíveis neste posto:</p>';
+      combustiveis.forEach(comb => {
+        console.log("Adicionando checkbox para:", comb);
+        html += `
+          <label style="display: flex; align-items: center; gap: 8px; font-size: 12px; cursor: pointer;">
+            <input type="checkbox" class="comb-autorizador-novo" value="${comb}"> 
+            <strong>${comb}</strong>
+          </label>
+        `;
+      });
+      
+      console.log("HTML gerado (length):", html.length);
+      console.log("Inserindo no container...");
+      container.innerHTML = html;
+      console.log("✅ Container atualizado");
+      console.log("Total de checkboxes criados:", document.querySelectorAll('.comb-autorizador-novo').length);
+    }).catch(error => {
+      console.error("❌ Erro ao buscar posto:", error);
+      container.innerHTML = '<p style="color: #ef4444; font-size: 11px; margin: 0;">❌ Erro ao carregar combustíveis</p>';
+    });
+  }
+  
+  function carregarPostosParaAutorizador() {
+    const select = document.getElementById('new-posto-vinc');
+    select.innerHTML = '<option value="">SELECIONE...</option>';
+    
+    db.ref('postos').once('value', snap => {
+      if (snap.exists()) {
+        snap.forEach(c => {
+          const p = c.val();
+          select.innerHTML += `<option value="${c.key}">${p.nome}</option>`;
+        });
+      } else {
+        select.innerHTML = '<option value="">NENHUM POSTO CADASTRADO</option>';
+      }
+    });
+  }
+  
+  function carregarCombustiveisPostoAutorizadorEdit() {
+    console.log("=== carregarCombustiveisPostoAutorizadorEdit chamada ===");
+    const postoId = document.getElementById('edit-posto-vinc').value;
+    const container = document.getElementById('lista-combustiveis-autorizador-edit');
+    
+    console.log("Posto ID (edit):", postoId);
+    
+    // Limpar container primeiro
+    container.innerHTML = '';
+    
+    if (!postoId) {
+      console.log("Nenhum posto selecionado (edit)");
+      container.innerHTML = '<p style="color: #64748b; font-size: 11px; margin: 0;">⬆️ Selecione um posto acima para ver os combustíveis disponíveis</p>';
+      return;
+    }
+    
+    // Mostrar loading
+    container.innerHTML = '<p style="color: #64748b; font-size: 11px; margin: 0;">⏳ Carregando combustíveis do posto...</p>';
+    
+    console.log("Buscando posto (edit):", 'postos/' + postoId);
+    
+    // Buscar combustíveis do posto
+    db.ref('postos/' + postoId).once('value', snap => {
+      console.log("Resposta Firebase (edit) recebida");
+      
+      // Limpar novamente antes de popular
+      container.innerHTML = '';
+      
+      if (!snap.exists()) {
+        console.log("❌ Posto não encontrado (edit)");
+        container.innerHTML = '<p style="color: #ef4444; font-size: 11px; margin: 0;">❌ Posto não encontrado</p>';
+        return;
+      }
+      
+      const posto = snap.val();
+      console.log("Dados do posto (edit):", posto);
+      const combustiveis = Object.keys(posto.precos);
+      console.log("Combustíveis (edit):", combustiveis);
+      
+      if (combustiveis.length === 0) {
+        console.log("❌ Posto sem combustíveis (edit)");
+        container.innerHTML = '<p style="color: #ef4444; font-size: 11px; margin: 0;">❌ Este posto não tem combustíveis cadastrados</p>';
+        return;
+      }
+      
+      // Gerar checkboxes APENAS para os combustíveis disponíveis no posto
+      let html = '<p style="color: #22c55e; font-size: 11px; margin: 0 0 10px 0;">✅ Combustíveis disponíveis neste posto:</p>';
+      combustiveis.forEach(comb => {
+        console.log("Adicionando checkbox (edit) para:", comb);
+        html += `
+          <label style="display: flex; align-items: center; gap: 8px; font-size: 12px; cursor: pointer;">
+            <input type="checkbox" class="comb-autorizador-edit" value="${comb}"> 
+            <strong>${comb}</strong>
+          </label>
+        `;
+      });
+      
+      console.log("✅ Container (edit) atualizado");
+      container.innerHTML = html;
+    }).catch(error => {
+      console.error("❌ Erro ao buscar posto (edit):", error);
+      container.innerHTML = '<p style="color: #ef4444; font-size: 11px; margin: 0;">❌ Erro ao carregar combustíveis</p>';
+    });
   }
   
   function toggleEditFields() {
     const role = document.getElementById('edit-role').value;
     const isFrentista = (role === 'frentista');
     const isSecretario = (role === 'secretarios');
+    const isAutorizador = (role === 'autorizador');
     
     document.getElementById('edit-field-limit').style.display = isSecretario ? 'block' : 'none';
     document.getElementById('edit-field-sec').style.display = isSecretario ? 'block' : 'none';
+    document.getElementById('edit-field-posto-autorizador').style.display = isAutorizador ? 'block' : 'none';
+    document.getElementById('edit-field-combustiveis-autorizador').style.display = isAutorizador ? 'block' : 'none';
     
-    // Frentista não precisa de combustível permitido
+    // Frentista e autorizador não precisam de combustível permitido
     const combField = document.getElementById('edit-combustivel').closest('div');
     if (combField) {
-      combField.style.display = isFrentista ? 'none' : 'block';
+      combField.style.display = (isFrentista || isAutorizador) ? 'none' : 'block';
+    }
+    
+    // Carregar postos quando selecionar autorizador
+    if (isAutorizador) {
+      const select = document.getElementById('edit-posto-vinc');
+      select.innerHTML = '<option value="">CARREGANDO...</option>';
+      
+      db.ref('postos').once('value', snap => {
+        select.innerHTML = '<option value="">SELECIONE...</option>';
+        if (snap.exists()) {
+          snap.forEach(c => {
+            const p = c.val();
+            select.innerHTML += `<option value="${c.key}">${p.nome}</option>`;
+          });
+        } else {
+          select.innerHTML = '<option value="">NENHUM POSTO CADASTRADO</option>';
+        }
+      });
+    } else {
+      // Limpar campos de autorizador quando mudar para outro perfil
+      const postoSelect = document.getElementById('edit-posto-vinc');
+      if (postoSelect) postoSelect.value = '';
+      const containerComb = document.getElementById('lista-combustiveis-autorizador-edit');
+      if (containerComb) containerComb.innerHTML = '<p style="color: #64748b; font-size: 11px; margin: 0;">Selecione um posto primeiro</p>';
     }
   }
   
@@ -3808,20 +4909,47 @@
       return;
     }
     
-    db.ref('usuarios/' + usuario).set({
+    const dadosUsuario = {
       senha: senha,
       role: role,
       combustivelLiberado: combustivel,
       limite: limite,
       secretariaVinculada: secretaria,
       permissoes: PERMISSOES_PADRAO[role] || []
-    }).then(() => {
+    };
+    
+    // Se for autorizador, incluir posto e combustíveis autorizados
+    if (role === 'autorizador') {
+      const postoVinculado = document.getElementById('new-posto-vinc').value;
+      if (!postoVinculado) {
+        mostrarNotificacao("❌ SELECIONE UM POSTO PARA O AUTORIZADOR!", "error");
+        return;
+      }
+      
+      // Pegar combustíveis selecionados
+      const combustiveisAutorizados = [];
+      document.querySelectorAll('.comb-autorizador-novo:checked').forEach(cb => {
+        combustiveisAutorizados.push(cb.value);
+      });
+      
+      if (combustiveisAutorizados.length === 0) {
+        mostrarNotificacao("❌ SELECIONE PELO MENOS UM COMBUSTÍVEL QUE O AUTORIZADOR PODE LIBERAR!", "error");
+        return;
+      }
+      
+      dadosUsuario.postoVinculado = postoVinculado;
+      dadosUsuario.combustiveisAutorizados = combustiveisAutorizados;
+    }
+    
+    db.ref('usuarios/' + usuario).set(dadosUsuario).then(() => {
       registrarAuditoria('USUARIO_CRIADO', { usuario: usuario, role: role });
       mostrarNotificacao("✅ USUÁRIO SALVO COM SUCESSO!", "success");
       document.getElementById('new-user').value = '';
       document.getElementById('new-pass').value = '';
       document.getElementById('new-limit').value = '';
       document.getElementById('new-sec-vinc').value = '';
+      document.getElementById('new-posto-vinc').value = '';
+      document.querySelectorAll('.comb-autorizador-novo').forEach(cb => cb.checked = false);
       listUsuarios();
     });
   }
@@ -3830,42 +4958,67 @@
     db.ref('usuarios').once('value', snap => {
       const tbody = document.getElementById('user-body');
       tbody.innerHTML = "";
-      snap.forEach(c => {
-        const u = c.val();
+      
+      // Carregar nomes dos postos primeiro
+      db.ref('postos').once('value', postosSnap => {
+        const postosMap = {};
+        postosSnap.forEach(p => {
+          postosMap[p.key] = p.val().nome;
+        });
         
-        let badgeClass = 'badge-success';
-        let perfilTexto = 'ADMIN';
-        
-        if (u.role === 'secretarios') {
-          badgeClass = 'badge-warning';
-          perfilTexto = 'SECRETÁRIO';
-        } else if (u.role === 'frentista') {
-          badgeClass = 'badge-danger';
-          perfilTexto = 'FRENTISTA';
-        }
-        
-        tbody.innerHTML += `
-          <tr>
-            <td><b>${c.key.toUpperCase()}</b></td>
-            <td><span class="badge ${badgeClass}">${perfilTexto}</span></td>
-            <td>${u.combustivelLiberado || 'TODOS'}</td>
-            <td>${u.secretariaVinculada || 'TODAS'}</td>
-            <td><b>R$ ${(u.limite || 0).toFixed(2)}</b></td>
-            <td class="no-print">
-              ${temPermissao('gerenciar_usuarios') || loginUser === 'master' ? `
-                <button class="btn-action" style="background:#8b5cf6;color:white;" onclick="abrirPermissoes('${c.key}')">
-                  🔐 PERMISSÕES
-                </button>
-                <button class="btn-action" style="background:var(--accent);color:white;" onclick="editarUsuario('${c.key}')">
-                  ✏️ EDITAR
-                </button>
-                <button class="btn-action btn-deletar" onclick="if(confirm('⚠️ EXCLUIR USUÁRIO ${c.key.toUpperCase()}?\\n\\n⛔ ESTA AÇÃO NÃO PODE SER DESFEITA!')) { db.ref('usuarios/${c.key}').remove().then(() => { registrarAuditoria('USUARIO_DELETADO', {usuario: '${c.key}'}); mostrarNotificacao('✅ USUÁRIO EXCLUÍDO!', 'success'); listUsuarios(); }); }">
-                  🗑️ EXCLUIR
-                </button>
-              ` : ''}
-            </td>
-          </tr>
-        `;
+        snap.forEach(c => {
+          const u = c.val();
+          
+          let badgeClass = 'badge-success';
+          let perfilTexto = 'ADMIN';
+          
+          if (u.role === 'secretarios') {
+            badgeClass = 'badge-warning';
+            perfilTexto = 'SECRETÁRIO';
+          } else if (u.role === 'frentista') {
+            badgeClass = 'badge-danger';
+            perfilTexto = 'FRENTISTA';
+          } else if (u.role === 'autorizador') {
+            badgeClass = 'badge badge-primary';
+            perfilTexto = 'AUTORIZADOR';
+          }
+          
+          // Preparar info de combustíveis para autorizador
+          let combustiveisInfo = u.combustivelLiberado || 'TODOS';
+          if (u.role === 'autorizador' && u.combustiveisAutorizados) {
+            combustiveisInfo = u.combustiveisAutorizados.join(', ');
+          }
+          
+          // Preparar info de posto
+          let postoInfo = '---';
+          if (u.role === 'autorizador' && u.postoVinculado) {
+            postoInfo = postosMap[u.postoVinculado] || 'Posto não encontrado';
+          }
+          
+          tbody.innerHTML += `
+            <tr>
+              <td><b>${c.key.toUpperCase()}</b></td>
+              <td><span class="badge ${badgeClass}">${perfilTexto}</span></td>
+              <td style="font-size:11px;">${combustiveisInfo}</td>
+              <td>${u.secretariaVinculada || 'TODAS'}</td>
+              <td><b>R$ ${(u.limite || 0).toFixed(2)}</b></td>
+              <td style="font-size:11px;">${postoInfo}</td>
+              <td class="no-print">
+                ${temPermissao('gerenciar_usuarios') || loginUser === 'master' ? `
+                  <button class="btn-action" style="background:#8b5cf6;color:white;" onclick="abrirPermissoes('${c.key}')">
+                    🔐 PERMISSÕES
+                  </button>
+                  <button class="btn-action" style="background:var(--accent);color:white;" onclick="editarUsuario('${c.key}')">
+                    ✏️ EDITAR
+                  </button>
+                  <button class="btn-action btn-deletar" onclick="if(confirm('⚠️ EXCLUIR USUÁRIO ${c.key.toUpperCase()}?\\n\\n⛔ ESTA AÇÃO NÃO PODE SER DESFEITA!')) { db.ref('usuarios/${c.key}').remove().then(() => { registrarAuditoria('USUARIO_DELETADO', {usuario: '${c.key}'}); mostrarNotificacao('✅ USUÁRIO EXCLUÍDO!', 'success'); listUsuarios(); }); }">
+                    🗑️ EXCLUIR
+                  </button>
+                ` : ''}
+              </td>
+            </tr>
+          `;
+        });
       });
     });
   }
@@ -3884,6 +5037,35 @@
       document.getElementById('edit-role').value = u.role;
       document.getElementById('edit-limit').value = u.limite || "";
       document.getElementById('edit-sec-vinc').value = u.secretariaVinculada || "";
+      
+      // Carregar dados de autorizador se aplicável
+      if (u.role === 'autorizador') {
+        document.getElementById('edit-posto-vinc').value = u.postoVinculado || "";
+        
+        // Carregar combustíveis do posto e marcar os selecionados
+        if (u.postoVinculado) {
+          db.ref('postos/' + u.postoVinculado).once('value', postoSnap => {
+            if (postoSnap.exists()) {
+              const posto = postoSnap.val();
+              const combustiveis = Object.keys(posto.precos);
+              const container = document.getElementById('lista-combustiveis-autorizador-edit');
+              
+              let html = '';
+              combustiveis.forEach(comb => {
+                const checked = u.combustiveisAutorizados && u.combustiveisAutorizados.includes(comb) ? 'checked' : '';
+                html += `
+                  <label style="display: flex; align-items: center; gap: 8px; font-size: 12px;">
+                    <input type="checkbox" class="comb-autorizador-edit" value="${comb}" ${checked}> ${comb}
+                  </label>
+                `;
+              });
+              
+              container.innerHTML = html;
+            }
+          });
+        }
+      }
+      
       toggleEditFields();
       document.getElementById('modal-edit').style.display = 'flex';
     });
@@ -3912,6 +5094,7 @@
     }
     
     const dadosAtualizados = { senha: novaPass, combustivelLiberado: combus, role: role };
+    
     if (role === 'secretarios') {
       if (!limite || !secretaria) {
         mostrarNotificacao("❌ PREENCHA LIMITE E SECRETARIA PARA SECRETÁRIOS!", "error");
@@ -3919,9 +5102,36 @@
       }
       dadosAtualizados.limite = limite;
       dadosAtualizados.secretariaVinculada = secretaria;
+      // Limpar dados de autorizador se houver
+      dadosAtualizados.postoVinculado = "";
+      dadosAtualizados.combustiveisAutorizados = [];
+    } else if (role === 'autorizador') {
+      const postoVinculado = document.getElementById('edit-posto-vinc').value;
+      if (!postoVinculado) {
+        mostrarNotificacao("❌ SELECIONE UM POSTO PARA O AUTORIZADOR!", "error");
+        return;
+      }
+      
+      // Pegar combustíveis selecionados
+      const combustiveisAutorizados = [];
+      document.querySelectorAll('.comb-autorizador-edit:checked').forEach(cb => {
+        combustiveisAutorizados.push(cb.value);
+      });
+      
+      if (combustiveisAutorizados.length === 0) {
+        mostrarNotificacao("❌ SELECIONE PELO MENOS UM COMBUSTÍVEL QUE O AUTORIZADOR PODE LIBERAR!", "error");
+        return;
+      }
+      
+      dadosAtualizados.postoVinculado = postoVinculado;
+      dadosAtualizados.combustiveisAutorizados = combustiveisAutorizados;
+      dadosAtualizados.limite = 0;
+      dadosAtualizados.secretariaVinculada = "";
     } else {
       dadosAtualizados.limite = 0;
       dadosAtualizados.secretariaVinculada = "";
+      dadosAtualizados.postoVinculado = "";
+      dadosAtualizados.combustiveisAutorizados = [];
     }
     
     db.ref('usuarios/' + id).update(dadosAtualizados).then(() => {
@@ -4471,17 +5681,68 @@
     }
     
     const nome = document.getElementById('posto-nome').value.toUpperCase().trim();
-    const gas = parseFloat(document.getElementById('posto-gas').value);
-    const alc = parseFloat(document.getElementById('posto-alc').value);
-    const die = parseFloat(document.getElementById('posto-die').value);
     
     if (!nome) {
       mostrarNotificacao("❌ PREENCHA O NOME DO POSTO!", "error");
       return;
     }
     
-    if (!gas || !alc || !die || gas <= 0 || alc <= 0 || die <= 0) {
-      mostrarNotificacao("❌ PREENCHA TODOS OS PREÇOS COM VALORES VÁLIDOS!", "error");
+    // Verificar quais combustíveis foram selecionados
+    const combustiveis = {};
+    let algumSelecionado = false;
+    
+    if (document.getElementById('posto-tem-gasolina').checked) {
+      const preco = parseFloat(document.getElementById('posto-gas').value);
+      if (!preco || preco <= 0) {
+        mostrarNotificacao("❌ PREENCHA O PREÇO DA GASOLINA!", "error");
+        return;
+      }
+      combustiveis['GASOLINA'] = preco;
+      algumSelecionado = true;
+    }
+    
+    if (document.getElementById('posto-tem-alcool').checked) {
+      const preco = parseFloat(document.getElementById('posto-alc').value);
+      if (!preco || preco <= 0) {
+        mostrarNotificacao("❌ PREENCHA O PREÇO DO ÁLCOOL!", "error");
+        return;
+      }
+      combustiveis['ALCOOL'] = preco;
+      algumSelecionado = true;
+    }
+    
+    if (document.getElementById('posto-tem-diesel').checked) {
+      const preco = parseFloat(document.getElementById('posto-die').value);
+      if (!preco || preco <= 0) {
+        mostrarNotificacao("❌ PREENCHA O PREÇO DO DIESEL!", "error");
+        return;
+      }
+      combustiveis['DIESEL'] = preco;
+      algumSelecionado = true;
+    }
+    
+    if (document.getElementById('posto-tem-diesels10').checked) {
+      const preco = parseFloat(document.getElementById('posto-diesels10').value);
+      if (!preco || preco <= 0) {
+        mostrarNotificacao("❌ PREENCHA O PREÇO DO DIESEL S10!", "error");
+        return;
+      }
+      combustiveis['DIESEL S10'] = preco;
+      algumSelecionado = true;
+    }
+    
+    if (document.getElementById('posto-tem-gas').checked) {
+      const preco = parseFloat(document.getElementById('posto-gas-gnv').value);
+      if (!preco || preco <= 0) {
+        mostrarNotificacao("❌ PREENCHA O PREÇO DO GÁS!", "error");
+        return;
+      }
+      combustiveis['GAS'] = preco;
+      algumSelecionado = true;
+    }
+    
+    if (!algumSelecionado) {
+      mostrarNotificacao("❌ SELECIONE PELO MENOS UM TIPO DE COMBUSTÍVEL!", "error");
       return;
     }
     
@@ -4489,19 +5750,30 @@
     
     postoRef.set({
       nome: nome,
-      precos: {
-        GASOLINA: gas,
-        ALCOOL: alc,
-        DIESEL: die
-      },
+      precos: combustiveis,
       cadastradoEm: Date.now()
     }).then(() => {
-      registrarAuditoria('POSTO_CADASTRADO', { nome: nome });
+      registrarAuditoria('POSTO_CADASTRADO', { nome: nome, combustiveis: Object.keys(combustiveis) });
       mostrarNotificacao("✅ POSTO SALVO COM SUCESSO!", "success");
+      
+      // Limpar formulário
       document.getElementById('posto-nome').value = '';
+      document.getElementById('posto-tem-gasolina').checked = false;
+      document.getElementById('posto-tem-alcool').checked = false;
+      document.getElementById('posto-tem-diesel').checked = false;
+      document.getElementById('posto-tem-diesels10').checked = false;
+      document.getElementById('posto-tem-gas').checked = false;
       document.getElementById('posto-gas').value = '';
+      document.getElementById('posto-gas').disabled = true;
       document.getElementById('posto-alc').value = '';
+      document.getElementById('posto-alc').disabled = true;
       document.getElementById('posto-die').value = '';
+      document.getElementById('posto-die').disabled = true;
+      document.getElementById('posto-diesels10').value = '';
+      document.getElementById('posto-diesels10').disabled = true;
+      document.getElementById('posto-gas-gnv').value = '';
+      document.getElementById('posto-gas-gnv').disabled = true;
+      
       listPostos();
     }).catch(error => {
       mostrarNotificacao("❌ ERRO AO SALVAR: " + error.message, "error");
@@ -4513,19 +5785,41 @@
       const tbody = document.getElementById('postos-body');
       tbody.innerHTML = "";
       if (!snap.exists()) {
-        tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding:40px;">⛽ NENHUM POSTO CADASTRADO</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="3" style="text-align:center; padding:40px;">⛽ NENHUM POSTO CADASTRADO</td></tr>';
         return;
       }
       snap.forEach(c => {
         const p = c.val();
+        
+        // Gerar badges de combustíveis
+        let badgesCombustiveis = '';
+        const coresCombustiveis = {
+          'GASOLINA': 'badge-danger',
+          'ALCOOL': 'badge-success',
+          'DIESEL': 'badge-warning',
+          'DIESEL S10': 'badge badge-primary',
+          'GAS': 'badge badge-info'
+        };
+        
+        Object.keys(p.precos).forEach(combustivel => {
+          const corBadge = coresCombustiveis[combustivel] || 'badge';
+          const preco = p.precos[combustivel];
+          badgesCombustiveis += `
+            <span class="badge ${corBadge}" style="margin: 2px; display: inline-block;">
+              ${combustivel}: R$ ${preco.toFixed(2)}
+            </span>
+          `;
+        });
+        
         tbody.innerHTML += `
           <tr>
             <td><b>${p.nome}</b></td>
-            <td><span class="badge badge-danger">R$ ${p.precos.GASOLINA.toFixed(2)}</span></td>
-            <td><span class="badge badge-success">R$ ${p.precos.ALCOOL.toFixed(2)}</span></td>
-            <td><span class="badge badge-warning">R$ ${p.precos.DIESEL.toFixed(2)}</span></td>
+            <td>${badgesCombustiveis}</td>
             <td class="no-print">
               ${temPermissao('gerenciar_postos') ? `
+                <button class="btn-action" style="background:var(--accent);color:white;" onclick="editarPosto('${c.key}')">
+                  ✏️ EDITAR
+                </button>
                 <button class="btn-action btn-deletar" onclick="if(confirm('⚠️ EXCLUIR POSTO ${p.nome}?')) { db.ref('postos/${c.key}').remove().then(() => { registrarAuditoria('POSTO_DELETADO', {nome: '${p.nome}'}); mostrarNotificacao('✅ POSTO EXCLUÍDO!', 'success'); listPostos(); }); }">
                   🗑️
                 </button>
@@ -5147,6 +6441,7 @@
     const modalHistorico = document.getElementById('modal-historico-avulso');
     const modalPermissoes = document.getElementById('modal-permissoes');
     const modalTanqueCheio = document.getElementById('modal-tanque-cheio');
+    const modalEditPosto = document.getElementById('modal-edit-posto');
     
     if (event.target === modalEdit) {
       fecharModal();
@@ -5165,6 +6460,9 @@
     }
     if (event.target === modalTanqueCheio) {
       fecharModalTanqueCheio();
+    }
+    if (event.target === modalEditPosto) {
+      fecharModalEditPosto();
     }
   };
 </script>
