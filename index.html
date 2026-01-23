@@ -907,9 +907,14 @@
           <option>ADMINISTRAÇÃO E FINANÇAS</option>
           <option>AGRICULTURA E MEIO AMBIENTE</option>
           <option>ASSISTÊNCIA SOCIAL</option>
+          <option>COMUNICAÇÃO</option>
+          <option>CULTURA</option>
           <option>EDUCAÇÃO</option>
-          <option>SAÚDE</option>
+          <option>ESPORTES</option>
+          <option>GOVERNO</option>
           <option>INFRAESTRUTURA E SERVIÇOS</option>
+          <option>PLANEJAMENTO</option>
+          <option>SAÚDE</option>
           <option>AVULSOS / GERAL</option>
         </select>
       </div>
@@ -1141,6 +1146,50 @@
   </div>
 </div>
 
+<!-- Modal de Edição de VIP -->
+<div id="modal-edit-vip" class="modal">
+  <div class="modal-content">
+    <span class="modal-close" onclick="fecharModalEditVIP()">&times;</span>
+    <h3>✏️ EDITAR PESSOA VIP</h3>
+    <input type="hidden" id="edit-vip-id">
+    
+    <div class="grid-form">
+      <div>
+        <label>NOME COMPLETO *</label>
+        <input type="text" id="edit-vip-nome" placeholder="Ex: Maria da Silva">
+      </div>
+      <div>
+        <label>CARGO *</label>
+        <select id="edit-vip-cargo">
+          <option value="">SELECIONE...</option>
+          <option value="Prefeito(a)">Prefeito(a)</option>
+          <option value="Vice-Prefeito(a)">Vice-Prefeito(a)</option>
+          <option value="Vereador(a)">Vereador(a)</option>
+          <option value="Secretário(a)">Secretário(a)</option>
+          <option value="Diretor(a)">Diretor(a)</option>
+          <option value="Outro">Outro</option>
+        </select>
+      </div>
+      <div>
+        <label>CATEGORIA</label>
+        <select id="edit-vip-categoria">
+          <option value="executivo">Executivo</option>
+          <option value="legislativo">Legislativo</option>
+          <option value="administrativo">Administrativo</option>
+        </select>
+      </div>
+      <div>
+        <label>LIMITE MENSAL (R$) *</label>
+        <input type="number" id="edit-vip-limite" placeholder="0.00" step="0.01" min="0">
+      </div>
+    </div>
+    
+    <button class="btn-save" onclick="salvarEdicaoVIP()" style="margin-top: 20px; background: linear-gradient(135deg, var(--accent) 0%, #667eea 100%);">
+      💾 SALVAR ALTERAÇÕES
+    </button>
+  </div>
+</div>
+
 <!-- Tela de Login -->
 <div id="login-screen">
   <div class="login-container">
@@ -1165,6 +1214,7 @@
     <div class="nav-tabs">
       <button id="btn-tab-geral" class="tab-btn active" onclick="switchTab('geral')">📊 DASHBOARD</button>
       <button id="btn-tab-executivo" class="tab-btn" style="display:none;" onclick="switchTab('executivo')">👔 EXECUTIVO</button>
+      <button id="btn-tab-vip" class="tab-btn" style="display:none;" onclick="switchTab('vip')">⭐ VIP</button>
       <button id="btn-tab-pendentes" class="tab-btn" style="display:none;" onclick="switchTab('pendentes')">
         ⏳ PENDENTES
         <span id="pendentes-badge" class="notification-badge" style="display:none;">0</span>
@@ -1270,8 +1320,9 @@
             <option value="AGRICULTURA E MEIO AMBIENTE">AGRICULTURA E MEIO AMBIENTE</option>
             <option value="ASSISTÊNCIA SOCIAL">ASSISTÊNCIA SOCIAL</option>
             <option value="COMUNICAÇÃO">COMUNICAÇÃO</option>
-            <option value="CULTURA, ESPORTE E LAZER">CULTURA, ESPORTE E LAZER</option>
+            <option value="CULTURA">CULTURA</option>
             <option value="EDUCAÇÃO">EDUCAÇÃO</option>
+            <option value="ESPORTES">ESPORTES</option>
             <option value="GOVERNO">GOVERNO</option>
             <option value="INFRAESTRUTURA E SERVIÇOS">INFRAESTRUTURA E SERVIÇOS</option>
             <option value="PLANEJAMENTO">PLANEJAMENTO</option>
@@ -1333,7 +1384,7 @@
     </div>
     
     <!-- Filtro de Relatório -->
-    <div class="card no-print">
+    <div class="card no-print" id="card-filtros-relatorio">
       <h3>🔍 FILTROS DE RELATÓRIO</h3>
       <div class="grid-form">
         <div>
@@ -1353,8 +1404,9 @@
             <option value="AGRICULTURA E MEIO AMBIENTE">AGRICULTURA E MEIO AMBIENTE</option>
             <option value="ASSISTÊNCIA SOCIAL">ASSISTÊNCIA SOCIAL</option>
             <option value="COMUNICAÇÃO">COMUNICAÇÃO</option>
-            <option value="CULTURA, ESPORTE E LAZER">CULTURA, ESPORTE E LAZER</option>
+            <option value="CULTURA">CULTURA</option>
             <option value="EDUCAÇÃO">EDUCAÇÃO</option>
+            <option value="ESPORTES">ESPORTES</option>
             <option value="GOVERNO">GOVERNO</option>
             <option value="INFRAESTRUTURA E SERVIÇOS">INFRAESTRUTURA E SERVIÇOS</option>
             <option value="PLANEJAMENTO">PLANEJAMENTO</option>
@@ -1394,6 +1446,136 @@
     
     <!-- Relatórios -->
     <div id="relatorio-container"></div>
+  </div>
+  
+  <!-- Tab VIP - Prefeita e Vereadores -->
+  <div id="tab-vip" style="display:none;">
+    <div class="card">
+      <h2>⭐ ABASTECIMENTOS VIP - PREFEITA E VEREADORES</h2>
+      <p style="color: #64748b; font-size: 13px; margin-top: 10px;">
+        Lançamento direto de abastecimentos para Prefeita e Vereadores (aprovação automática)
+      </p>
+    </div>
+    
+    <!-- Dashboard de Limites VIP -->
+    <div class="card" id="dashboard-vip">
+      <h3>💰 LIMITES MENSAIS - PESSOAS VIP</h3>
+      <div id="container-limites-vip" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 15px; margin-top: 20px;">
+        <!-- Será preenchido dinamicamente -->
+      </div>
+    </div>
+    
+    <!-- Formulário de Abastecimento VIP -->
+    <div class="card">
+      <h3>⛽ NOVO ABASTECIMENTO VIP</h3>
+      <div class="grid-form">
+        <div>
+          <label>PESSOA VIP *</label>
+          <select id="vip-pessoa" onchange="atualizarLimiteVIP()">
+            <option value="">SELECIONE...</option>
+            <option value="PREFEITA">👑 PREFEITA</option>
+            <option value="WAGNER">🏛️ Wagner (Vereador)</option>
+            <option value="VALU">🏛️ Valú (Vereador/a)</option>
+            <option value="CASSIA">🏛️ Cássia (Vereadora)</option>
+            <option value="VALDECI">🏛️ Valdeci (Vereador)</option>
+            <option value="ANTONIO_GUEDES">🏛️ Antônio Guedes (Vereador)</option>
+          </select>
+        </div>
+        
+        <div>
+          <label>DATA *</label>
+          <input type="date" id="vip-data">
+        </div>
+        
+        <div>
+          <label>PLACA DO VEÍCULO *</label>
+          <input type="text" id="vip-placa" placeholder="ABC-1234" maxlength="8" style="text-transform:uppercase;">
+        </div>
+        
+        <div>
+          <label>POSTO *</label>
+          <select id="vip-posto" onchange="carregarCombustiveisVIP()">
+            <option value="">SELECIONE...</option>
+          </select>
+        </div>
+        
+        <div>
+          <label>COMBUSTÍVEL *</label>
+          <select id="vip-combustivel" onchange="calcularValorVIP()">
+            <option value="">SELECIONE O POSTO PRIMEIRO</option>
+          </select>
+        </div>
+        
+        <div>
+          <label>LITROS *</label>
+          <input type="number" id="vip-litros" placeholder="0.00" step="0.01" min="0" oninput="calcularValorVIP()">
+        </div>
+        
+        <div>
+          <label>PREÇO/LITRO (R$)</label>
+          <input type="number" id="vip-preco" placeholder="0.00" step="0.01" min="0" readonly style="background:#f1f5f9;">
+        </div>
+        
+        <div>
+          <label>VALOR TOTAL (R$)</label>
+          <input type="text" id="vip-valor" readonly style="background:#f1f5f9; font-weight:bold; font-size:16px; color:var(--primary);">
+        </div>
+        
+        <div>
+          <label>ODÔMETRO (KM) *</label>
+          <input type="number" id="vip-km" placeholder="0" min="0">
+        </div>
+        
+        <div style="grid-column: 1/-1;">
+          <label>OBSERVAÇÕES</label>
+          <textarea id="vip-obs" placeholder="Observações adicionais (opcional)" rows="2"></textarea>
+        </div>
+      </div>
+      
+      <!-- Alerta de Limite -->
+      <div id="alerta-limite-vip" style="display:none; margin-top:15px; padding:15px; background:#fef3c7; border-left:4px solid var(--warning); border-radius:8px;">
+        <div style="display:flex; align-items:center; gap:10px;">
+          <div style="font-size:24px;">⚠️</div>
+          <div>
+            <strong style="color:#92400e;">ATENÇÃO: LIMITE SERÁ EXCEDIDO!</strong>
+            <div id="detalhes-excedente-vip" style="font-size:12px; color:#78350f; margin-top:5px;"></div>
+          </div>
+        </div>
+      </div>
+      
+      <button class="btn-save" onclick="lancarAbastecimentoVIP()" style="margin-top:20px; background:linear-gradient(135deg, #f59e0b 0%, #d97706 100%);">
+        ⭐ LANÇAR ABASTECIMENTO VIP
+      </button>
+    </div>
+    
+    <!-- Histórico de Abastecimentos VIP -->
+    <div class="card">
+      <h3>📋 HISTÓRICO DE ABASTECIMENTOS VIP</h3>
+      <div class="table-wrapper">
+        <table>
+          <thead>
+            <tr>
+              <th>DATA</th>
+              <th>PESSOA</th>
+              <th>PLACA</th>
+              <th>POSTO</th>
+              <th>COMBUSTÍVEL</th>
+              <th>LITROS</th>
+              <th>VALOR</th>
+              <th>LANÇADO POR</th>
+              <th class="no-print">AÇÕES</th>
+            </tr>
+          </thead>
+          <tbody id="historico-vip-body">
+            <tr>
+              <td colspan="9" style="text-align:center; padding:40px;">
+                ⏳ CARREGANDO HISTÓRICO...
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
   </div>
   
   <div id="tab-pendentes" style="display:none;">
@@ -1570,6 +1752,79 @@
   </div>
   
   <div id="tab-users" style="display:none;">
+    <!-- Gestão de Pessoas VIP -->
+    <div class="card" id="gestao-vips" style="display:none;">
+      <h3>⭐ GESTÃO DE PESSOAS VIP</h3>
+      <p style="color: #64748b; font-size: 13px; margin-top: 10px;">
+        Configure as pessoas autorizadas a receber abastecimentos diretos (Prefeita, Vereadores, etc)
+      </p>
+      
+      <!-- Formulário de Novo VIP -->
+      <div style="margin-top: 20px; padding: 20px; background: #f8fafc; border-radius: 8px;">
+        <h4 style="margin: 0 0 15px 0; font-size: 14px; color: var(--primary);">➕ ADICIONAR NOVA PESSOA VIP</h4>
+        <div class="grid-form">
+          <div>
+            <label>NOME COMPLETO *</label>
+            <input type="text" id="novo-vip-nome" placeholder="Ex: Maria da Silva">
+          </div>
+          <div>
+            <label>CARGO *</label>
+            <select id="novo-vip-cargo">
+              <option value="">SELECIONE...</option>
+              <option value="Prefeito(a)">Prefeito(a)</option>
+              <option value="Vice-Prefeito(a)">Vice-Prefeito(a)</option>
+              <option value="Vereador(a)">Vereador(a)</option>
+              <option value="Secretário(a)">Secretário(a)</option>
+              <option value="Diretor(a)">Diretor(a)</option>
+              <option value="Outro">Outro</option>
+            </select>
+          </div>
+          <div>
+            <label>CATEGORIA</label>
+            <select id="novo-vip-categoria">
+              <option value="executivo">Executivo</option>
+              <option value="legislativo">Legislativo</option>
+              <option value="administrativo">Administrativo</option>
+            </select>
+          </div>
+          <div>
+            <label>LIMITE MENSAL (R$) *</label>
+            <input type="number" id="novo-vip-limite" placeholder="0.00" step="0.01" min="0">
+          </div>
+        </div>
+        <button class="btn-save" onclick="adicionarVIP()" style="margin-top: 15px; background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);">
+          ⭐ ADICIONAR PESSOA VIP
+        </button>
+      </div>
+      
+      <!-- Lista de VIPs Cadastrados -->
+      <div style="margin-top: 25px;">
+        <h4 style="margin: 0 0 15px 0; font-size: 14px; color: var(--primary);">📋 PESSOAS VIP CADASTRADAS</h4>
+        <div class="table-wrapper">
+          <table>
+            <thead>
+              <tr>
+                <th>NOME</th>
+                <th>CARGO</th>
+                <th>CATEGORIA</th>
+                <th>LIMITE MENSAL</th>
+                <th>GASTO MÊS ATUAL</th>
+                <th>SALDO</th>
+                <th class="no-print">AÇÕES</th>
+              </tr>
+            </thead>
+            <tbody id="vips-body">
+              <tr>
+                <td colspan="7" style="text-align:center; padding:40px;">
+                  ⏳ CARREGANDO PESSOAS VIP...
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+    
     <div class="card">
       <h3>⛽ CADASTRO DE POSTOS</h3>
       <div class="grid-form">
@@ -1760,9 +2015,14 @@
             <option>ADMINISTRAÇÃO E FINANÇAS</option>
             <option>AGRICULTURA E MEIO AMBIENTE</option>
             <option>ASSISTÊNCIA SOCIAL</option>
+            <option>COMUNICAÇÃO</option>
+            <option>CULTURA</option>
             <option>EDUCAÇÃO</option>
-            <option>SAÚDE</option>
+            <option>ESPORTES</option>
+            <option>GOVERNO</option>
             <option>INFRAESTRUTURA E SERVIÇOS</option>
+            <option>PLANEJAMENTO</option>
+            <option>SAÚDE</option>
             <option>AVULSOS / GERAL</option>
           </select>
         </div>
@@ -1862,6 +2122,46 @@
     REJEITADO: 'REJEITADO'
   };
   
+  // PESSOAS VIP - PREFEITA E VEREADORES
+  const PESSOAS_VIP = {
+    'PREFEITA': {
+      nome: 'PREFEITA',
+      cargo: 'Prefeita Municipal',
+      limiteDefault: 5000.00,
+      categoria: 'executivo'
+    },
+    'WAGNER': {
+      nome: 'Wagner',
+      cargo: 'Vereador',
+      limiteDefault: 2000.00,
+      categoria: 'legislativo'
+    },
+    'VALU': {
+      nome: 'Valú',
+      cargo: 'Vereador(a)',
+      limiteDefault: 2000.00,
+      categoria: 'legislativo'
+    },
+    'CASSIA': {
+      nome: 'Cássia',
+      cargo: 'Vereadora',
+      limiteDefault: 2000.00,
+      categoria: 'legislativo'
+    },
+    'VALDECI': {
+      nome: 'Valdeci',
+      cargo: 'Vereador',
+      limiteDefault: 2000.00,
+      categoria: 'legislativo'
+    },
+    'ANTONIO_GUEDES': {
+      nome: 'Antônio Guedes',
+      cargo: 'Vereador',
+      limiteDefault: 2000.00,
+      categoria: 'legislativo'
+    }
+  };
+  
   const LIMITES_KM = {
     GASOLINA: 7,
     DIESEL: 2.5,
@@ -1892,7 +2192,9 @@
     'ver_dashboard': { nome: 'Ver Dashboard', descricao: 'Visualizar painel principal', categoria: 'visualizacao' },
     'ver_relatorio_geral': { nome: 'Ver Relatórios Gerais', descricao: 'Acessar todos os relatórios', categoria: 'visualizacao' },
     'ver_relatorio_secretaria': { nome: 'Ver Relatório Secretaria', descricao: 'Ver apenas sua secretaria', categoria: 'visualizacao' },
+    'usar_filtros_relatorio': { nome: 'Usar Filtros de Relatório', descricao: 'Aplicar filtros nos relatórios', categoria: 'visualizacao' },
     'registrar_abastecimento': { nome: 'Registrar Abastecimento', descricao: 'Criar novos registros', categoria: 'operacoes' },
+    'registrar_abastecimento_vip': { nome: 'Registrar Abastecimento VIP', descricao: 'Lançar para Prefeita/Vereadores', categoria: 'operacoes' },
     'autorizar_abastecimento': { nome: 'Autorizar Abastecimento', descricao: 'Aprovar/rejeitar solicitações', categoria: 'operacoes' },
     'deletar_abastecimento': { nome: 'Deletar Abastecimento', descricao: 'Excluir registros', categoria: 'operacoes' },
     'gerenciar_veiculos': { nome: 'Gerenciar Veículos', descricao: 'Cadastrar veículos', categoria: 'gestao' },
@@ -1903,10 +2205,10 @@
   
   const PERMISSOES_PADRAO = {
     master: Object.keys(PERMISSOES_DISPONIVEIS),
-    admin: ['ver_dashboard', 'ver_relatorio_geral', 'registrar_abastecimento', 'autorizar_abastecimento', 'deletar_abastecimento', 'gerenciar_veiculos', 'gerenciar_postos', 'exportar_excel'],
-    secretarios: ['ver_dashboard', 'ver_relatorio_secretaria', 'registrar_abastecimento', 'exportar_excel'],
-    frentista: ['ver_relatorio_geral'],
-  autorizador: ['autorizar_abastecimento']
+    admin: ['ver_dashboard', 'ver_relatorio_geral', 'usar_filtros_relatorio', 'registrar_abastecimento', 'registrar_abastecimento_vip', 'autorizar_abastecimento', 'deletar_abastecimento', 'gerenciar_veiculos', 'gerenciar_postos', 'exportar_excel'],
+    secretarios: ['ver_dashboard', 'ver_relatorio_secretaria', 'usar_filtros_relatorio', 'registrar_abastecimento', 'exportar_excel'],
+    frentista: ['ver_relatorio_geral', 'usar_filtros_relatorio'],
+  autorizador: ['autorizar_abastecimento', 'registrar_abastecimento_vip']
 };
   
   // Função para verificar permissões
@@ -2310,6 +2612,9 @@
     document.getElementById('btn-tab-pendentes').style.display = 
       (temPermissao('autorizar_abastecimento')) ? 'block' : 'none';
     
+    document.getElementById('btn-tab-vip').style.display = 
+      (temPermissao('registrar_abastecimento_vip')) ? 'block' : 'none';
+    
     document.getElementById('btn-tab-executivo').style.display = 
       (temPermissao('ver_dashboard')) ? 'block' : 'none';
     
@@ -2321,6 +2626,16 @@
       const novoAbastCard = document.querySelector('.card.no-print h3');
       if (novoAbastCard && novoAbastCard.textContent.includes('NOVO ABASTECIMENTO')) {
         novoAbastCard.closest('.card').style.display = 'none';
+      }
+    }
+    
+    // Controlar visibilidade dos filtros de relatório
+    const cardFiltros = document.getElementById('card-filtros-relatorio');
+    if (cardFiltros) {
+      if (temPermissao('usar_filtros_relatorio')) {
+        cardFiltros.style.display = 'block';
+      } else {
+        cardFiltros.style.display = 'none';
       }
     }
     
@@ -5358,6 +5673,7 @@
     document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
     document.getElementById('tab-geral').style.display = 'none';
     document.getElementById('tab-pendentes').style.display = 'none';
+    document.getElementById('tab-vip').style.display = 'none';
     document.getElementById('tab-executivo').style.display = 'none';
     document.getElementById('tab-analytics').style.display = 'none';
     document.getElementById('tab-users').style.display = 'none';
@@ -5369,6 +5685,10 @@
       document.getElementById('tab-pendentes').style.display = 'block';
       document.getElementById('btn-tab-pendentes').classList.add('active');
       atualizarPendentes();
+    } else if (tab === 'vip') {
+      document.getElementById('tab-vip').style.display = 'block';
+      document.getElementById('btn-tab-vip').classList.add('active');
+      inicializarTabVIP();
     } else if (tab === 'executivo') {
       document.getElementById('tab-executivo').style.display = 'block';
       document.getElementById('btn-tab-executivo').classList.add('active');
@@ -5380,6 +5700,7 @@
     } else if (tab === 'usuarios') {
       document.getElementById('tab-users').style.display = 'block';
       document.getElementById('btn-tab-users').classList.add('active');
+      mostrarGestaoVIPs();
       listUsuarios();
       listVeiculos();
       listPostos();
@@ -6442,6 +6763,7 @@
     const modalPermissoes = document.getElementById('modal-permissoes');
     const modalTanqueCheio = document.getElementById('modal-tanque-cheio');
     const modalEditPosto = document.getElementById('modal-edit-posto');
+    const modalEditVIP = document.getElementById('modal-edit-vip');
     
     if (event.target === modalEdit) {
       fecharModal();
@@ -6464,6 +6786,664 @@
     if (event.target === modalEditPosto) {
       fecharModalEditPosto();
     }
+    if (event.target === modalEditVIP) {
+      fecharModalEditVIP();
+    }
   };
+  
+  // ============================================
+  // FUNÇÕES VIP - PREFEITA E VEREADORES
+  // ============================================
+  
+  let limitesVIPCache = {};
+  let gastosVIPCache = {};
+  
+  // Carregar postos no select VIP
+  function carregarPostosVIP() {
+    const select = document.getElementById('vip-posto');
+    if (!select) return;
+    
+    select.innerHTML = '<option value="">SELECIONE...</option>';
+    
+    db.ref('postos').once('value', snap => {
+      if (snap.exists()) {
+        snap.forEach(c => {
+          const p = c.val();
+          select.innerHTML += `<option value="${c.key}">${p.nome}</option>`;
+        });
+      }
+    });
+  }
+  
+  // Carregar combustíveis do posto selecionado
+  function carregarCombustiveisVIP() {
+    const postoId = document.getElementById('vip-posto').value;
+    const selectComb = document.getElementById('vip-combustivel');
+    
+    selectComb.innerHTML = '<option value="">SELECIONE...</option>';
+    document.getElementById('vip-preco').value = '';
+    document.getElementById('vip-valor').value = '';
+    
+    if (!postoId) {
+      selectComb.innerHTML = '<option value="">SELECIONE O POSTO PRIMEIRO</option>';
+      return;
+    }
+    
+    db.ref('postos/' + postoId).once('value', snap => {
+      if (snap.exists()) {
+        const posto = snap.val();
+        Object.keys(posto.precos).forEach(comb => {
+          selectComb.innerHTML += `<option value="${comb}" data-preco="${posto.precos[comb]}">${comb}</option>`;
+        });
+      }
+    });
+  }
+  
+  // Calcular valor do abastecimento VIP
+  function calcularValorVIP() {
+    const selectComb = document.getElementById('vip-combustivel');
+    const litros = parseFloat(document.getElementById('vip-litros').value) || 0;
+    
+    if (selectComb.selectedIndex > 0) {
+      const preco = parseFloat(selectComb.options[selectComb.selectedIndex].getAttribute('data-preco')) || 0;
+      document.getElementById('vip-preco').value = preco.toFixed(2);
+      
+      const valorTotal = litros * preco;
+      document.getElementById('vip-valor').value = 'R$ ' + valorTotal.toFixed(2);
+      
+      // Verificar limite
+      verificarLimiteVIP(valorTotal);
+    }
+  }
+  
+  // Verificar se o abastecimento excede o limite
+  async function verificarLimiteVIP(valorTotal) {
+    const pessoaId = document.getElementById('vip-pessoa').value;
+    if (!pessoaId) return;
+    
+    const alerta = document.getElementById('alerta-limite-vip');
+    const detalhes = document.getElementById('detalhes-excedente-vip');
+    
+    // Buscar dados da pessoa VIP
+    const vipSnapshot = await db.ref('pessoas_vip/' + pessoaId).once('value');
+    if (!vipSnapshot.exists()) {
+      console.error("VIP não encontrado:", pessoaId);
+      return;
+    }
+    
+    const limite = vipSnapshot.val().limite;
+    
+    // Calcular gasto atual do mês
+    const hoje = new Date();
+    const mesAtual = hoje.getMonth();
+    const anoAtual = hoje.getFullYear();
+    
+    const gastosSnapshot = await db.ref('abastecimentos').orderByChild('pessoaVIP').equalTo(pessoaId).once('value');
+    let gastoMes = 0;
+    
+    if (gastosSnapshot.exists()) {
+      gastosSnapshot.forEach(snap => {
+        const abast = snap.val();
+        const dataAbast = new Date(abast.data);
+        if (dataAbast.getMonth() === mesAtual && dataAbast.getFullYear() === anoAtual && abast.status === STATUS.AUTORIZADO) {
+          gastoMes += abast.valor;
+        }
+      });
+    }
+    
+    const saldoRestante = limite - gastoMes;
+    
+    if (valorTotal > saldoRestante) {
+      const excedente = valorTotal - saldoRestante;
+      alerta.style.display = 'block';
+      detalhes.innerHTML = `
+        Limite: <strong>R$ ${limite.toFixed(2)}</strong><br>
+        Gasto no mês: <strong>R$ ${gastoMes.toFixed(2)}</strong><br>
+        Saldo restante: <strong>R$ ${saldoRestante.toFixed(2)}</strong><br>
+        Este abastecimento: <strong>R$ ${valorTotal.toFixed(2)}</strong><br>
+        <span style="color:var(--danger); font-weight:bold;">Excedente: R$ ${excedente.toFixed(2)}</span>
+      `;
+    } else {
+      alerta.style.display = 'none';
+    }
+  }
+  
+  // Atualizar informações de limite ao selecionar pessoa
+  async function atualizarLimiteVIP() {
+    await atualizarDashboardVIP();
+  }
+  
+  // Atualizar dashboard de limites VIP
+  async function atualizarDashboardVIP() {
+    const container = document.getElementById('container-limites-vip');
+    if (!container) return;
+    
+    container.innerHTML = '<p style="text-align:center; color:#64748b;">⏳ Carregando limites...</p>';
+    
+    const hoje = new Date();
+    const mesAtual = hoje.getMonth();
+    const anoAtual = hoje.getFullYear();
+    
+    // Buscar VIPs do Firebase
+    const snapshotVIPs = await db.ref('pessoas_vip').once('value');
+    
+    if (!snapshotVIPs.exists()) {
+      container.innerHTML = '<p style="text-align:center; color:#64748b;">⭐ Nenhuma pessoa VIP cadastrada. <br>Configure em CONFIGURAÇÕES → Gestão de Pessoas VIP</p>';
+      return;
+    }
+    
+    let html = '';
+    
+    for (const snap of Object.values(snapshotVIPs.val())) {
+      const pessoa = snap;
+      const key = pessoa.id;
+      const limite = pessoa.limite;
+      
+      // Calcular gasto do mês
+      const gastosSnapshot = await db.ref('abastecimentos').orderByChild('pessoaVIP').equalTo(key).once('value');
+      let gastoMes = 0;
+      let qtdAbastecimentos = 0;
+      
+      if (gastosSnapshot.exists()) {
+        gastosSnapshot.forEach(abastSnap => {
+          const abast = abastSnap.val();
+          const dataAbast = new Date(abast.data);
+          if (dataAbast.getMonth() === mesAtual && dataAbast.getFullYear() === anoAtual && abast.status === STATUS.AUTORIZADO) {
+            gastoMes += abast.valor;
+            qtdAbastecimentos++;
+          }
+        });
+      }
+      
+      const saldoRestante = limite - gastoMes;
+      const percentual = (gastoMes / limite) * 100;
+      
+      let corBarra = 'var(--success)';
+      if (percentual >= 90) corBarra = 'var(--danger)';
+      else if (percentual >= 70) corBarra = 'var(--warning)';
+      
+      const icone = pessoa.categoria === 'executivo' ? '👑' : (pessoa.categoria === 'legislativo' ? '🏛️' : '👤');
+      
+      html += `
+        <div style="padding: 15px; background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%); border-radius: 12px; border: 2px solid #e2e8f0;">
+          <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
+            <div style="font-size: 24px;">${icone}</div>
+            <div style="flex: 1;">
+              <div style="font-weight: bold; font-size: 14px; color: var(--primary);">${pessoa.nome}</div>
+              <div style="font-size: 11px; color: #64748b;">${pessoa.cargo}</div>
+            </div>
+          </div>
+          
+          <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-bottom: 10px;">
+            <div style="text-align: center;">
+              <div style="font-size: 10px; color: #64748b;">LIMITE</div>
+              <div style="font-size: 14px; font-weight: bold; color: var(--accent);">R$ ${limite.toFixed(0)}</div>
+            </div>
+            <div style="text-align: center;">
+              <div style="font-size: 10px; color: #64748b;">GASTO</div>
+              <div style="font-size: 14px; font-weight: bold; color: ${corBarra};">R$ ${gastoMes.toFixed(0)}</div>
+            </div>
+            <div style="text-align: center;">
+              <div style="font-size: 10px; color: #64748b;">SALDO</div>
+              <div style="font-size: 14px; font-weight: bold; color: var(--success);">R$ ${saldoRestante.toFixed(0)}</div>
+            </div>
+          </div>
+          
+          <div class="progress-bar" style="height: 8px;">
+            <div class="progress-fill" style="width: ${Math.min(100, percentual)}%; background: ${corBarra};"></div>
+          </div>
+          
+          <div style="margin-top: 8px; font-size: 11px; color: #64748b; text-align: center;">
+            ${qtdAbastecimentos} abastecimento${qtdAbastecimentos !== 1 ? 's' : ''} no mês | ${percentual.toFixed(1)}% usado
+          </div>
+        </div>
+      `;
+    }
+    
+    container.innerHTML = html;
+  }
+  
+  // Lançar abastecimento VIP
+  async function lancarAbastecimentoVIP() {
+    if (!temPermissao('registrar_abastecimento_vip')) {
+      mostrarNotificacao("❌ SEM PERMISSÃO PARA LANÇAR ABASTECIMENTOS VIP!", "error");
+      return;
+    }
+    
+    const pessoaId = document.getElementById('vip-pessoa').value;
+    const data = document.getElementById('vip-data').value;
+    const placa = document.getElementById('vip-placa').value.toUpperCase().trim();
+    const postoId = document.getElementById('vip-posto').value;
+    const combustivel = document.getElementById('vip-combustivel').value;
+    const litros = parseFloat(document.getElementById('vip-litros').value);
+    const preco = parseFloat(document.getElementById('vip-preco').value);
+    const km = parseInt(document.getElementById('vip-km').value);
+    const obs = document.getElementById('vip-obs').value.trim();
+    
+    // Validações
+    if (!pessoaId) {
+      mostrarNotificacao("❌ SELECIONE A PESSOA VIP!", "error");
+      return;
+    }
+    if (!data) {
+      mostrarNotificacao("❌ INFORME A DATA!", "error");
+      return;
+    }
+    if (!placa || placa.length < 7) {
+      mostrarNotificacao("❌ INFORME UMA PLACA VÁLIDA!", "error");
+      return;
+    }
+    if (!postoId) {
+      mostrarNotificacao("❌ SELECIONE O POSTO!", "error");
+      return;
+    }
+    if (!combustivel) {
+      mostrarNotificacao("❌ SELECIONE O COMBUSTÍVEL!", "error");
+      return;
+    }
+    if (!litros || litros <= 0) {
+      mostrarNotificacao("❌ INFORME OS LITROS!", "error");
+      return;
+    }
+    if (!km || km <= 0) {
+      mostrarNotificacao("❌ INFORME O ODÔMETRO!", "error");
+      return;
+    }
+    
+    const valor = litros * preco;
+    
+    // Buscar dados da pessoa VIP
+    const vipSnapshot = await db.ref('pessoas_vip/' + pessoaId).once('value');
+    if (!vipSnapshot.exists()) {
+      mostrarNotificacao("❌ PESSOA VIP NÃO ENCONTRADA!", "error");
+      return;
+    }
+    
+    const pessoa = vipSnapshot.val();
+    
+    // Buscar nome do posto
+    const postoSnapshot = await db.ref('postos/' + postoId).once('value');
+    const nomePosto = postoSnapshot.exists() ? postoSnapshot.val().nome : 'POSTO NÃO ENCONTRADO';
+    
+    if (!confirm(`⭐ CONFIRMAR ABASTECIMENTO VIP?\n\nPessoa: ${pessoa.nome}\nPlaca: ${placa}\nPosto: ${nomePosto}\nCombustível: ${combustivel}\nLitros: ${litros}L\nValor: R$ ${valor.toFixed(2)}`)) {
+      return;
+    }
+    
+    const abastecimento = {
+      pessoaVIP: pessoaId,
+      nomePessoaVIP: pessoa.nome,
+      cargoPessoaVIP: pessoa.cargo,
+      data: data,
+      placa: placa,
+      posto: nomePosto,
+      tipo: combustivel,
+      litro: litros,
+      precoPorLitro: preco,
+      valor: valor,
+      km: km,
+      motorista: pessoa.nome,
+      secretaria: 'VIP - ' + pessoa.cargo,
+      observacoes: obs,
+      status: STATUS.AUTORIZADO,  // Aprovação automática
+      aprovadoPor: loginUser.toUpperCase(),
+      aprovadoEm: Date.now(),
+      solicitadoPor: loginUser.toUpperCase(),
+      timestamp: Date.now(),
+      tipoAbastecimento: 'VIP'
+    };
+    
+    db.ref('abastecimentos').push(abastecimento)
+      .then(() => {
+        registrarAuditoria('ABASTECIMENTO_VIP_LANCADO', {
+          pessoaVIP: pessoa.nome,
+          placa: placa,
+          valor: valor
+        });
+        
+        mostrarNotificacao("✅ ABASTECIMENTO VIP LANÇADO COM SUCESSO!", "success");
+        
+        // Limpar formulário
+        document.getElementById('vip-pessoa').value = '';
+        document.getElementById('vip-data').value = new Date().toISOString().split('T')[0];
+        document.getElementById('vip-placa').value = '';
+        document.getElementById('vip-posto').value = '';
+        document.getElementById('vip-combustivel').innerHTML = '<option value="">SELECIONE O POSTO PRIMEIRO</option>';
+        document.getElementById('vip-litros').value = '';
+        document.getElementById('vip-preco').value = '';
+        document.getElementById('vip-valor').value = '';
+        document.getElementById('vip-km').value = '';
+        document.getElementById('vip-obs').value = '';
+        document.getElementById('alerta-limite-vip').style.display = 'none';
+        
+        // Atualizar dashboard e histórico
+        atualizarDashboardVIP();
+        atualizarHistoricoVIP();
+      })
+      .catch(error => {
+        mostrarNotificacao("❌ ERRO AO LANÇAR: " + error.message, "error");
+      });
+  }
+  
+  // Atualizar histórico VIP
+  function atualizarHistoricoVIP() {
+    const tbody = document.getElementById('historico-vip-body');
+    if (!tbody) return;
+    
+    tbody.innerHTML = '<tr><td colspan="9" style="text-align:center; padding:20px;">⏳ CARREGANDO...</td></tr>';
+    
+    db.ref('abastecimentos').orderByChild('tipoAbastecimento').equalTo('VIP').once('value', snap => {
+      tbody.innerHTML = '';
+      
+      if (!snap.exists()) {
+        tbody.innerHTML = '<tr><td colspan="9" style="text-align:center; padding:40px;">📭 NENHUM ABASTECIMENTO VIP REGISTRADO</td></tr>';
+        return;
+      }
+      
+      const registros = [];
+      snap.forEach(c => {
+        const abast = c.val();
+        abast.id = c.key;
+        registros.push(abast);
+      });
+      
+      // Ordenar por data decrescente
+      registros.sort((a, b) => b.timestamp - a.timestamp);
+      
+      registros.forEach(abast => {
+        const dataFormatada = new Date(abast.data).toLocaleDateString('pt-BR');
+        
+        tbody.innerHTML += `
+          <tr>
+            <td>${dataFormatada}</td>
+            <td><strong>${abast.nomePessoaVIP}</strong><br><small>${abast.cargoPessoaVIP}</small></td>
+            <td>${abast.placa}</td>
+            <td>${abast.posto}</td>
+            <td>${abast.tipo}</td>
+            <td>${abast.litro.toFixed(2)}L</td>
+            <td><strong>R$ ${abast.valor.toFixed(2)}</strong></td>
+            <td>${abast.aprovadoPor}</td>
+            <td class="no-print">
+              ${temPermissao('deletar_abastecimento') ? `
+                <button class="btn-action btn-deletar" onclick="if(confirm('⚠️ EXCLUIR ESTE ABASTECIMENTO VIP?')) { db.ref('abastecimentos/${abast.id}').remove().then(() => { mostrarNotificacao('🗑️ EXCLUÍDO!', 'success'); atualizarHistoricoVIP(); atualizarDashboardVIP(); }); }">
+                  🗑️
+                </button>
+              ` : '-'}
+            </td>
+          </tr>
+        `;
+      });
+    });
+  }
+  
+  // Inicializar tab VIP quando acessada
+  function inicializarTabVIP() {
+    const hoje = new Date().toISOString().split('T')[0];
+    document.getElementById('vip-data').value = hoje;
+    
+    carregarPostosVIP();
+    atualizarDropdownsVIP();
+    atualizarDashboardVIP();
+    atualizarHistoricoVIP();
+  }
+  
+  // ============================================
+  // GESTÃO DE PESSOAS VIP (CRUD)
+  // ============================================
+  
+  // Mostrar/esconder seção de gestão de VIPs
+  function mostrarGestaoVIPs() {
+    const gestaoVIPs = document.getElementById('gestao-vips');
+    if (gestaoVIPs && (loginUser === 'master' || temPermissao('gerenciar_usuarios'))) {
+      gestaoVIPs.style.display = 'block';
+      listarVIPs();
+    }
+  }
+  
+  // Listar todas as pessoas VIP
+  async function listarVIPs() {
+    const tbody = document.getElementById('vips-body');
+    if (!tbody) return;
+    
+    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding:20px;">⏳ CARREGANDO...</td></tr>';
+    
+    const snapshot = await db.ref('pessoas_vip').once('value');
+    
+    if (!snapshot.exists()) {
+      tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding:40px;">⭐ NENHUMA PESSOA VIP CADASTRADA</td></tr>';
+      return;
+    }
+    
+    tbody.innerHTML = '';
+    
+    const hoje = new Date();
+    const mesAtual = hoje.getMonth();
+    const anoAtual = hoje.getFullYear();
+    
+    for (const snap of Object.values(snapshot.val())) {
+      const vip = snap;
+      const vipId = vip.id;
+      
+      // Calcular gasto do mês
+      const gastosSnapshot = await db.ref('abastecimentos').orderByChild('pessoaVIP').equalTo(vipId).once('value');
+      let gastoMes = 0;
+      
+      if (gastosSnapshot.exists()) {
+        gastosSnapshot.forEach(abastSnap => {
+          const abast = abastSnap.val();
+          const dataAbast = new Date(abast.data);
+          if (dataAbast.getMonth() === mesAtual && dataAbast.getFullYear() === anoAtual && abast.status === STATUS.AUTORIZADO) {
+            gastoMes += abast.valor;
+          }
+        });
+      }
+      
+      const saldoRestante = vip.limite - gastoMes;
+      const percentual = (gastoMes / vip.limite) * 100;
+      
+      let corSaldo = 'var(--success)';
+      if (percentual >= 90) corSaldo = 'var(--danger)';
+      else if (percentual >= 70) corSaldo = 'var(--warning)';
+      
+      const icone = vip.categoria === 'executivo' ? '👑' : (vip.categoria === 'legislativo' ? '🏛️' : '👤');
+      
+      tbody.innerHTML += `
+        <tr>
+          <td><strong>${icone} ${vip.nome}</strong></td>
+          <td>${vip.cargo}</td>
+          <td><span class="badge">${vip.categoria}</span></td>
+          <td><strong style="color:var(--accent);">R$ ${vip.limite.toFixed(2)}</strong></td>
+          <td><strong style="color:${corSaldo};">R$ ${gastoMes.toFixed(2)}</strong></td>
+          <td><strong style="color:var(--success);">R$ ${saldoRestante.toFixed(2)}</strong></td>
+          <td class="no-print">
+            <button class="btn-action" style="background:var(--accent);color:white;" onclick="editarVIP('${vipId}')">
+              ✏️
+            </button>
+            <button class="btn-action btn-deletar" onclick="deletarVIP('${vipId}', '${vip.nome}')">
+              🗑️
+            </button>
+          </td>
+        </tr>
+      `;
+    }
+  }
+  
+  // Adicionar nova pessoa VIP
+  function adicionarVIP() {
+    if (!temPermissao('gerenciar_usuarios') && loginUser !== 'master') {
+      mostrarNotificacao("❌ SEM PERMISSÃO PARA GERENCIAR VIPs!", "error");
+      return;
+    }
+    
+    const nome = document.getElementById('novo-vip-nome').value.trim().toUpperCase();
+    const cargo = document.getElementById('novo-vip-cargo').value;
+    const categoria = document.getElementById('novo-vip-categoria').value;
+    const limite = parseFloat(document.getElementById('novo-vip-limite').value);
+    
+    if (!nome) {
+      mostrarNotificacao("❌ INFORME O NOME!", "error");
+      return;
+    }
+    if (!cargo) {
+      mostrarNotificacao("❌ SELECIONE O CARGO!", "error");
+      return;
+    }
+    if (!limite || limite <= 0) {
+      mostrarNotificacao("❌ INFORME UM LIMITE VÁLIDO!", "error");
+      return;
+    }
+    
+    // Gerar ID único (slug do nome)
+    const vipId = nome.replace(/\s+/g, '_').replace(/[^A-Z0-9_]/g, '');
+    
+    const novaVIP = {
+      id: vipId,
+      nome: nome,
+      cargo: cargo,
+      categoria: categoria,
+      limite: limite,
+      criadoEm: Date.now(),
+      criadoPor: loginUser.toUpperCase()
+    };
+    
+    db.ref('pessoas_vip/' + vipId).set(novaVIP)
+      .then(() => {
+        registrarAuditoria('VIP_ADICIONADO', { nome: nome, limite: limite });
+        mostrarNotificacao("✅ PESSOA VIP CADASTRADA COM SUCESSO!", "success");
+        
+        // Limpar formulário
+        document.getElementById('novo-vip-nome').value = '';
+        document.getElementById('novo-vip-cargo').value = '';
+        document.getElementById('novo-vip-categoria').value = 'executivo';
+        document.getElementById('novo-vip-limite').value = '';
+        
+        // Atualizar lista
+        listarVIPs();
+        
+        // Atualizar dropdowns VIP
+        atualizarDropdownsVIP();
+      })
+      .catch(error => {
+        mostrarNotificacao("❌ ERRO AO CADASTRAR: " + error.message, "error");
+      });
+  }
+  
+  // Editar pessoa VIP
+  function editarVIP(vipId) {
+    if (!temPermissao('gerenciar_usuarios') && loginUser !== 'master') {
+      mostrarNotificacao("❌ SEM PERMISSÃO PARA EDITAR VIPs!", "error");
+      return;
+    }
+    
+    db.ref('pessoas_vip/' + vipId).once('value', snap => {
+      if (!snap.exists()) {
+        mostrarNotificacao("❌ VIP NÃO ENCONTRADO!", "error");
+        return;
+      }
+      
+      const vip = snap.val();
+      
+      document.getElementById('edit-vip-id').value = vipId;
+      document.getElementById('edit-vip-nome').value = vip.nome;
+      document.getElementById('edit-vip-cargo').value = vip.cargo;
+      document.getElementById('edit-vip-categoria').value = vip.categoria;
+      document.getElementById('edit-vip-limite').value = vip.limite;
+      
+      document.getElementById('modal-edit-vip').style.display = 'flex';
+    });
+  }
+  
+  // Salvar edição de VIP
+  function salvarEdicaoVIP() {
+    if (!temPermissao('gerenciar_usuarios') && loginUser !== 'master') {
+      mostrarNotificacao("❌ SEM PERMISSÃO PARA EDITAR VIPs!", "error");
+      return;
+    }
+    
+    const vipId = document.getElementById('edit-vip-id').value;
+    const nome = document.getElementById('edit-vip-nome').value.trim().toUpperCase();
+    const cargo = document.getElementById('edit-vip-cargo').value;
+    const categoria = document.getElementById('edit-vip-categoria').value;
+    const limite = parseFloat(document.getElementById('edit-vip-limite').value);
+    
+    if (!nome) {
+      mostrarNotificacao("❌ INFORME O NOME!", "error");
+      return;
+    }
+    if (!cargo) {
+      mostrarNotificacao("❌ SELECIONE O CARGO!", "error");
+      return;
+    }
+    if (!limite || limite <= 0) {
+      mostrarNotificacao("❌ INFORME UM LIMITE VÁLIDO!", "error");
+      return;
+    }
+    
+    db.ref('pessoas_vip/' + vipId).update({
+      nome: nome,
+      cargo: cargo,
+      categoria: categoria,
+      limite: limite,
+      atualizadoEm: Date.now(),
+      atualizadoPor: loginUser.toUpperCase()
+    })
+      .then(() => {
+        registrarAuditoria('VIP_EDITADO', { id: vipId, nome: nome, limite: limite });
+        mostrarNotificacao("✅ PESSOA VIP ATUALIZADA!", "success");
+        fecharModalEditVIP();
+        listarVIPs();
+        atualizarDropdownsVIP();
+      })
+      .catch(error => {
+        mostrarNotificacao("❌ ERRO AO ATUALIZAR: " + error.message, "error");
+      });
+  }
+  
+  // Deletar pessoa VIP
+  function deletarVIP(vipId, nome) {
+    if (!temPermissao('gerenciar_usuarios') && loginUser !== 'master') {
+      mostrarNotificacao("❌ SEM PERMISSÃO PARA DELETAR VIPs!", "error");
+      return;
+    }
+    
+    if (!confirm(`⚠️ TEM CERTEZA QUE DESEJA EXCLUIR?\n\n${nome}\n\n⛔ Esta ação não pode ser desfeita!\n\n✅ Os abastecimentos históricos serão mantidos.`)) {
+      return;
+    }
+    
+    db.ref('pessoas_vip/' + vipId).remove()
+      .then(() => {
+        registrarAuditoria('VIP_DELETADO', { id: vipId, nome: nome });
+        mostrarNotificacao("🗑️ PESSOA VIP EXCLUÍDA!", "success");
+        listarVIPs();
+        atualizarDropdownsVIP();
+      })
+      .catch(error => {
+        mostrarNotificacao("❌ ERRO AO EXCLUIR: " + error.message, "error");
+      });
+  }
+  
+  // Fechar modal de edição de VIP
+  function fecharModalEditVIP() {
+    document.getElementById('modal-edit-vip').style.display = 'none';
+  }
+  
+  // Atualizar dropdowns de VIP em todo o sistema
+  async function atualizarDropdownsVIP() {
+    const selectVIP = document.getElementById('vip-pessoa');
+    if (!selectVIP) return;
+    
+    selectVIP.innerHTML = '<option value="">SELECIONE...</option>';
+    
+    const snapshot = await db.ref('pessoas_vip').once('value');
+    
+    if (snapshot.exists()) {
+      snapshot.forEach(snap => {
+        const vip = snap.val();
+        const icone = vip.categoria === 'executivo' ? '👑' : (vip.categoria === 'legislativo' ? '🏛️' : '👤');
+        selectVIP.innerHTML += `<option value="${vip.id}">${icone} ${vip.nome} (${vip.cargo})</option>`;
+      });
+    }
+  }
+  
+
 </script>
 
