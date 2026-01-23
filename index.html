@@ -1179,8 +1179,12 @@
         </select>
       </div>
       <div>
-        <label>LIMITE MENSAL (R$) *</label>
+        <label>LIMITE MENSAL (R$)</label>
         <input type="number" id="edit-vip-limite" placeholder="0.00" step="0.01" min="0">
+        <label style="display: flex; align-items: center; gap: 8px; margin-top: 8px; font-size: 13px; cursor: pointer;">
+          <input type="checkbox" id="edit-vip-sem-limite" onchange="toggleLimiteVIP('edit')">
+          <span>⭐ Sem limite (ilimitado)</span>
+        </label>
       </div>
     </div>
     
@@ -1788,8 +1792,12 @@
             </select>
           </div>
           <div>
-            <label>LIMITE MENSAL (R$) *</label>
+            <label>LIMITE MENSAL (R$)</label>
             <input type="number" id="novo-vip-limite" placeholder="0.00" step="0.01" min="0">
+            <label style="display: flex; align-items: center; gap: 8px; margin-top: 8px; font-size: 13px; cursor: pointer;">
+              <input type="checkbox" id="novo-vip-sem-limite" onchange="toggleLimiteVIP('novo')">
+              <span>⭐ Sem limite (ilimitado)</span>
+            </label>
           </div>
         </div>
         <button class="btn-save" onclick="adicionarVIP()" style="margin-top: 15px; background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);">
@@ -6871,7 +6879,15 @@
       return;
     }
     
-    const limite = vipSnapshot.val().limite;
+    const vipData = vipSnapshot.val();
+    
+    // Se sem limite, não mostrar alerta
+    if (vipData.semLimite) {
+      alerta.style.display = 'none';
+      return;
+    }
+    
+    const limite = vipData.limite;
     
     // Calcular gasto atual do mês
     const hoje = new Date();
@@ -6932,12 +6948,18 @@
       return;
     }
     
-    let html = '';
+    // Agrupar por categoria
+    const vipsPorCategoria = {
+      executivo: [],
+      legislativo: [],
+      administrativo: []
+    };
     
     for (const snap of Object.values(snapshotVIPs.val())) {
       const pessoa = snap;
       const key = pessoa.id;
       const limite = pessoa.limite;
+      const semLimite = pessoa.semLimite || false;
       
       // Calcular gasto do mês
       const gastosSnapshot = await db.ref('abastecimentos').orderByChild('pessoaVIP').equalTo(key).once('value');
@@ -6955,16 +6977,22 @@
         });
       }
       
-      const saldoRestante = limite - gastoMes;
-      const percentual = (gastoMes / limite) * 100;
+      const saldoRestante = semLimite ? Infinity : (limite - gastoMes);
+      const percentual = semLimite ? 0 : ((gastoMes / limite) * 100);
       
       let corBarra = 'var(--success)';
-      if (percentual >= 90) corBarra = 'var(--danger)';
-      else if (percentual >= 70) corBarra = 'var(--warning)';
+      if (!semLimite) {
+        if (percentual >= 90) corBarra = 'var(--danger)';
+        else if (percentual >= 70) corBarra = 'var(--warning)';
+      }
       
       const icone = pessoa.categoria === 'executivo' ? '👑' : (pessoa.categoria === 'legislativo' ? '🏛️' : '👤');
       
-      html += `
+      const limiteTexto = semLimite ? 'ILIMITADO ⭐' : `R$ ${limite.toFixed(0)}`;
+      const saldoTexto = semLimite ? 'ILIMITADO ⭐' : `R$ ${saldoRestante.toFixed(0)}`;
+      const percentualTexto = semLimite ? '0%' : `${percentual.toFixed(1)}%`;
+      
+      const cardHTML = `
         <div style="padding: 15px; background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%); border-radius: 12px; border: 2px solid #e2e8f0;">
           <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
             <div style="font-size: 24px;">${icone}</div>
@@ -6977,7 +7005,7 @@
           <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-bottom: 10px;">
             <div style="text-align: center;">
               <div style="font-size: 10px; color: #64748b;">LIMITE</div>
-              <div style="font-size: 14px; font-weight: bold; color: var(--accent);">R$ ${limite.toFixed(0)}</div>
+              <div style="font-size: ${semLimite ? '12px' : '14px'}; font-weight: bold; color: ${semLimite ? '#f59e0b' : 'var(--accent)'};">${limiteTexto}</div>
             </div>
             <div style="text-align: center;">
               <div style="font-size: 10px; color: #64748b;">GASTO</div>
@@ -6985,18 +7013,58 @@
             </div>
             <div style="text-align: center;">
               <div style="font-size: 10px; color: #64748b;">SALDO</div>
-              <div style="font-size: 14px; font-weight: bold; color: var(--success);">R$ ${saldoRestante.toFixed(0)}</div>
+              <div style="font-size: ${semLimite ? '12px' : '14px'}; font-weight: bold; color: ${semLimite ? '#22c55e' : 'var(--success)'};">${saldoTexto}</div>
             </div>
           </div>
           
+          ${!semLimite ? `
           <div class="progress-bar" style="height: 8px;">
             <div class="progress-fill" style="width: ${Math.min(100, percentual)}%; background: ${corBarra};"></div>
           </div>
+          ` : ''}
           
           <div style="margin-top: 8px; font-size: 11px; color: #64748b; text-align: center;">
-            ${qtdAbastecimentos} abastecimento${qtdAbastecimentos !== 1 ? 's' : ''} no mês | ${percentual.toFixed(1)}% usado
+            ${qtdAbastecimentos} abastecimento${qtdAbastecimentos !== 1 ? 's' : ''} no mês${!semLimite ? ` | ${percentualTexto} usado` : ''}
           </div>
         </div>
+      `;
+      
+      vipsPorCategoria[pessoa.categoria].push(cardHTML);
+    }
+    
+    // Montar HTML com separação por categorias
+    let html = '';
+    
+    if (vipsPorCategoria.executivo.length > 0) {
+      html += `
+        <div style="grid-column: 1/-1;">
+          <h4 style="margin: 0 0 15px 0; font-size: 14px; color: var(--primary); display: flex; align-items: center; gap: 8px;">
+            <span>👑</span> EXECUTIVO
+          </h4>
+        </div>
+        ${vipsPorCategoria.executivo.join('')}
+      `;
+    }
+    
+    if (vipsPorCategoria.legislativo.length > 0) {
+      html += `
+        <div style="grid-column: 1/-1; margin-top: ${vipsPorCategoria.executivo.length > 0 ? '20px' : '0'};">
+          <h4 style="margin: 0 0 15px 0; font-size: 14px; color: var(--primary); display: flex; align-items: center; gap: 8px;">
+            <span>🏛️</span> LEGISLATIVO
+          </h4>
+        </div>
+        ${vipsPorCategoria.legislativo.join('')}
+      `;
+    }
+    
+    if (vipsPorCategoria.administrativo.length > 0) {
+      html += `
+        <div style="grid-column: 1/-1; margin-top: ${(vipsPorCategoria.executivo.length > 0 || vipsPorCategoria.legislativo.length > 0) ? '20px' : '0'};">
+          <h4 style="margin: 0 0 15px 0; font-size: 14px; color: var(--primary); display: flex; align-items: center; gap: 8px;">
+            <span>👤</span> ADMINISTRATIVO
+          </h4>
+        </div>
+        ${vipsPorCategoria.administrativo.join('')}
       `;
     }
     
@@ -7190,6 +7258,27 @@
   // GESTÃO DE PESSOAS VIP (CRUD)
   // ============================================
   
+  // Toggle de limite ilimitado
+  function toggleLimiteVIP(tipo) {
+    const checkbox = document.getElementById(tipo + '-vip-sem-limite');
+    const inputLimite = document.getElementById(tipo + '-vip-limite');
+    
+    if (checkbox.checked) {
+      inputLimite.value = '';
+      inputLimite.disabled = true;
+      inputLimite.placeholder = 'ILIMITADO';
+      inputLimite.style.background = '#fef3c7';
+      inputLimite.style.fontWeight = 'bold';
+      inputLimite.style.color = '#92400e';
+    } else {
+      inputLimite.disabled = false;
+      inputLimite.placeholder = '0.00';
+      inputLimite.style.background = '';
+      inputLimite.style.fontWeight = '';
+      inputLimite.style.color = '';
+    }
+  }
+  
   // Mostrar/esconder seção de gestão de VIPs
   function mostrarGestaoVIPs() {
     const gestaoVIPs = document.getElementById('gestao-vips');
@@ -7237,23 +7326,28 @@
         });
       }
       
-      const saldoRestante = vip.limite - gastoMes;
-      const percentual = (gastoMes / vip.limite) * 100;
+      const saldoRestante = vip.semLimite ? Infinity : (vip.limite - gastoMes);
+      const percentual = vip.semLimite ? 0 : ((gastoMes / vip.limite) * 100);
       
       let corSaldo = 'var(--success)';
-      if (percentual >= 90) corSaldo = 'var(--danger)';
-      else if (percentual >= 70) corSaldo = 'var(--warning)';
+      if (!vip.semLimite) {
+        if (percentual >= 90) corSaldo = 'var(--danger)';
+        else if (percentual >= 70) corSaldo = 'var(--warning)';
+      }
       
       const icone = vip.categoria === 'executivo' ? '👑' : (vip.categoria === 'legislativo' ? '🏛️' : '👤');
+      
+      const limiteTexto = vip.semLimite ? '<span style="color:#f59e0b; font-weight:bold;">ILIMITADO ⭐</span>' : `R$ ${vip.limite.toFixed(2)}`;
+      const saldoTexto = vip.semLimite ? '<span style="color:#22c55e; font-weight:bold;">ILIMITADO ⭐</span>' : `R$ ${saldoRestante.toFixed(2)}`;
       
       tbody.innerHTML += `
         <tr>
           <td><strong>${icone} ${vip.nome}</strong></td>
           <td>${vip.cargo}</td>
           <td><span class="badge">${vip.categoria}</span></td>
-          <td><strong style="color:var(--accent);">R$ ${vip.limite.toFixed(2)}</strong></td>
+          <td><strong style="color:var(--accent);">${limiteTexto}</strong></td>
           <td><strong style="color:${corSaldo};">R$ ${gastoMes.toFixed(2)}</strong></td>
-          <td><strong style="color:var(--success);">R$ ${saldoRestante.toFixed(2)}</strong></td>
+          <td><strong style="color:var(--success);">${saldoTexto}</strong></td>
           <td class="no-print">
             <button class="btn-action" style="background:var(--accent);color:white;" onclick="editarVIP('${vipId}')">
               ✏️
@@ -7277,7 +7371,8 @@
     const nome = document.getElementById('novo-vip-nome').value.trim().toUpperCase();
     const cargo = document.getElementById('novo-vip-cargo').value;
     const categoria = document.getElementById('novo-vip-categoria').value;
-    const limite = parseFloat(document.getElementById('novo-vip-limite').value);
+    const semLimite = document.getElementById('novo-vip-sem-limite').checked;
+    const limite = semLimite ? null : parseFloat(document.getElementById('novo-vip-limite').value);
     
     if (!nome) {
       mostrarNotificacao("❌ INFORME O NOME!", "error");
@@ -7287,8 +7382,8 @@
       mostrarNotificacao("❌ SELECIONE O CARGO!", "error");
       return;
     }
-    if (!limite || limite <= 0) {
-      mostrarNotificacao("❌ INFORME UM LIMITE VÁLIDO!", "error");
+    if (!semLimite && (!limite || limite <= 0)) {
+      mostrarNotificacao("❌ INFORME UM LIMITE VÁLIDO OU MARQUE 'SEM LIMITE'!", "error");
       return;
     }
     
@@ -7301,13 +7396,14 @@
       cargo: cargo,
       categoria: categoria,
       limite: limite,
+      semLimite: semLimite,
       criadoEm: Date.now(),
       criadoPor: loginUser.toUpperCase()
     };
     
     db.ref('pessoas_vip/' + vipId).set(novaVIP)
       .then(() => {
-        registrarAuditoria('VIP_ADICIONADO', { nome: nome, limite: limite });
+        registrarAuditoria('VIP_ADICIONADO', { nome: nome, limite: semLimite ? 'ILIMITADO' : limite });
         mostrarNotificacao("✅ PESSOA VIP CADASTRADA COM SUCESSO!", "success");
         
         // Limpar formulário
@@ -7315,6 +7411,8 @@
         document.getElementById('novo-vip-cargo').value = '';
         document.getElementById('novo-vip-categoria').value = 'executivo';
         document.getElementById('novo-vip-limite').value = '';
+        document.getElementById('novo-vip-sem-limite').checked = false;
+        toggleLimiteVIP('novo'); // Reset do campo
         
         // Atualizar lista
         listarVIPs();
@@ -7346,7 +7444,11 @@
       document.getElementById('edit-vip-nome').value = vip.nome;
       document.getElementById('edit-vip-cargo').value = vip.cargo;
       document.getElementById('edit-vip-categoria').value = vip.categoria;
-      document.getElementById('edit-vip-limite').value = vip.limite;
+      document.getElementById('edit-vip-limite').value = vip.limite || '';
+      document.getElementById('edit-vip-sem-limite').checked = vip.semLimite || false;
+      
+      // Aplicar estado do checkbox
+      toggleLimiteVIP('edit');
       
       document.getElementById('modal-edit-vip').style.display = 'flex';
     });
@@ -7363,7 +7465,8 @@
     const nome = document.getElementById('edit-vip-nome').value.trim().toUpperCase();
     const cargo = document.getElementById('edit-vip-cargo').value;
     const categoria = document.getElementById('edit-vip-categoria').value;
-    const limite = parseFloat(document.getElementById('edit-vip-limite').value);
+    const semLimite = document.getElementById('edit-vip-sem-limite').checked;
+    const limite = semLimite ? null : parseFloat(document.getElementById('edit-vip-limite').value);
     
     if (!nome) {
       mostrarNotificacao("❌ INFORME O NOME!", "error");
@@ -7373,8 +7476,8 @@
       mostrarNotificacao("❌ SELECIONE O CARGO!", "error");
       return;
     }
-    if (!limite || limite <= 0) {
-      mostrarNotificacao("❌ INFORME UM LIMITE VÁLIDO!", "error");
+    if (!semLimite && (!limite || limite <= 0)) {
+      mostrarNotificacao("❌ INFORME UM LIMITE VÁLIDO OU MARQUE 'SEM LIMITE'!", "error");
       return;
     }
     
@@ -7383,11 +7486,12 @@
       cargo: cargo,
       categoria: categoria,
       limite: limite,
+      semLimite: semLimite,
       atualizadoEm: Date.now(),
       atualizadoPor: loginUser.toUpperCase()
     })
       .then(() => {
-        registrarAuditoria('VIP_EDITADO', { id: vipId, nome: nome, limite: limite });
+        registrarAuditoria('VIP_EDITADO', { id: vipId, nome: nome, limite: semLimite ? 'ILIMITADO' : limite });
         mostrarNotificacao("✅ PESSOA VIP ATUALIZADA!", "success");
         fecharModalEditVIP();
         listarVIPs();
